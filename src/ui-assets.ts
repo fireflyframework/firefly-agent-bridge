@@ -26,6 +26,7 @@ export const uiAssets = {
   css: readFileSync(directory + "app.css", "utf8"),
   themeJs: readFileSync(directory + "theme.js", "utf8"),
   auditJs: readFileSync(directory + "audit.js", "utf8"),
+  setupJs: readFileSync(directory + "setup.js", "utf8"),
   js: readFileSync(directory + "app.js", "utf8"),
   brandDark: readFileSync(
     fileURLToPath(

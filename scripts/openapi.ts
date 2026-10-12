@@ -19,6 +19,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { z } from "zod";
+import { format } from "prettier";
 import { chatRequestSchema } from "../src/completion-protocol.js";
 import { templateSchema } from "../src/config.js";
 const str = { type: "string" },
@@ -448,4 +449,7 @@ const spec = {
     schemas,
   },
 };
-writeFileSync("docs/openapi.json", JSON.stringify(spec, null, 2) + "\n");
+writeFileSync(
+  "docs/openapi.json",
+  await format(JSON.stringify(spec), { parser: "json" }),
+);

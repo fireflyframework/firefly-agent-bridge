@@ -2,6 +2,16 @@
 
 # Changelog
 
+## 0.2.1 — 2026-10-12
+
+- A four-step provider setup wizard separates provider setup guides, official subscription login, execution profiles and development-tool connections.
+- Diagnostics presents worker readiness, dispatch and active jobs together, with application-token management in a separate panel.
+- Setup preserves the chosen profile when moving between steps and distinguishes the running worker from another provider's setup guide.
+- Clearer local stdio MCP and remote HTTPS connection instructions, with the same scoped access and restart requirements.
+- Embedded native packages include the setup module; CLI, HTTP, MCP, plugin manifests and installation examples identify this patch consistently.
+
+The setup guide does not sign in to a provider, rewrite worker configuration or establish a remote ChatGPT connection. Real subscription access and model execution remain separate checks.
+
 ## 0.2.0 — 2026-10-12
 
 - A distinct bridge mark and a shared Firefly grid, typography and light/dark/system appearances.

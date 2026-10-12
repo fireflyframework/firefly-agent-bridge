@@ -143,6 +143,7 @@ try {
     throw new Error("Embedded console is missing");
   for (const path of [
     "/theme.js",
+    "/setup.js",
     "/brand-dark.svg",
     "/brand-light.svg",
     "/bridge-mark-light.svg",

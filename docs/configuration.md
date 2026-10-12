@@ -6,6 +6,14 @@ The service reads owner-managed `config.json` from its data directory at startup
 
 All data, workspace, and executable paths are absolute. The selected provider path is mandatory. HTTP callers cannot override these paths or supply worker arguments or environment settings.
 
+## Use the setup wizard
+
+Open **Providers & setup** after connecting to the console. Follow Provider, Login, Profile and Tools in order. The wizard explains the configuration already running on this host; it does not edit the file below or log in on your behalf.
+
+Choose the setup guide matching your intended subscription. If it differs from the current worker, stop the bridge and update its worker and executable path before restarting. Refresh readiness after the official login. Use the profile step to confirm the effective model and limits, then create a separate scoped token for each application from the final step.
+
+See the [console tour](dashboard.md#appearance-and-provider-setup) for the four steps and [integration instructions](integrations.md) for actual client setup.
+
 ## Codex subscription configuration
 
 ```json
