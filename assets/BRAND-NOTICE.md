@@ -1,0 +1,1 @@
+Firefly marks are proprietary to Firefly Software Solutions Inc. and used by the Firefly Software Foundation with permission. The Forge wordmark is a Firefly Software Foundation trademark. Brand assets are excluded from the Apache-2.0 software license.

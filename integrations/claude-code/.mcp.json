@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "firefly-agent-bridge": {
+      "command": "bash",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap.sh", "mcp"]
+    }
+  }
+}

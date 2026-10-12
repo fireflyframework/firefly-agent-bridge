@@ -1,0 +1,139 @@
+/*!
+ * Copyright (c) 2026 Signature Management Consultants SLU
+ * Author: @ancongui (https://github.com/ancongui)
+ * Modified by Firefly Software Foundation for Firefly Agent Bridge (2026).
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import assert from "node:assert/strict";
+import { parseConfig } from "../src/config.js";
+import { QueueStore } from "../src/store.js";
+import { Workflows } from "../src/workflows.js";
+function inventory(directory = "."): string[] {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    if (
+      [
+        ".git",
+        "node_modules",
+        "work",
+        "dist",
+        "release",
+        "coverage",
+        "test-results",
+        "playwright-report",
+        ".client-venv",
+      ].includes(entry.name)
+    )
+      return [];
+    const path = directory === "." ? entry.name : directory + "/" + entry.name;
+    return entry.isDirectory() ? inventory(path) : [path];
+  });
+}
+const files = inventory();
+const read = (path: string) => readFileSync(path, "utf8");
+// Documentation examples use the production validators so schema and reference
+// changes cannot silently leave installation instructions with unusable templates.
+const exampleConfig = parseConfig({
+  dataDir: resolve("work/example-state"),
+  workspace: resolve("work/example-jobs"),
+  claudePath: process.execPath,
+  profiles: {
+    default: {},
+    ...JSON.parse(read("examples/workflow-profiles.json")),
+  },
+  workflows: [
+    JSON.parse(read("examples/workflow-templates/advanced-development.json")),
+  ],
+});
+const exampleStore = new QueueStore(":memory:");
+try {
+  new Workflows(exampleStore, exampleConfig.workflows);
+} finally {
+  exampleStore.close();
+}
+const version = JSON.parse(read("package.json")).version;
+for (const file of [
+  "integrations/desktop/manifest.json",
+  "integrations/claude-code/.claude-plugin/plugin.json",
+])
+  assert.equal(JSON.parse(read(file)).version, version, file + " version");
+assert.equal(
+  JSON.parse(read(".claude-plugin/marketplace.json")).plugins[0].version,
+  version,
+);
+assert(
+  read("integrations/claude-code/scripts/bootstrap.sh").includes(
+    'version="' + version + '"',
+  ),
+);
+assert(read("src/cli.ts").includes('console.log("' + version + '")'));
+for (const file of files) {
+  if (file.startsWith("vendor-licenses/")) continue;
+  if (/\.(ts|js|mjs|css|svg|html|sh|yml|py)$/.test(file)) {
+    const start = read(file).slice(0, 1800);
+    for (const notice of [
+      "Signature Management Consultants SLU",
+      "@ancongui",
+      "SPDX-License-Identifier: Apache-2.0",
+      "https://www.apache.org/licenses/LICENSE-2.0",
+    ])
+      assert(start.includes(notice), file + " lacks " + notice);
+  }
+  if (file.endsWith(".json"))
+    assert(
+      existsSync(file + ".license"),
+      file + " lacks its JSON license sidecar",
+    );
+  if (file.endsWith(".md")) {
+    for (const match of read(file).matchAll(
+      /!?\[[^\]]*\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g,
+    )) {
+      const link = match[1]!;
+      if (/^(https?:|mailto:|#)/.test(link)) continue;
+      assert(
+        existsSync(
+          resolve(dirname(file), decodeURIComponent(link.split("#")[0]!)),
+        ),
+        file + " has a broken link: " + link,
+      );
+    }
+  }
+}
+const api = JSON.parse(read("docs/openapi.json"));
+for (const match of (read("src/http.ts") + read("src/openai.ts")).matchAll(
+  /app\.(get|post|put|delete)\(\s*["'](\/v1\/[^"']+)["']/g,
+)) {
+  const path = match[2]!.replace(/:([A-Za-z]+)/g, "{$1}");
+  assert(
+    api.paths[path]?.[match[1]!],
+    match[1] + " " + path + " missing from OpenAPI",
+  );
+}
+const privatePaths = [
+  ".codex/plan.md",
+  ".superpowers/plan.md",
+  "outputs/design.md",
+  ".env",
+  "queue.sqlite",
+  "node_modules/test",
+  "release/test.mcpb",
+];
+for (const path of privatePaths)
+  assert(!files.includes(path), path + " must be excluded from deliverables");
+console.log(
+  "Repository notices, documentation links and examples, versions, OpenAPI coverage, and private-file exclusions passed.",
+);

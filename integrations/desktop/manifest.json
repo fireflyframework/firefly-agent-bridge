@@ -1,0 +1,43 @@
+{
+  "manifest_version": "0.3",
+  "name": "firefly-agent-bridge",
+  "display_name": "Firefly Agent Bridge",
+  "version": "0.1.0",
+  "description": "Private Firefly developer jobs and workflows through official local coding agents.",
+  "long_description": "Private developer integration with a durable local queue, scoped authentication, workflows, audit and management console. Claude Code or Codex runs using your own official subscription login. Default permissions are enabled; explicit bypass requires a trusted host.",
+  "author": {
+    "name": "Firefly Software Foundation",
+    "url": "https://github.com/fireflyframework"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fireflyframework/firefly-agent-bridge"
+  },
+  "homepage": "https://github.com/fireflyframework/firefly-agent-bridge",
+  "documentation": "https://github.com/fireflyframework/firefly-agent-bridge/blob/main/docs/installation.md",
+  "support": "https://github.com/fireflyframework/firefly-agent-bridge/issues",
+  "icon": "assets/logo.png",
+  "screenshots": ["assets/dashboard.png"],
+  "server": {
+    "type": "binary",
+    "entry_point": "server/firefly-bridge",
+    "mcp_config": {
+      "command": "${__dirname}/server/firefly-bridge",
+      "args": ["mcp"]
+    }
+  },
+  "tools_generated": true,
+  "keywords": [
+    "orchestration",
+    "workflows",
+    "local",
+    "queue",
+    "sse",
+    "openai-compatible",
+    "pydantic-ai"
+  ],
+  "license": "Apache-2.0",
+  "compatibility": {
+    "platforms": ["darwin", "win32"]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "fireflyframework",
+  "owner": {
+    "name": "Firefly Software Foundation",
+    "url": "https://github.com/fireflyframework"
+  },
+  "metadata": {
+    "description": "Native local orchestration tools from Firefly Software Foundation"
+  },
+  "plugins": [
+    {
+      "name": "firefly-agent-bridge",
+      "source": "./integrations/claude-code",
+      "description": "OpenAI-compatible API, durable jobs, workflows, and a local console for your own Claude subscription.",
+      "version": "0.1.0",
+      "author": {
+        "name": "@ancongui",
+        "url": "https://github.com/ancongui"
+      },
+      "license": "Apache-2.0",
+      "keywords": [
+        "mcp",
+        "orchestration",
+        "sse",
+        "workflows",
+        "local-first",
+        "openai-compatible",
+        "pydantic-ai"
+      ]
+    }
+  ]
+}

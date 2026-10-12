@@ -1,0 +1,56 @@
+# Copyright (c) 2026 Signature Management Consultants SLU
+# Author: @ancongui (https://github.com/ancongui)
+# Modified by Firefly Software Foundation for Firefly Agent Bridge (2026).
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Private bridge release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: read
+jobs:
+  verified:
+    uses: ./.github/workflows/ci.yml
+  release:
+    needs: verified
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: native-*
+          path: release-assets
+          merge-multiple: true
+      - name: Verify tag, expected platform artifacts and publish private release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          version="$(node -p 'JSON.parse(require("fs").readFileSync("package.json","utf8")).version')"
+          test "$RELEASE_TAG" = "v$version"
+          for target in linux-x64 darwin-arm64 win32-x64; do
+            test -f "release-assets/firefly-agent-bridge-$version-$target.tar.gz"
+          done
+          for target in darwin-arm64 win32-x64; do
+            test -f "release-assets/firefly-agent-bridge-$version-$target.mcpb"
+          done
+          cd release-assets
+          sha256sum *.tar.gz *.mcpb > SHA256SUMS
+          gh release create "$RELEASE_TAG" ./*.tar.gz ./*.mcpb SHA256SUMS --verify-tag --title "Firefly Agent Bridge $RELEASE_TAG" --notes-file ../CHANGELOG.md
