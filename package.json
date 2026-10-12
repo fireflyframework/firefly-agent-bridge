@@ -1,6 +1,6 @@
 {
   "name": "firefly-agent-bridge",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Private Firefly developer execution bridge for Claude Code and Codex subscriptions",
   "type": "module",
   "license": "Apache-2.0",

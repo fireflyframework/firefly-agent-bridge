@@ -18,9 +18,11 @@ Install `docs/requirements.txt` into the Python environment selected by `BRIDGE_
 
 The prose check catches a small set of editorial regressions outside code and links. It does not automate the Humanizer's contextual judgment. Manual review preserves technical claims, API labels, commands, and limitations while removing repetitive or promotional wording.
 
-## 0.2.1 patch checks
+## 0.2.2 patch checks
 
-The patch gate covers 103 unit/integration tests, seven real Python SDK compatibility cases against a deterministic worker, and 19 browser journeys. The new mobile navigation regression proves that switching views returns to the destination heading rather than keeping the previous panel's scroll position.
+The 0.2.1 release attempt stopped when repeated browser logins exhausted a shared test principal's request budget. That tag remains unpublished. Version 0.2.2 creates a separate owner principal for each default test login, with a regression proving distinct identities; production limits are unchanged.
+
+The patch gate covers 103 unit/integration tests, seven real Python SDK compatibility cases against a deterministic worker, and 20 browser journeys. The new mobile navigation regression proves that switching views returns to the destination heading rather than keeping the previous panel's scroll position.
 
 A separate isolated Chromium review covers all four provider-wizard steps and Diagnostics in light and dark at 320, 390, 1024, 1440, 1920 and 2560 pixels. The native local preview uses the official signed-in Codex worker for actual readiness checks; it submits no model jobs. Updated screenshots show the current wizard and Diagnostics. Existing subscription execution evidence below belongs to 0.2.0 and is not relabeled as a new patch acceptance.
 
