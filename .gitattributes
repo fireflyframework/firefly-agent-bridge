@@ -1,0 +1,8 @@
+# Copyright (c) 2026 Firefly Software Foundation
+# SPDX-License-Identifier: Apache-2.0
+# Keep native launchers and format checks consistent on every supported host.
+* text=auto eol=lf
+*.png binary
+*.tar.gz binary
+*.mcpb binary
+*.woff2 binary
