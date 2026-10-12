@@ -21,6 +21,7 @@ import { test, expect } from "@playwright/test";
 import { mkdtempSync, rmSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { randomUUID } from "node:crypto";
 import { startService } from "../../src/service.js";
 import { parseConfig } from "../../src/config.js";
 import { Tokens } from "../../src/auth.js";
@@ -211,10 +212,12 @@ test.afterAll(async () => {
   await service.close();
   rmSync(directory, { recursive: true, force: true });
 });
-async function login(
-  page: import("@playwright/test").Page,
-  bearer = service.ownerToken,
-) {
+async function login(page: import("@playwright/test").Page, bearer?: string) {
+  bearer ??= new Tokens(service.store).create({
+    id: "browser-login-" + randomUUID(),
+    owner: true,
+    profiles: ["default"],
+  }).token;
   await page.goto(service.address);
   await page.getByLabel("Bridge token", { exact: true }).fill(bearer);
   await page.getByRole("button", { name: "Connect", exact: true }).click();
@@ -1190,4 +1193,25 @@ test("wizard headings, labels and selected profile retain readable text bounds",
       if (step < 3) await page.locator("#setup-next").click();
     }
   }
+});
+
+test("default browser logins have distinct principals without changing owner access", async ({
+  page,
+}) => {
+  const tokens = new Tokens(service.store);
+  const before = new Set(tokens.list().map((principal) => principal.id));
+  await login(page);
+  await page
+    .getByRole("button", { name: "Disconnect session", exact: true })
+    .click();
+  await login(page);
+  const created = tokens
+    .list()
+    .filter((principal) => !before.has(principal.id));
+  expect(created).toHaveLength(2);
+  expect(new Set(created.map((principal) => principal.id)).size).toBe(2);
+  expect(
+    created.every((principal) => principal.owner && !principal.revoked),
+  ).toBe(true);
+  expect(tokens.verify(service.ownerToken).owner).toBe(true);
 });

@@ -2,7 +2,14 @@
 
 # Changelog
 
-## 0.2.1 — 2026-10-12
+## 0.2.2 — 2026-10-12
+
+- Browser tests create a fresh owner principal for each default login. Repeated visual checks no longer share the service owner's request budget; production rate limits are unchanged.
+- Publishes the provider-wizard and Diagnostics refinements prepared under the unpublished 0.2.1 tag, with consistent 0.2.2 native packages and integration manifests.
+
+The 0.2.1 tag is retained for history. Its release verification stopped on shared test-principal rate limiting, and no 0.2.1 release assets were published. Version 0.2.2 supersedes that release attempt.
+
+## 0.2.1 — unpublished tag, 2026-10-12
 
 - A four-step provider setup wizard separates provider setup guides, official subscription login, execution profiles and development-tool connections.
 - Diagnostics presents worker readiness, dispatch and active jobs together, with application-token management in a separate panel.
