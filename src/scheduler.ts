@@ -17,6 +17,7 @@
  * limitations under the License.
  */
 
+import { prepareCompletion } from "./completion-protocol.js";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
@@ -108,6 +109,8 @@ export class Scheduler {
           .all() as { data: string }[]) {
           const job = JSON.parse(row.data) as Job;
           if (
+            (job.completion &&
+              prepareCompletion(job.completion).images.length > 0) ||
             !job.error?.startsWith("quota_exhausted") ||
             !job.sessionId ||
             (job.autoResumes ?? 0) >= 3

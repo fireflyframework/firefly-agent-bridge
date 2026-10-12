@@ -115,6 +115,40 @@ curl --fail-with-body "$BRIDGE_URL/v1/chat/completions" \
 
 Configure `code-workflow` first using [the advanced workflow guide](advanced-workflows.md). OpenAI SDK callers pass this extension with `extra_body={"bridge": {"execution": "agent", "background": True}}`; a background result has the bridge Job schema, so use raw HTTP when you need a typed job receipt. Workflows use `/v1/bridge/workflow-runs` and the same queue, profiles, and execution controls.
 
+## Image input
+
+Inference accepts PNG, JPEG, and WebP attachments in user-message `image_url` parts. Each request permits at most five attachments across the entire conversation and 6,000,000 decoded bytes in total. Use a canonical base64 data URL and `detail: "auto"`, or omit `detail`. Remote URLs, host file paths, animated images, compressed PNG metadata, and other detail settings are rejected. Images are bounded to 8,192 pixels on either edge, 16 million pixels, and 64 million expanded bytes.
+
+```python
+import base64
+from pathlib import Path
+
+image = base64.b64encode(Path("screenshot.png").read_bytes()).decode("ascii")
+response = client.chat.completions.create(
+    model="bridge/default",
+    messages=[{
+        "role": "user",
+        "content": [
+            {"type": "text", "text": "Describe the visible error in this screenshot."},
+            {"type": "image_url", "image_url": {
+                "url": "data:image/png;base64," + image,
+                "detail": "auto",
+            }},
+        ],
+    }],
+)
+```
+
+The bridge preserves attachment order and inserts numbered references in the conversation text. Base64 stays outside the expanded text prompt. Codex receives private staged files through its official `--image` option; Claude receives image blocks through its official stream-JSON input. Native inference tools remain disabled. Image input does not grant filesystem, browser, or image-generation tools.
+
+`GET /v1/models` includes `image_input` for each permitted profile. Its `status` starts as `unverified`. An owner can run one pixel-only challenge with `POST /v1/bridge/image-input/probes` and body `{"profile":"default","request_id":"<UUID>"}`. Poll `GET /v1/bridge/image-input/probes/{job_id}` until it reports `verified` or `failed`. A verified result includes the configuration revision, timestamp, and probe job ID. Changing the worker executable, profile, or adapter invalidates that proof. This is evidence of one successful challenge; subscription readiness and future request success still depend on the official CLI and account.
+
+For requests that depend on verified image input, pass `X-Bridge-Image-Revision` with the verified `config_revision` from model discovery. The bridge rejects a new request with HTTP 409 if that revision is no longer verified. Image admission freezes the actual worker, executable, and profile in private storage; queued work uses that snapshot, and executable replacement fails execution. The header is included in the idempotency fingerprint. An exact replay reads its existing job even if the current profile has changed.
+
+The probe consumes subscription allowance. Keep its request ID across uncertain HTTP outcomes; repeating it returns the same job. Inspect an image job before submitting a new request. Image jobs cannot be resumed or retried in place, including after a quota pause or interrupted outcome. Temporary Codex image files are removed when execution settles and during recovery of interrupted jobs. The private queue retains the original attachment data for audit and recovery inspection.
+
+Official Codex image input was tested against a signed-in ChatGPT subscription using a random code present only in PNG pixels. The Claude adapter has deterministic protocol coverage; Claude subscription image acceptance requires a signed-in host and is not claimed here. The bridge does not connect a ChatGPT web account to a remote connector automatically.
+
 ## Streaming behavior
 
 Set `stream=True` in the OpenAI SDK, or use Pydantic AI's `run_stream`. The bridge sends SSE keepalive comments while the selected CLI runs, then sends the **fully validated final output** as standard completion chunks followed by `data: [DONE]`. Function deltas include stable IDs, names, and JSON arguments. `stream_options={"include_usage": True}` adds a final usage chunk when the provider reports counts.
@@ -125,7 +159,7 @@ This is buffered streaming: it keeps the connection active but does not expose t
 
 | Field or capability                      | Support                                                                                                                                                                                     |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `messages`                               | 1 to 128 messages; system, developer, user, assistant, tool; strings or text-only content parts                                                                                             |
+| `messages`                               | 1 to 128 messages; system, developer, user, assistant, tool; strings or text parts; inference user messages also accept bounded image parts                                                 |
 | `tools`                                  | Up to 32 function definitions; up to 16 returned calls; validated JSON arguments                                                                                                            |
 | `tool_choice`                            | `auto`, `none`, `required`, or a named function                                                                                                                                             |
 | `parallel_tool_calls`                    | Boolean; false rejects a response containing multiple calls                                                                                                                                 |
@@ -135,9 +169,9 @@ This is buffered streaming: it keeps the connection active but does not expose t
 | `stream`, `stream_options.include_usage` | Buffered OpenAI SSE and optional observed usage                                                                                                                                             |
 | `bridge`                                 | `execution` and `background` as described above                                                                                                                                             |
 | Sampling and generation parameters       | `temperature`, `top_p`, `max_tokens`, `max_completion_tokens`, `stop`, penalties, seed, and logprobs return HTTP 400                                                                        |
-| Other APIs and media                     | Responses, embeddings, audio, images, video, files, batches, and multimodal content are unsupported                                                                                         |
+| Other APIs and media                     | Responses, embeddings, audio, image generation, video, files, and batches are unsupported                                                                                                   |
 
-The request object is strict: unsupported fields return an error rather than silently changing behavior. The expanded conversation is limited to 100,000 characters and the HTTP body to 120,000 bytes. Profiles bound attempt duration, output size, and model turns. Schema validation is enforced even when `strict` is false.
+The request object is strict: unsupported fields return an error rather than silently changing behavior. The expanded conversation is limited to 100,000 characters and the Chat Completions HTTP body to 9,000,000 bytes. Other routes retain a 120,000-byte body limit. Profiles bound attempt duration, output size, and model turns. Schema validation is enforced even when `strict` is false.
 
 Usage reflects the provider's reported invocation totals, including cache reads/writes and bridge instructions. It is not an OpenAI billing record or an exact tokenization of the submitted messages. Missing provider usage is omitted.
 

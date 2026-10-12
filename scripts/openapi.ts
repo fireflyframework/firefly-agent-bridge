@@ -72,6 +72,28 @@ const schemas: Record<string, unknown> = {
         object: { const: "model" },
         created: { type: "integer" },
         owned_by: str,
+        worker: { enum: ["codex", "claude"] },
+        native_model: { type: ["string", "null"] },
+        image_input: object(
+          {
+            status: { enum: ["unverified", "verified", "unsupported"] },
+            config_revision: { type: "string", pattern: "^[a-f0-9]{64}$" },
+            mime_types: { type: "array", items: str },
+            max_images: { const: 5 },
+            max_decoded_bytes: { const: 6000000 },
+            detail: { const: "auto" },
+            verified_at: str,
+            probe_job_id: uuid,
+          },
+          [
+            "status",
+            "config_revision",
+            "mime_types",
+            "max_images",
+            "max_decoded_bytes",
+            "detail",
+          ],
+        ),
       }),
     },
   }),
@@ -184,11 +206,13 @@ const schemas: Record<string, unknown> = {
 };
 const paths: Record<string, Record<string, unknown>> = {};
 for (const match of (
-  readFileSync("src/http.ts", "utf8") + readFileSync("src/openai.ts", "utf8")
+  readFileSync("src/http.ts", "utf8") +
+  readFileSync("src/openai.ts", "utf8") +
+  readFileSync("src/image-capabilities.ts", "utf8")
 ).matchAll(/app\.(get|post|put|delete)\(\s*["'](\/v1\/[^"']+)["']/g)) {
   const method = match[1]!,
     path = match[2]!.replace(/:([A-Za-z]+)/g, "{$1}");
-  const admin = /\/v1\/bridge\/(admin|hosts|channel)\//.test(path);
+  const admin = /\/v1\/bridge\/(admin|hosts|channel|image-input)\//.test(path);
   const parameters: unknown[] = [...path.matchAll(/\{([^}]+)\}/g)].map((m) => ({
     name: m[1],
     in: "path",
@@ -264,6 +288,14 @@ for (const match of (
       in: "header",
       schema: { type: "string", maxLength: 128 },
     });
+  if (path === "/v1/chat/completions")
+    parameters.push({
+      name: "X-Bridge-Image-Revision",
+      in: "header",
+      schema: { type: "string", pattern: "^[a-f0-9]{64}$" },
+      description:
+        "Optional for image input: requires current verified configuration at first admission; included in the idempotency fingerprint. Text requests are unchanged.",
+    });
   if (path === "/v1/bridge/events")
     parameters.push({
       name: "Last-Event-ID",
@@ -275,6 +307,8 @@ for (const match of (
   if (method === "post" || method === "put") {
     input = { type: "object", additionalProperties: false };
     if (path === "/v1/chat/completions") input = ref("ChatRequest");
+    if (path === "/v1/bridge/image-input/probes")
+      input = object({ profile: str, request_id: uuid });
     if (path === "/v1/bridge/jobs/{id}/messages")
       input = object({
         text: { type: "string", minLength: 1, maxLength: 100000 },
@@ -328,6 +362,7 @@ for (const match of (
   const accepted =
     method === "post" &&
     [
+      "/v1/bridge/image-input/probes",
       "/v1/bridge/jobs/{id}/messages",
       "/v1/bridge/jobs/{id}/retry",
       "/v1/bridge/workflow-runs",

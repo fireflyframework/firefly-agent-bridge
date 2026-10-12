@@ -50,7 +50,7 @@ Configuration chooses `worker: "codex"` plus an absolute `codexPath`, or `worker
 
 Default Codex jobs use `workspace-write` sandboxing and never request interactive approval. Default Claude jobs use `acceptEdits` with noninteractive permission prompts denied. An owner may explicitly choose `permissionMode: "bypass"` for a trusted execution host. CLI credentials and OS permissions remain local developer responsibilities.
 
-Codex inference disables native command, patch, browser, app and agent tools, uses a read-only sandbox and validates a structured completion envelope. Any observed native action makes the inference fail. Claude inference grants no native tools. Both expose client function calls for FireflyAgent, OpenAI SDK and Pydantic AI.
+Codex inference disables native command, patch, browser, app and agent tools, uses a read-only sandbox and validates a structured completion envelope. Any observed native action makes the inference fail. Claude inference grants no native tools. Both expose client function calls for FireflyAgent, OpenAI SDK and Pydantic AI. Inference also accepts [bounded image attachments](docs/openai-compatible.md#image-input), with per-profile capability verification through an owner-only pixel challenge.
 
 Claude profile-defined subagents remain available with `Agent`; Codex does not translate those Claude definitions. Bridge workflows provide durable sequential stages with either worker. Subscription rejection pauses dispatch without switching billing or guessing reset times.
 
@@ -60,7 +60,7 @@ Claude profile-defined subagents remain available with `Agent`; Codex does not t
 
 ## Development and internal packaging
 
-Node.js 24+ runs the source; official Node.js 26.3.0 builds native packages. `npm run check` runs types, lint, formatting, the full test suite, Python SDK interoperability, browser interaction, build, documentation/contracts, native packaging and packaged MCP smoke tests. Desktop manifests use the official MCPB 0.3 JSON Schema; the internal builder emits unsigned deterministic ZIP bundles. `npm run test:live:codex` consumes the signed-in developer's subscription and records private local evidence.
+Node.js 24+ runs the source; official Node.js 26.3.0 builds native packages. `npm run check` runs types, lint, formatting, the full test suite, Python SDK interoperability, browser interaction, build, documentation/contracts, native packaging and packaged MCP smoke tests. Desktop manifests use the official MCPB 0.3 JSON Schema; the internal builder emits unsigned deterministic ZIP bundles. `npm run test:live:codex:images` verifies a pixel-only challenge through the signed-in official Codex client. `npm run test:live:codex` consumes the signed-in developer's subscription and records private local evidence.
 
 The repository and release assets remain private under `fireflyframework/firefly-agent-bridge`. Native plugin bootstrap uses authenticated GitHub CLI downloads. Public Firefly Forge distributions include only the HTTP client integration, never this bridge's source or assets.
 

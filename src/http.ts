@@ -161,7 +161,7 @@ export function createHttpService(d: HttpDependencies) {
         )
         .header(
           "Access-Control-Allow-Headers",
-          "Authorization, Content-Type, Idempotency-Key, Last-Event-ID, MCP-Protocol-Version",
+          "Authorization, Content-Type, Idempotency-Key, Last-Event-ID, X-Bridge-Image-Revision, MCP-Protocol-Version",
         )
         .header("Access-Control-Max-Age", "600");
       return reply.code(204).send();
@@ -245,7 +245,7 @@ export function createHttpService(d: HttpDependencies) {
   app.get("/v1/bridge/status", async (req) => {
     const p = requireScope(req, "read");
     return {
-      version: "0.2.2",
+      version: "0.2.3",
       protocolVersion: 2,
       eventCursorFloor: d.store.eventFloor(),
       permissionMode: d.config.profiles.default!.permissionMode,

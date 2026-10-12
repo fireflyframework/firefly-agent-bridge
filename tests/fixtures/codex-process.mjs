@@ -18,7 +18,7 @@
  */
 
 import { spawn } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, statSync, readFileSync } from "node:fs";
 if (process.argv.includes("--version")) {
   console.log("codex-cli 0.153.4");
   process.exit(0);
@@ -38,7 +38,9 @@ emit({
   type: "thread.started",
   thread_id: "11111111-1111-4111-8111-111111111111",
 });
-if (prompt === "fixture:ignore-child") {
+if (prompt.includes("fixture:image-hang")) {
+  setInterval(() => {}, 1000);
+} else if (prompt === "fixture:ignore-child") {
   const child = spawn(
     process.execPath,
     ["-e", "process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"],
@@ -94,7 +96,19 @@ if (prompt === "fixture:ignore-child") {
       type: "agent_message",
       text: process.argv.includes("--output-schema")
         ? JSON.stringify({
-            content: JSON.stringify({ args: process.argv.slice(2) }),
+            content: JSON.stringify({
+              args: process.argv.slice(2),
+              images: process.argv.flatMap((arg, index) =>
+                arg === "--image"
+                  ? [
+                      {
+                        mode: statSync(process.argv[index + 1]).mode & 0o777,
+                        bytes: readFileSync(process.argv[index + 1]).length,
+                      },
+                    ]
+                  : [],
+              ),
+            }),
             tool_calls: [],
           })
         : JSON.stringify({ prompt, args: process.argv.slice(2) }),

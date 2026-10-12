@@ -117,12 +117,20 @@ for (const file of files) {
   if (file.startsWith("vendor-licenses/") || brandPaths.has(file)) continue;
   if (/\.(ts|js|mjs|css|svg|html|sh|yml|py)$/.test(file)) {
     const start = read(file).slice(0, 1800);
-    for (const notice of [
-      "Signature Management Consultants SLU",
-      "@ancongui",
-      "SPDX-License-Identifier: Apache-2.0",
-      "https://www.apache.org/licenses/LICENSE-2.0",
-    ])
+    for (const notice of start.includes(
+      "Copyright 2026 Firefly Software Foundation",
+    )
+      ? [
+          "Copyright 2026 Firefly Software Foundation",
+          "SPDX-License-Identifier: Apache-2.0",
+          "https://www.apache.org/licenses/LICENSE-2.0",
+        ]
+      : [
+          "Signature Management Consultants SLU",
+          "@ancongui",
+          "SPDX-License-Identifier: Apache-2.0",
+          "https://www.apache.org/licenses/LICENSE-2.0",
+        ])
       assert(start.includes(notice), file + " lacks " + notice);
   }
   if (file.endsWith(".json"))
@@ -147,9 +155,11 @@ for (const file of files) {
 }
 const api = JSON.parse(read("docs/openapi.json"));
 assert.equal(api.info.version, version, "OpenAPI release version");
-for (const match of (read("src/http.ts") + read("src/openai.ts")).matchAll(
-  /app\.(get|post|put|delete)\(\s*["'](\/v1\/[^"']+)["']/g,
-)) {
+for (const match of (
+  read("src/http.ts") +
+  read("src/openai.ts") +
+  read("src/image-capabilities.ts")
+).matchAll(/app\.(get|post|put|delete)\(\s*["'](\/v1\/[^"']+)["']/g)) {
   const path = match[2]!.replace(/:([A-Za-z]+)/g, "{$1}");
   assert(
     api.paths[path]?.[match[1]!],

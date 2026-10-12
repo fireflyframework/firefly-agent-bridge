@@ -26,6 +26,7 @@ import {
   completionEnvelopeSchema,
   completionSystemPrompt,
   parseCompletionResult,
+  prepareCompletion,
 } from "./completion-protocol.js";
 const execute = promisify(execFile);
 const pause = (ms: number) =>
@@ -124,6 +125,14 @@ export class ClaudeWorker implements Worker {
     const readiness = await this.ready();
     if (!readiness.ready) return { status: "failed", error: readiness.reason };
     if (signal.aborted) return { status: "canceled" };
+    const images = input.job.completion
+      ? prepareCompletion(input.job.completion).images
+      : [];
+    if (images.length && input.job.sessionId)
+      return {
+        status: "failed",
+        error: "image_replay_unsupported: start a new explicit image request",
+      };
     const args = [
       ...(this.options.args ?? []),
       "--safe-mode",
@@ -146,6 +155,7 @@ export class ClaudeWorker implements Worker {
       input.job.completion ? "" : this.options.tools.join(","),
       "--disable-slash-commands",
     ];
+    if (images.length) args.push("--input-format", "stream-json");
     if (this.options.model) args.push("--model", this.options.model);
     if (this.options.maxTurns)
       args.push("--max-turns", String(this.options.maxTurns));
@@ -485,7 +495,27 @@ export class ClaudeWorker implements Worker {
               },
         );
       });
-      child.stdin.end(prompt);
+      child.stdin.end(
+        images.length
+          ? JSON.stringify({
+              type: "user",
+              message: {
+                role: "user",
+                content: [
+                  { type: "text", text: prompt },
+                  ...images.map((image) => ({
+                    type: "image",
+                    source: {
+                      type: "base64",
+                      media_type: image.mime,
+                      data: image.data.toString("base64"),
+                    },
+                  })),
+                ],
+              },
+            }) + "\n"
+          : prompt,
+      );
     });
   }
 }

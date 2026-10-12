@@ -32,6 +32,12 @@ import {
   type ChatRequest,
 } from "./completion-protocol.js";
 import type { HttpDependencies } from "./http.js";
+import { freezeImageExecution } from "./image-execution.js";
+import { IMAGE_BODY_LIMIT } from "./images.js";
+import {
+  imageCapability,
+  registerImageCapabilities,
+} from "./image-capabilities.js";
 
 export class CompletionError extends BridgeError {
   constructor(
@@ -111,6 +117,7 @@ export function registerOpenAI(
   d: HttpDependencies,
   scope: (req: FastifyRequest, scope: string) => Principal,
 ) {
+  registerImageCapabilities(app, d, scope);
   const waiters = new Map<
     AbortController,
     { principal: string; job: string; settled: Promise<void> }
@@ -144,239 +151,279 @@ export function registerOpenAI(
           owned_by: "firefly-oss",
           worker: d.config.worker,
           native_model: d.config.profiles[n]!.model ?? null,
+          image_input: imageCapability(d, n),
         })),
     };
   });
-  app.post("/v1/chat/completions", async (req, reply) => {
-    scope(req, "read");
-    const p = scope(req, "submit");
-    const { request, prompt } = prepareCompletion(req.body);
-    const profile = request.model.slice("bridge/".length);
-    if (
-      !d.config.profiles[profile] ||
-      (!p.owner && !p.profiles.includes(profile))
-    )
-      throw new BridgeError(
-        "model_not_found",
-        "Model is unavailable to this client",
-        404,
-      );
-    if (stopping)
-      throw new BridgeError("service_stopping", "Bridge is stopping", 503);
-    if (
-      !request.bridge.background &&
-      (waiters.size >= d.config.openai.maxConnections ||
-        [...waiters.values()].filter((w) => w.principal === p.id).length >= 4)
-    )
-      throw new BridgeError(
-        "connections_full",
-        "Too many active completion requests",
-        429,
-      );
-    const key = req.headers["idempotency-key"];
-    if (Array.isArray(key))
-      throw new BridgeError("invalid_header", "Use one idempotency key");
-    const job = d.store.idempotent(
-      p,
-      "chat/completions",
-      key,
-      request,
-      () => {
-        const gate = d.scheduler.controlState;
-        if (gate.paused)
-          throw paused(gate.reason ?? "operator_pause", gate.retryAt);
-        return d.store.submit(
-          {
-            prompt,
-            profile,
-            mode: request.bridge.execution === "channel" ? "channel" : "cli",
-          },
-          p,
-          undefined,
-          request.bridge.execution === "inference" ? request : undefined,
-        );
-      },
-      (id) => d.store.get(id, p),
-    );
-    reply.header("X-Bridge-Job-Id", job.id);
-    d.scheduler.wake();
-    if (request.bridge.background) return reply.code(202).send(job);
-    const controller = new AbortController();
-    let settle!: () => void;
-    const settled = new Promise<void>((resolve) => {
-      settle = resolve;
-    });
-    waiters.set(controller, { principal: p.id, job: job.id, settled });
-    const signal = controller.signal;
-    const timeout = setTimeout(
-      () =>
-        controller.abort(
-          new BridgeError(
-            "completion_timeout",
-            "Completion deadline exceeded; inspect X-Bridge-Job-Id",
-            504,
-          ),
-        ),
-      d.config.openai.timeoutMs,
-    );
-    const disconnected = () => {
-      if (!reply.raw.writableEnded)
-        controller.abort(
-          new BridgeError("client_disconnected", "Client disconnected", 499),
-        );
-    };
-    reply.raw.on("close", disconnected);
-    const bearer = req.headers.authorization!.slice(7);
-    let retained = false,
-      heartbeat: ReturnType<typeof setInterval> | undefined;
-    async function write(data: unknown) {
-      if (signal.aborted) throw signal.reason;
+  app.post(
+    "/v1/chat/completions",
+    { bodyLimit: IMAGE_BODY_LIMIT },
+    async (req, reply) => {
+      scope(req, "read");
+      const p = scope(req, "submit");
+      const { request, prompt, images } = prepareCompletion(req.body);
+      const imageRevision = images.length
+        ? req.headers["x-bridge-image-revision"]
+        : undefined;
       if (
-        !reply.raw.write(
-          "data: " +
-            (typeof data === "string" ? data : JSON.stringify(data)) +
-            "\n\n",
-        )
+        Array.isArray(imageRevision) ||
+        (imageRevision !== undefined && !/^[a-f0-9]{64}$/.test(imageRevision))
       )
-        await once(reply.raw, "drain", { signal });
-    }
-    try {
-      if (request.stream) {
-        reply
-          .header("Content-Type", "text/event-stream; charset=utf-8")
-          .header("Cache-Control", "no-store")
-          .header("X-Accel-Buffering", "no");
-        reply.hijack();
-        for (const [name, value] of Object.entries(reply.getHeaders()))
-          if (value !== undefined) reply.raw.setHeader(name, value);
-        reply.raw.writeHead(200);
-        reply.raw.write(": waiting for validated completion\n\n");
-        heartbeat = setInterval(() => {
-          if (!reply.raw.write(": waiting\n\n"))
-            controller.abort(
-              new BridgeError(
-                "slow_client",
-                "Client is not consuming the response",
-                499,
-              ),
-            );
-        }, 5000);
-      }
-      let current: Job;
-      for (;;) {
-        if (signal.aborted) throw signal.reason;
-        d.auth.verify(bearer);
-        current = d.store.get(job.id, p);
-        if (current.status === "succeeded") break;
-        // A global gate can close while this request is still queued, before
-        // the job receives a per-attempt pause. Preserve it for the same-key retry.
-        const gate = d.scheduler.controlState;
-        if (!terminal.has(current.status) && gate.paused) {
-          retained = true;
-          throw paused(gate.reason ?? "operator_pause", gate.retryAt);
-        }
-        if (
-          current.status === "paused" ||
-          current.status === "pause_requested"
-        ) {
-          retained = true;
-          throw paused(current.error ?? "operator_pause", current.retryAt);
-        }
-        if (terminal.has(current.status))
-          throw new BridgeError(
-            current.error?.startsWith("invalid_completion")
-              ? "invalid_completion"
-              : "execution_failed",
-            current.error ?? "Execution did not complete",
-            current.status === "timed_out" ? 504 : 502,
-          );
-        if (
-          !d.scheduler.readiness.ready &&
-          d.scheduler.readiness.reason &&
-          !d.scheduler.readiness.reason.startsWith("Checking")
-        )
-          throw new BridgeError(
-            "execution_unavailable",
-            d.scheduler.readiness.reason,
-            503,
-          );
-        await delay(25, undefined, { signal }).catch(() => {
-          throw signal.reason;
-        });
-      }
-      const result = completed(current, request);
-      if (!request.stream) return reply.send(result);
-      const chunk = (delta: unknown, finish_reason: string | null = null) => ({
-        ...result,
-        object: "chat.completion.chunk",
-        usage: null,
-        choices: [{ index: 0, delta, finish_reason }],
-      });
-      await write(chunk({ role: "assistant", content: "" }));
-      const message = result.choices[0]!.message;
-      if (message.content !== null)
-        await write(chunk({ content: message.content }));
-      if (message.tool_calls)
-        await write(
-          chunk({
-            tool_calls: message.tool_calls.map((c, index) => ({ ...c, index })),
-          }),
+        throw new BridgeError(
+          "invalid_image_revision",
+          "Use one SHA-256 image configuration revision",
+          400,
         );
-      await write(chunk({}, result.choices[0]!.finish_reason));
-      if (request.stream_options?.include_usage && current.usage)
-        await write({
+      const profile = request.model.slice("bridge/".length);
+      if (
+        !d.config.profiles[profile] ||
+        (!p.owner && !p.profiles.includes(profile))
+      )
+        throw new BridgeError(
+          "model_not_found",
+          "Model is unavailable to this client",
+          404,
+        );
+      if (stopping)
+        throw new BridgeError("service_stopping", "Bridge is stopping", 503);
+      if (
+        !request.bridge.background &&
+        (waiters.size >= d.config.openai.maxConnections ||
+          [...waiters.values()].filter((w) => w.principal === p.id).length >= 4)
+      )
+        throw new BridgeError(
+          "connections_full",
+          "Too many active completion requests",
+          429,
+        );
+      const key = req.headers["idempotency-key"];
+      if (Array.isArray(key))
+        throw new BridgeError("invalid_header", "Use one idempotency key");
+      const job = d.store.idempotent(
+        p,
+        "chat/completions",
+        key,
+        images.length
+          ? { request, image_input_revision: imageRevision ?? null }
+          : request,
+        () => {
+          const gate = d.scheduler.controlState;
+          if (gate.paused)
+            throw paused(gate.reason ?? "operator_pause", gate.retryAt);
+          if (imageRevision) {
+            const capability = imageCapability(d, profile);
+            if (
+              capability.status !== "verified" ||
+              capability.config_revision !== imageRevision
+            )
+              throw new BridgeError(
+                "image_configuration_changed",
+                "Image capability is not verified for the requested revision",
+                409,
+              );
+          }
+          const admitted = d.store.submit(
+            {
+              prompt,
+              profile,
+              mode: request.bridge.execution === "channel" ? "channel" : "cli",
+            },
+            p,
+            undefined,
+            request.bridge.execution === "inference" ? request : undefined,
+          );
+          if (images.length)
+            freezeImageExecution(d.store, admitted.id, d.config, profile);
+          return admitted;
+        },
+        (id) => d.store.get(id, p),
+      );
+      reply.header("X-Bridge-Job-Id", job.id);
+      d.scheduler.wake();
+      if (request.bridge.background) return reply.code(202).send(job);
+      const controller = new AbortController();
+      let settle!: () => void;
+      const settled = new Promise<void>((resolve) => {
+        settle = resolve;
+      });
+      waiters.set(controller, { principal: p.id, job: job.id, settled });
+      const signal = controller.signal;
+      const timeout = setTimeout(
+        () =>
+          controller.abort(
+            new BridgeError(
+              "completion_timeout",
+              "Completion deadline exceeded; inspect X-Bridge-Job-Id",
+              504,
+            ),
+          ),
+        d.config.openai.timeoutMs,
+      );
+      const disconnected = () => {
+        if (!reply.raw.writableEnded)
+          controller.abort(
+            new BridgeError("client_disconnected", "Client disconnected", 499),
+          );
+      };
+      reply.raw.on("close", disconnected);
+      const bearer = req.headers.authorization!.slice(7);
+      let retained = false,
+        heartbeat: ReturnType<typeof setInterval> | undefined;
+      async function write(data: unknown) {
+        if (signal.aborted) throw signal.reason;
+        if (
+          !reply.raw.write(
+            "data: " +
+              (typeof data === "string" ? data : JSON.stringify(data)) +
+              "\n\n",
+          )
+        )
+          await once(reply.raw, "drain", { signal });
+      }
+      try {
+        if (request.stream) {
+          reply
+            .header("Content-Type", "text/event-stream; charset=utf-8")
+            .header("Cache-Control", "no-store")
+            .header("X-Accel-Buffering", "no");
+          reply.hijack();
+          for (const [name, value] of Object.entries(reply.getHeaders()))
+            if (value !== undefined) reply.raw.setHeader(name, value);
+          reply.raw.writeHead(200);
+          reply.raw.write(": waiting for validated completion\n\n");
+          heartbeat = setInterval(() => {
+            if (!reply.raw.write(": waiting\n\n"))
+              controller.abort(
+                new BridgeError(
+                  "slow_client",
+                  "Client is not consuming the response",
+                  499,
+                ),
+              );
+          }, 5000);
+        }
+        let current: Job;
+        for (;;) {
+          if (signal.aborted) throw signal.reason;
+          d.auth.verify(bearer);
+          current = d.store.get(job.id, p);
+          if (current.status === "succeeded") break;
+          // A global gate can close while this request is still queued, before
+          // the job receives a per-attempt pause. Preserve it for the same-key retry.
+          const gate = d.scheduler.controlState;
+          if (!terminal.has(current.status) && gate.paused) {
+            retained = true;
+            throw paused(gate.reason ?? "operator_pause", gate.retryAt);
+          }
+          if (
+            current.status === "paused" ||
+            current.status === "pause_requested"
+          ) {
+            retained = true;
+            throw paused(current.error ?? "operator_pause", current.retryAt);
+          }
+          if (terminal.has(current.status))
+            throw new BridgeError(
+              current.error?.startsWith("invalid_completion")
+                ? "invalid_completion"
+                : "execution_failed",
+              current.error ?? "Execution did not complete",
+              current.status === "timed_out" ? 504 : 502,
+            );
+          if (
+            !d.scheduler.readiness.ready &&
+            d.scheduler.readiness.reason &&
+            !d.scheduler.readiness.reason.startsWith("Checking")
+          )
+            throw new BridgeError(
+              "execution_unavailable",
+              d.scheduler.readiness.reason,
+              503,
+            );
+          await delay(25, undefined, { signal }).catch(() => {
+            throw signal.reason;
+          });
+        }
+        const result = completed(current, request);
+        if (!request.stream) return reply.send(result);
+        const chunk = (
+          delta: unknown,
+          finish_reason: string | null = null,
+        ) => ({
           ...result,
           object: "chat.completion.chunk",
-          choices: [],
-          usage: current.usage,
+          usage: null,
+          choices: [{ index: 0, delta, finish_reason }],
         });
-      await write("[DONE]");
-      reply.raw.end();
-      return reply;
-    } catch (caught) {
-      const error =
-        caught instanceof BridgeError
-          ? caught
-          : new BridgeError(
-              "internal_error",
-              "Completion could not be delivered",
-              500,
-            );
-      if (error.code === "service_stopping") retained = true;
-      if (request.stream) {
-        if (!reply.raw.destroyed) {
-          reply.raw.end(
-            "data: " +
-              JSON.stringify(openAIError(error, req.id, job.id)) +
-              "\n\ndata: [DONE]\n\n",
+        await write(chunk({ role: "assistant", content: "" }));
+        const message = result.choices[0]!.message;
+        if (message.content !== null)
+          await write(chunk({ content: message.content }));
+        if (message.tool_calls)
+          await write(
+            chunk({
+              tool_calls: message.tool_calls.map((c, index) => ({
+                ...c,
+                index,
+              })),
+            }),
           );
-        }
+        await write(chunk({}, result.choices[0]!.finish_reason));
+        if (request.stream_options?.include_usage && current.usage)
+          await write({
+            ...result,
+            object: "chat.completion.chunk",
+            choices: [],
+            usage: current.usage,
+          });
+        await write("[DONE]");
+        reply.raw.end();
         return reply;
-      }
-      if (error instanceof CompletionError && error.retryAfter)
-        reply.header("Retry-After", error.retryAfter);
-      return reply
-        .code(error.status === 499 ? 400 : error.status)
-        .send(openAIError(error, req.id, job.id));
-    } finally {
-      clearTimeout(timeout);
-      if (heartbeat) clearInterval(heartbeat);
-      reply.raw.removeListener("close", disconnected);
-      waiters.delete(controller);
-      settle();
-      // An idempotency key may have several attached HTTP waiters. Only the last
-      // detached waiter owns cleanup; durable operator/provider pauses are retained.
-      if (!retained && ![...waiters.values()].some((w) => w.job === job.id)) {
-        const current = d.store.get(job.id, p);
-        if (
-          !terminal.has(current.status) &&
-          current.status !== "paused" &&
-          current.status !== "pause_requested"
-        ) {
-          d.store.cancel(job.id, p);
-          d.scheduler.wake();
+      } catch (caught) {
+        const error =
+          caught instanceof BridgeError
+            ? caught
+            : new BridgeError(
+                "internal_error",
+                "Completion could not be delivered",
+                500,
+              );
+        if (error.code === "service_stopping") retained = true;
+        if (request.stream) {
+          if (!reply.raw.destroyed) {
+            reply.raw.end(
+              "data: " +
+                JSON.stringify(openAIError(error, req.id, job.id)) +
+                "\n\ndata: [DONE]\n\n",
+            );
+          }
+          return reply;
+        }
+        if (error instanceof CompletionError && error.retryAfter)
+          reply.header("Retry-After", error.retryAfter);
+        return reply
+          .code(error.status === 499 ? 400 : error.status)
+          .send(openAIError(error, req.id, job.id));
+      } finally {
+        clearTimeout(timeout);
+        if (heartbeat) clearInterval(heartbeat);
+        reply.raw.removeListener("close", disconnected);
+        waiters.delete(controller);
+        settle();
+        // An idempotency key may have several attached HTTP waiters. Only the last
+        // detached waiter owns cleanup; durable operator/provider pauses are retained.
+        if (!retained && ![...waiters.values()].some((w) => w.job === job.id)) {
+          const current = d.store.get(job.id, p);
+          if (
+            !terminal.has(current.status) &&
+            current.status !== "paused" &&
+            current.status !== "pause_requested"
+          ) {
+            d.store.cancel(job.id, p);
+            d.scheduler.wake();
+          }
         }
       }
-    }
-  });
+    },
+  );
 }

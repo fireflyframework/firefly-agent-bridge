@@ -43,7 +43,12 @@ if (process.argv.includes("--json-schema")) {
       is_error: false,
       result: "",
       structured_output: {
-        content: JSON.stringify({ args: process.argv.slice(2) }),
+        content: JSON.stringify({
+          args: process.argv.slice(2),
+          input: process.argv.includes("--input-format")
+            ? JSON.parse(prompt)
+            : null,
+        }),
         tool_calls: [],
       },
       usage: {

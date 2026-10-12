@@ -304,3 +304,67 @@ it.each([
     expect(service.store.list()).toHaveLength(1);
   },
 );
+
+it("expands the body limit only for bounded image completions", async () => {
+  const { crc32 } = await import("../src/images.js");
+  const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC",
+      "base64",
+    ),
+    chunk = Buffer.alloc(130012);
+  chunk.writeUInt32BE(130000);
+  chunk.write("tEXt", 4, "ascii");
+  chunk.fill(65, 8, chunk.length - 4);
+  chunk.writeUInt32BE(crc32(chunk.subarray(4, -4)), chunk.length - 4);
+  const image = Buffer.concat([png.subarray(0, -12), chunk, png.subarray(-12)]);
+  expect(
+    (
+      await post({
+        model: "bridge/default",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: {
+                  url: "data:image/png;base64," + image.toString("base64"),
+                },
+              },
+            ],
+          },
+        ],
+      })
+    ).status,
+  ).toBe(200);
+  const other = await fetch(service.address + "/v1/bridge/jobs", {
+    method: "POST",
+    headers: {
+      authorization: "Bearer " + token,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ prompt: "x".repeat(130000) }),
+  });
+  expect(other.status).toBe(413);
+  const { request } = await import("node:http");
+  const over = await new Promise<number>((resolve, reject) => {
+    const req = request(
+      service.address + "/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          authorization: "Bearer " + token,
+          "content-type": "application/json",
+          "content-length": "9000001",
+        },
+      },
+      (response) => {
+        response.resume();
+        resolve(response.statusCode!);
+      },
+    );
+    req.on("error", reject);
+    req.end("{}");
+  });
+  expect(over).toBe(413);
+});
