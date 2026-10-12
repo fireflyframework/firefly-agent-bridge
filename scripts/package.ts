@@ -109,9 +109,16 @@ copyFileSync(
   "integrations/desktop/manifest.json.license",
   join(desktop, "manifest.json.license"),
 );
+// Git Bash tar interprets a Windows drive prefix as a remote archive host.
 execFileSync(
   "tar",
-  ["-czf", resolve("release", stem + ".tar.gz"), "-C", portable, "."],
+  [
+    "-czf",
+    join("release", stem + ".tar.gz").replaceAll("\\", "/"),
+    "-C",
+    portable.replaceAll("\\", "/"),
+    ".",
+  ],
   { stdio: "inherit" },
 );
 if (process.platform !== "linux")
