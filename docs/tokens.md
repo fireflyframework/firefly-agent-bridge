@@ -52,12 +52,13 @@ You can also open the file in a local text editor. Keep the token out of chat, s
 ## 3. Create a separate token for an application
 
 1. Connect to the console with the owner token.
-2. Open **Diagnostics → Client access**.
+2. Open **Diagnostics → Application access**.
 3. Enter a stable client name, such as `build-helper`.
 4. Enter allowed profiles, such as `default` or `code-workflow`.
-5. Click **Create token** and copy the displayed value into that application's private configuration.
+5. Select **Application permissions**: job management, read-only inspection, or jobs and workflows.
+6. Click **Create token** and use **Copy token** to save it in the application's private configuration. **Show** reveals the otherwise masked value.
 
-The console creates a client with `read`, `submit`, `control`, and `workflows` scopes. For narrower scopes, use the CLI or API. Tokens are displayed once; the database retains a hash. Separate client names isolate job access. Tokens issued with the same client name represent the same principal.
+The console defaults to `read`, `submit`, and `control`. Read-only inspection grants only `read`; Jobs and workflows adds `workflows`. Use the CLI or API for other supported subsets. The console retains a new token until disconnect; the database stores a hash. Separate client names isolate job access. Tokens issued with the same client name represent the same principal.
 
 The portable CLI can create the same token without copying the owner token into a shell:
 

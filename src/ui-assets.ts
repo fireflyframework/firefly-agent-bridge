@@ -27,6 +27,19 @@ export const uiAssets = {
   themeJs: readFileSync(directory + "theme.js", "utf8"),
   auditJs: readFileSync(directory + "audit.js", "utf8"),
   setupJs: readFileSync(directory + "setup.js", "utf8"),
+  navigationJs: readFileSync(directory + "navigation.js", "utf8"),
+  jobWizardJs: readFileSync(directory + "job-wizard.js", "utf8"),
+  imageInputJs: readFileSync(directory + "image-input.js", "utf8"),
+  emblemDark: readFileSync(
+    fileURLToPath(
+      new URL("../assets/brand/bridge-mark-dark.svg", import.meta.url),
+    ),
+  ).toString("base64"),
+  emblemLight: readFileSync(
+    fileURLToPath(
+      new URL("../assets/brand/bridge-mark-light.svg", import.meta.url),
+    ),
+  ).toString("base64"),
   js: readFileSync(directory + "app.js", "utf8"),
   brandDark: readFileSync(
     fileURLToPath(

@@ -97,6 +97,10 @@ it("shows accurate owner configuration without exposing executable paths or agen
       headers: { authorization: "Bearer " + own },
     })
   ).json();
+  expect(status.access).toEqual({
+    owner: true,
+    scopes: ["read", "submit", "control", "workflows"],
+  });
   expect(status.configuration.worker).toBe("claude");
   expect(status.configuration.profiles.default).toMatchObject({
     permissionMode: "default",
@@ -109,6 +113,21 @@ it("shows accurate owner configuration without exposing executable paths or agen
   expect(
     (await app.inject({ url: "/v1/bridge/status", headers: headers() })).json(),
   ).not.toHaveProperty("configuration");
+});
+it("reports only the authenticated application's effective access for interface controls", async () => {
+  const restricted = auth.create({
+    id: "inspect-only",
+    owner: false,
+    profiles: ["default"],
+    scopes: ["read"],
+  }).token;
+  const response = await app.inject({
+    url: "/v1/bridge/status",
+    headers: { authorization: "Bearer " + restricted },
+  });
+  expect(response.statusCode).toBe(200);
+  expect(response.json().access).toEqual({ owner: false, scopes: ["read"] });
+  expect(response.json()).not.toHaveProperty("configuration");
 });
 it("permits explicit browser origins without bypassing authentication on commands", async () => {
   const origin = "https://console.example";

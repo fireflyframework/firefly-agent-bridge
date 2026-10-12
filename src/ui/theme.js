@@ -30,10 +30,17 @@ function applyAppearance() {
   document.documentElement.dataset.theme =
     preference === "system" ? (media.matches ? "dark" : "light") : preference;
   document.documentElement.dataset.themePreference = preference;
+  const icon = document.querySelector('link[rel="icon"]');
+  if (icon)
+    icon.href =
+      document.documentElement.dataset.theme === "dark"
+        ? "/bridge-emblem-dark.svg"
+        : "/bridge-emblem-light.svg";
 }
 applyAppearance();
 media.addEventListener("change", applyAppearance);
 document.addEventListener("DOMContentLoaded", () => {
+  applyAppearance();
   const select = document.getElementById("appearance");
   select.value = preference;
   select.addEventListener("change", () => {

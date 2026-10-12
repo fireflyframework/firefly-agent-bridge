@@ -41,20 +41,25 @@ limitations under the License.
       /></a>
       <div class="workspace-label">
         <span class="workspace-icon"
-          ><img class="brand-dark" src="/bridge-mark.svg" alt="" /><img
+          ><img class="brand-dark" src="/bridge-emblem-dark.svg" alt="" /><img
             class="brand-light"
-            src="/bridge-mark-light.svg"
+            src="/bridge-emblem-light.svg"
             alt="" /></span
         ><span
-          ><strong>Developer workspace</strong><small>Local bridge</small></span
-        ><span class="local-dot"></span>
+          ><strong>Private bridge</strong
+          ><small id="sidebar-description"
+            >Connect to inspect runtime</small
+          ></span
+        >
       </div>
       <nav aria-label="Main navigation">
-        <button data-view="jobs" class="selected">
+        <p id="nav-access-state" class="nav-access-state">Connect required</p>
+        <button data-view="jobs">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <rect x="4" y="4" width="16" height="16" rx="4" />
             <path d="M8 9h8M8 13h5M8 17h3" /></svg
-          ><span>Jobs</span><span id="job-count" class="nav-count">0</span>
+          ><span>Jobs</span
+          ><span id="job-count" class="nav-count" hidden>0</span>
         </button>
         <button data-view="workflows">
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -75,23 +80,40 @@ limitations under the License.
           ><span>Diagnostics</span>
         </button>
       </nav>
+      <button
+        id="mobile-menu-button"
+        type="button"
+        aria-label="Menu"
+        aria-haspopup="dialog"
+        aria-controls="mobile-menu"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
       <div class="rail-footer">
         <div class="connection-row">
           <span class="status-dot"></span
           ><span id="connection">Disconnected</span
-          ><span class="version">v0.2.3</span>
+          ><span class="version">v0.2.4</span>
         </div>
-        <button id="logout" hidden>Disconnect session</button>
+        <button id="connect-session" type="button">Open connection</button
+        ><button id="logout" hidden>Disconnect session</button>
       </div>
     </aside>
     <main>
       <header class="shell-header">
-        <span class="shell-context"
-          >Developer workspace <span class="shell-separator">/</span> Agent
-          Bridge</span
-        >
+        <span class="shell-context" id="shell-context">Connect</span>
         <div class="shell-tools">
-          <span class="internal-label">Internal</span
+          <button
+            id="header-connect"
+            type="button"
+            class="quiet"
+            aria-label="Open bridge connection"
+          >
+            Connect
+          </button>
+          <span class="internal-label" id="session-kind">Not connected</span
           ><label class="appearance-label" for="appearance">Appearance</label
           ><select id="appearance" aria-label="Appearance">
             <option value="system">System</option>
@@ -103,16 +125,14 @@ limitations under the License.
       <div id="content" class="content" tabindex="-1">
         <section class="page-heading">
           <div>
-            <p class="breadcrumb">Workspace <span>/</span> Operations</p>
-            <h1 id="view-title">Jobs &amp; conversations</h1>
+            <h1 id="view-title" tabindex="-1">Connect</h1>
             <p id="view-description" class="page-description">
-              Track queued work, inspect execution records, and continue native
-              sessions.
+              Open your private bridge with an owner or application token.
             </p>
           </div>
           <div class="header-actions">
             <div id="health" class="connection-badge">
-              <span></span>Sign in to connect
+              <span></span>Not connected
             </div>
             <button id="new-job" class="primary" hidden>
               <span aria-hidden="true">＋</span> New job
@@ -120,45 +140,54 @@ limitations under the License.
           </div>
         </section>
         <div id="notice" role="status" aria-live="polite" hidden></div>
-        <section id="login">
-          <div class="intro">
-            <div class="bridge-art" aria-hidden="true">
-              <span class="art-node">You</span><span class="art-link">⇄</span
-              ><span class="art-node agent">Firefly</span>
-            </div>
-            <p class="eyebrow">Firefly Agent Bridge</p>
-            <h2>Run your local<br />coding agents.</h2>
-            <p>
-              Connect your Codex or Claude Code subscription to durable jobs,
-              live execution records, and repeatable workflows. One private
-              workspace for your development tools.
-            </p>
-            <div class="intro-features">
-              <span>Durable jobs</span><span>Live progress</span
-              ><span>Resumable sessions</span>
-            </div>
-          </div>
+        <section id="login" aria-label="Bridge connection">
           <form id="connect-form">
-            <div class="form-symbol">↗</div>
-            <h2>Connect your bridge</h2>
-            <p>Use your local bridge token to open the operations panel.</p>
+            <div class="connect-heading">
+              <img
+                class="brand-light"
+                src="/bridge-emblem-light.svg"
+                alt=""
+              /><img class="brand-dark" src="/bridge-emblem-dark.svg" alt="" />
+              <div>
+                <h2>Bridge access</h2>
+                <p id="connection-destination">
+                  Continue to Jobs after connection.
+                </p>
+              </div>
+            </div>
             <label for="token">Bridge token</label
             ><input
               id="token"
               type="password"
               autocomplete="off"
               required
+              aria-describedby="token-help token-privacy"
               placeholder="Paste your ffb_ token"
-            /><button class="primary">Connect</button>
-            <p class="hint">
-              Find <code>owner.token</code> in your bridge data directory. Run
-              <code>firefly-bridge panel</code> to locate it.
+            />
+            <button class="primary" type="submit">Connect</button>
+            <p id="token-help" class="hint">
+              Run <code>firefly-bridge panel</code> on the host to locate
+              <code>owner.token</code>. For application access, ask the owner
+              for a scoped token.
             </p>
-            <div class="privacy-note">
-              The token stays in this tab's memory. Your coding-agent login is
-              never entered here.
-            </div>
+            <p id="token-privacy" class="privacy-note">
+              The token stays in this tab. Provider login remains with the
+              official CLI.
+            </p>
           </form>
+          <div class="connection-help">
+            <a
+              href="https://github.com/fireflyframework/firefly-agent-bridge/blob/main/docs/installation.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Installation guide</a
+            ><a
+              href="https://github.com/fireflyframework/firefly-agent-bridge/blob/main/docs/tokens.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Token help</a
+            >
+          </div>
         </section>
         <div id="workspace" hidden>
           <div class="toolbar">
@@ -187,7 +216,7 @@ limitations under the License.
               <section class="queue">
                 <div class="section-heading">
                   <div>
-                    <h2>All jobs</h2>
+                    <h2 id="queue-heading">All jobs</h2>
                     <p class="section-caption">
                       A shared queue across your connected tools
                     </p>
@@ -219,6 +248,9 @@ limitations under the License.
                 </div>
               </section>
               <section class="detail" aria-label="Selected job">
+                <button id="back-to-jobs" class="quiet" type="button" hidden>
+                  Back to jobs
+                </button>
                 <div id="selection-empty" class="empty">
                   <span class="empty-symbol">↗</span>
                   <h3>Inspect a job</h3>
@@ -237,6 +269,10 @@ limitations under the License.
                   <p id="job-meta" class="hint"></p>
                   <div id="job-actions" class="actions"></div>
                   <p id="job-error" class="error" hidden></p>
+                  <p id="image-job-recovery" class="hint" hidden>
+                    Image jobs require a fresh request after interruption.
+                    Resume and retry are unavailable.
+                  </p>
                   <div
                     class="job-tabs"
                     role="tablist"
@@ -361,9 +397,20 @@ limitations under the License.
                 </p>
                 <label
                   >Template
-                  <select id="template"></select></label
-                ><label for="workflow-inputs">Inputs (JSON object)</label
-                ><textarea id="workflow-inputs" rows="5">{}</textarea>
+                  <select id="template"></select
+                ></label>
+                <div id="workflow-fields"></div>
+                <details id="workflow-advanced" class="setup-advanced">
+                  <summary>Advanced input</summary>
+                  <label class="json-mode"
+                    ><input id="workflow-json-mode" type="checkbox" /> Use JSON
+                    values</label
+                  >
+                  <div id="workflow-json-values" hidden>
+                    <label for="workflow-inputs">Inputs (JSON object)</label
+                    ><textarea id="workflow-inputs" rows="5">{}</textarea>
+                  </div>
+                </details>
                 <p id="template-help" class="hint"></p>
                 <button class="primary">Start workflow</button>
               </form>
@@ -482,6 +529,21 @@ limitations under the License.
                       </div>
                       <p id="setup-provider-detail-summary"></p>
                       <div class="provider-detail-content">
+                        <dl class="provider-guide-facts">
+                          <div>
+                            <dt>Running worker</dt>
+                            <dd id="setup-provider-detail-running">Checking</dd>
+                          </div>
+                          <div>
+                            <dt>Official login</dt>
+                            <dd id="setup-provider-detail-readiness">
+                              Checking
+                            </dd>
+                          </div>
+                        </dl>
+                      </div>
+                      <details class="provider-technical">
+                        <summary>Local connection path</summary>
                         <svg
                           class="provider-route"
                           viewBox="0 0 432 142"
@@ -526,27 +588,27 @@ limitations under the License.
                             height="80"
                             rx="8"
                           />
-                          <path
-                            class="route-mark"
-                            d="M342 44h38m-34 0v20m30-20v20m-23-8h16"
+                          <image
+                            class="brand-dark"
+                            href="/bridge-emblem-dark.svg"
+                            x="344"
+                            y="42"
+                            width="32"
+                            height="32"
+                          />
+                          <image
+                            class="brand-light"
+                            href="/bridge-emblem-light.svg"
+                            x="344"
+                            y="42"
+                            width="32"
+                            height="32"
                           />
                           <text class="route-label" x="311" y="86">
                             Local bridge
                           </text>
                         </svg>
-                        <dl class="provider-guide-facts">
-                          <div>
-                            <dt>Running worker</dt>
-                            <dd id="setup-provider-detail-running">Checking</dd>
-                          </div>
-                          <div>
-                            <dt>Official login</dt>
-                            <dd id="setup-provider-detail-readiness">
-                              Checking
-                            </dd>
-                          </div>
-                        </dl>
-                      </div>
+                      </details>
                       <p
                         id="setup-provider-detail-instruction"
                         class="provider-guide-note"
@@ -587,12 +649,39 @@ limitations under the License.
                 <section data-setup-panel="2" hidden>
                   <h2 tabindex="-1">Execution profile</h2>
                   <p class="setup-description">
-                    A profile defines the model and limits used by a job. Choose
-                    one already configured on this bridge.
+                    Choose an existing profile. Its model and limits come from
+                    the host configuration.
                   </p>
                   <label for="setup-profile">Execution profile</label
                   ><select id="setup-profile"></select>
                   <div id="profile-cards" class="setup-selected-profile"></div>
+                  <section
+                    class="image-capability"
+                    aria-labelledby="image-heading"
+                  >
+                    <div>
+                      <h3 id="image-heading">Image input</h3>
+                      <span id="image-state" class="pill">Not verified</span>
+                    </div>
+                    <p id="image-description"></p>
+                    <p id="image-feedback" role="status" aria-live="polite"></p>
+                    <div class="image-actions">
+                      <button id="verify-image" type="button">
+                        Verify image input</button
+                      ><button
+                        id="open-image-job"
+                        type="button"
+                        class="quiet"
+                        hidden
+                      >
+                        Open check job
+                      </button>
+                    </div>
+                    <p id="image-owner-help" class="hint">
+                      Runs one image-only check through your subscription. Text
+                      jobs do not require this check.
+                    </p>
+                  </section>
                   <details class="setup-advanced">
                     <summary>Provider capabilities and limits</summary>
                     <dl id="provider-facts" class="health-facts"></dl>
@@ -601,8 +690,8 @@ limitations under the License.
                 <section data-setup-panel="3" hidden>
                   <h2 tabindex="-1">Development tools</h2>
                   <p class="setup-description">
-                    Give each application a scoped token, then connect it using
-                    the selected profile.
+                    Choose your client and follow its connection instructions.
+                    HTTP applications need a scoped token.
                   </p>
                   <label for="setup-client">Application</label
                   ><select id="setup-client">
@@ -764,12 +853,44 @@ limitations under the License.
                         >Profiles
                         <input id="client-profiles" required value="default"
                       /></label>
+                      <div class="permission-choice">
+                        <label for="client-permissions"
+                          >Application permissions</label
+                        >
+                        <select id="client-permissions">
+                          <option value="read,submit,control">
+                            Jobs and conversations
+                          </option>
+                          <option value="read">Read-only inspection</option>
+                          <option value="read,submit,control,workflows">
+                            Jobs and workflows
+                          </option>
+                        </select>
+                      </div>
                     </form>
                     <p id="token-created-help" class="hint" hidden>
-                      Save this token in your application. Its value is shown
-                      only when created.
+                      Save this token in your application. Copy it before
+                      leaving this view.
                     </p>
-                    <pre id="new-token" hidden></pre>
+                    <div id="new-token" class="created-token" hidden>
+                      <label for="created-token">Application token</label>
+                      <div class="created-token-value">
+                        <input
+                          id="created-token"
+                          type="password"
+                          readonly
+                          autocomplete="off"
+                        /><button type="button" id="copy-token">
+                          Copy token</button
+                        ><button
+                          type="button"
+                          id="show-token"
+                          aria-pressed="false"
+                        >
+                          Show
+                        </button>
+                      </div>
+                    </div>
                     <div id="tokens"></div>
                   </div>
                   <div class="diagnostic-card-actions">
@@ -801,41 +922,92 @@ limitations under the License.
         <span>© 2026 Firefly Software Foundation</span><span>Apache 2.0</span>
       </footer>
     </main>
-    <dialog id="job-dialog">
+    <dialog id="mobile-menu" aria-labelledby="mobile-menu-title">
       <div class="dialog-heading">
-        <h2>Create a job</h2>
-        <button id="close-job" class="icon-button" aria-label="Close">×</button>
+        <h2 id="mobile-menu-title">Navigation</h2>
+        <button
+          id="close-mobile-menu"
+          type="button"
+          aria-label="Close navigation"
+        >
+          ×
+        </button>
       </div>
+      <div id="mobile-nav-slot"></div>
+      <div class="menu-session-actions">
+        <button id="mobile-disconnect" type="button" hidden>
+          Disconnect session
+        </button>
+      </div>
+    </dialog>
+    <dialog id="job-dialog" aria-labelledby="job-dialog-title">
+      <div class="dialog-heading">
+        <h2 id="job-dialog-title">Create a job</h2>
+        <button
+          id="close-job"
+          class="icon-button"
+          type="button"
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </div>
+      <ol class="job-progress" aria-label="Job creation steps">
+        <li data-job-step="0" aria-current="step">1. Task</li>
+        <li data-job-step="1">2. Execution</li>
+        <li data-job-step="2">3. Review</li>
+      </ol>
       <form id="job-form">
-        <p class="section-caption">
-          Describe the outcome. The bridge handles execution and progress.
-        </p>
-        <label for="prompt">What should the coding agent work on?</label
-        ><textarea
-          id="prompt"
-          rows="5"
-          maxlength="100000"
-          required
-          placeholder="Describe the task and the expected result…"
-        ></textarea>
-        <div class="form-row">
-          <label
-            >Profile
-            <select id="profile"></select></label
-          ><label
-            >Execution
-            <select id="mode">
-              <option value="cli">Configured local coding agent</option>
-              <option value="inference">Chat completion (OpenAI)</option>
-              <option value="channel">Current host conversation</option>
-            </select></label
-          >
+        <div class="job-step-body">
+          <section data-job-step-panel="0">
+            <h3 tabindex="-1">Describe the work</h3>
+            <label for="prompt">What should the coding agent work on?</label
+            ><textarea
+              id="prompt"
+              rows="6"
+              maxlength="100000"
+              required
+              placeholder="Describe the expected result and any workspace restrictions."
+            ></textarea>
+            <p class="hint">
+              Include the outcome and how to check it. The selected profile
+              determines execution access.
+            </p>
+          </section>
+          <section data-job-step-panel="1" hidden>
+            <h3 tabindex="-1">Choose execution</h3>
+            <div class="form-row">
+              <label>Profile<select id="profile"></select></label
+              ><label
+                >Execution<select id="mode">
+                  <option value="cli">Local coding job</option>
+                  <option value="inference">Text completion</option>
+                  <option value="channel">Connected host conversation</option>
+                </select></label
+              >
+            </div>
+            <p id="execution-help"></p>
+            <dl id="execution-facts" class="health-facts"></dl>
+          </section>
+          <section data-job-step-panel="2" hidden>
+            <h3 tabindex="-1">Review the job</h3>
+            <dl id="job-review-facts" class="health-facts"></dl>
+            <div id="job-review" class="job-review"></div>
+            <p class="hint">
+              The request enters the durable queue. You can inspect its progress
+              in Jobs.
+            </p>
+          </section>
+          <p id="job-form-error" class="error" role="alert" hidden></p>
         </div>
-        <p id="job-form-error" class="error" role="alert" hidden></p>
         <div class="dialog-footer">
-          <span class="hint"
-            >Uses the configured worker and permission policy</span
-          ><button class="primary">Queue job</button>
+          <button id="job-back" type="button" hidden>Back</button
+          ><span id="job-step-count" class="hint" aria-live="polite"
+            >Step 1 of 3</span
+          ><button id="job-next" type="button" class="primary">Next</button
+          ><button id="queue-job" type="submit" class="primary" hidden>
+            Queue job
+          </button>
         </div>
       </form>
     </dialog>
@@ -882,8 +1054,8 @@ limitations under the License.
         </div>
         <p class="hint">
           Use {{input.topic}} for an input and {{steps.research}} for the output
-          of an earlier step. Profiles determine the tools available to each
-          step.
+          of an earlier step. Profiles set the model and limits. Tools follow
+          the running worker's configuration.
         </p>
         <div id="template-steps"></div>
         <p id="template-error" class="error" role="alert" hidden></p>

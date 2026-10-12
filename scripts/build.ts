@@ -34,6 +34,15 @@ const uiAssets = {
   themeJs: readFileSync("src/ui/theme.js", "utf8"),
   auditJs: readFileSync("src/ui/audit.js", "utf8"),
   setupJs: readFileSync("src/ui/setup.js", "utf8"),
+  navigationJs: readFileSync("src/ui/navigation.js", "utf8"),
+  jobWizardJs: readFileSync("src/ui/job-wizard.js", "utf8"),
+  imageInputJs: readFileSync("src/ui/image-input.js", "utf8"),
+  emblemDark: readFileSync("assets/brand/bridge-mark-dark.svg").toString(
+    "base64",
+  ),
+  emblemLight: readFileSync("assets/brand/bridge-mark-light.svg").toString(
+    "base64",
+  ),
   js: readFileSync("src/ui/app.js", "utf8"),
   brandDark: readFileSync("assets/brand/bridge-lockup-dark.svg").toString(
     "base64",

@@ -2,6 +2,14 @@
 
 # Changelog
 
+## 0.2.4 — 2026-10-12
+
+- Connection opens a compact access form, explains the selected destination, and continues there after authentication. Expired access clears private details and returns to the connection gate.
+- Phones use a 120-pixel shell and a keyboard-accessible modal menu. Desktop keeps the shared 76-pixel header, 248-pixel rail and aligned 64-pixel footer.
+- A three-step job dialog validates the task, preserves execution choices when moving back, and reviews the actual worker, profile and limits before admission. Unchanged failed submissions retain their idempotency key.
+- Provider guides distinguish the running worker from another provider. Profiles expose image verification as an explicit owner action; read-only applications see inspection controls only.
+- Local plugin instructions use stdio MCP. Hosted applications and ChatGPT require an explicitly configured reachable gateway; no automatic local relay or ChatGPT account connection is claimed.
+
 ## 0.2.3 — 2026-10-12
 
 - Inference accepts up to five PNG/JPEG/WebP data-URL attachments, with aggregate decoded-byte, pixel, and expansion limits. Other API routes retain their existing body limit.

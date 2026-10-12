@@ -12,7 +12,7 @@
       "name": "firefly-agent-bridge",
       "source": "./integrations/claude-code",
       "description": "Private local jobs and workflows through your configured official Codex or Claude Code subscription.",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "author": {
         "name": "@ancongui",
         "url": "https://github.com/ancongui"

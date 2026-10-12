@@ -30,9 +30,7 @@ test("provider setup keeps one focused step and preserves profile selection", as
   page,
 }) => {
   await login(page);
-  await page
-    .getByRole("button", { name: "Providers & setup", exact: true })
-    .click();
+  await navigate(page, "providers");
   await expect(
     page.getByRole("heading", { name: "Provider setup guide", exact: true }),
   ).toBeVisible();
@@ -224,6 +222,20 @@ async function login(page: import("@playwright/test").Page, bearer?: string) {
   await expect(page.locator("#workspace")).toBeVisible();
   await expect(page.locator("#stream-state")).toContainText("Live");
 }
+async function navigate(page: import("@playwright/test").Page, view: string) {
+  if (
+    (await page.locator("#mobile-menu-button").isVisible()) &&
+    !(await page
+      .locator("#mobile-menu")
+      .evaluate((node) => (node as HTMLDialogElement).open))
+  )
+    await page.locator("#mobile-menu-button").click();
+  await page.locator('[data-view="' + view + '"]').click();
+}
+async function reviewJob(page: import("@playwright/test").Page) {
+  await page.locator("#job-next").click();
+  await page.locator("#job-next").click();
+}
 async function capture(page: import("@playwright/test").Page, name: string) {
   if (process.env.UPDATE_SCREENSHOTS === "1") {
     mkdirSync("assets/screenshots", { recursive: true });
@@ -312,7 +324,7 @@ test("shared shell honors system appearance, preserves only theme, and stays ali
     for (const width of [1440, 390, 320]) {
       await page.setViewportSize({ width, height: 960 });
       for (const view of ["jobs", "workflows", "providers", "diagnostics"]) {
-        await page.locator('[data-view="' + view + '"]').click();
+        await navigate(page, view);
         await expect(page.locator("#" + view + "-view")).toBeVisible();
         expect(
           await page.evaluate(
@@ -385,7 +397,7 @@ test("desktop renders branded state, safely displays output, and supports bidire
     "Completed: Summarize the next action",
   );
   expect(await page.locator("#messages img").count()).toBe(0);
-  await page.locator('[data-view="diagnostics"]').click();
+  await navigate(page, "diagnostics");
   await expect(page.locator("#diagnostics")).toContainText(
     '"permissionMode": "default"',
   );
@@ -489,10 +501,8 @@ test("mobile has no horizontal overflow and exposes job and workflow controls", 
     .getByRole("button", { name: "Resume", exact: true })
     .click();
   await expect(page.locator("#detail-state")).toContainText("succeeded");
-  await page.locator('[data-view="workflows"]').click();
-  await page
-    .getByLabel("Inputs (JSON object)")
-    .fill('{"topic":"local orchestration"}');
+  await navigate(page, "workflows");
+  await page.getByLabel("Topic", { exact: true }).fill("local orchestration");
   await page
     .getByRole("button", { name: "Start workflow", exact: true })
     .click();
@@ -506,11 +516,15 @@ test("owner can create and revoke a scoped application token", async ({
   page,
 }) => {
   await login(page);
-  await page.locator('[data-view="diagnostics"]').click();
+  await navigate(page, "diagnostics");
   await page.getByLabel("Client name").fill("test-client");
   await page.getByRole("button", { name: "Create token", exact: true }).click();
-  await expect(page.locator("#new-token")).toContainText("ffb_");
-  const token = await page.locator("#new-token").innerText();
+  await expect(page.locator("#created-token")).toHaveValue(/^ffb_/);
+  await expect(page.locator("#created-token")).toHaveAttribute(
+    "type",
+    "password",
+  );
+  const token = await page.locator("#created-token").inputValue();
   expect(
     (
       await fetch(service.address + "/v1/bridge/status", {
@@ -542,12 +556,13 @@ test("all console views render across the layout breakpoints and the new-job dia
     .getByLabel("What should the coding agent work on?")
     .fill("Verify the installation checklist");
   await capture(page, "new-job-desktop");
+  await reviewJob(page);
   await page.getByRole("button", { name: "Queue job", exact: true }).click();
   await expect(page.getByRole("dialog")).not.toBeVisible();
   await expect(page.locator("#messages")).toContainText(
     "Completed: Verify the installation checklist",
   );
-  await page.locator('[data-view="workflows"]').click();
+  await navigate(page, "workflows");
   await expect(page.locator("#workflow-runs")).toContainText(
     "research-and-review",
   );
@@ -563,7 +578,7 @@ test("all console views render across the layout breakpoints and the new-job dia
   for (const width of [320, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 960 });
     for (const view of ["jobs", "workflows", "diagnostics"]) {
-      await page.locator('[data-view="' + view + '"]').click();
+      await navigate(page, view);
       await expect(page.locator("#" + view + "-view")).toBeVisible();
       const overflow = await page.evaluate(() =>
         [...document.querySelectorAll("*")]
@@ -597,7 +612,7 @@ test("template editor validates references, saves reusable steps, and runs the n
   page,
 }) => {
   await login(page);
-  await page.locator('[data-view="workflows"]').click();
+  await navigate(page, "workflows");
   await page.getByRole("button", { name: "New template", exact: true }).click();
   await page.getByLabel("Template ID", { exact: true }).fill("draft-and-check");
   await page
@@ -634,9 +649,7 @@ test("template editor validates references, saves reusable steps, and runs the n
     "draft-and-check",
   );
   await page.locator("#template").selectOption("draft-and-check");
-  await page
-    .getByLabel("Inputs (JSON object)")
-    .fill('{"topic":"template validation"}');
+  await page.getByLabel("Topic", { exact: true }).fill("template validation");
   await page
     .getByRole("button", { name: "Start workflow", exact: true })
     .click();
@@ -653,10 +666,12 @@ test("completion jobs share the queue, show readable output and usage, and expos
   await page
     .getByLabel("What should the coding agent work on?")
     .fill("Confirm the bridge is ready for my application");
+  await page.locator("#job-next").click();
   await page.locator("#mode").selectOption("inference");
   const submission = page.waitForRequest(
     (r) => r.method() === "POST" && r.url().endsWith("/v1/chat/completions"),
   );
+  await page.locator("#job-next").click();
   await page.getByRole("button", { name: "Queue job", exact: true }).click();
   expect((await submission).postDataJSON().bridge).toEqual({
     execution: "inference",
@@ -669,7 +684,7 @@ test("completion jobs share the queue, show readable output and usage, and expos
   await capture(page, "completion-desktop");
   await page.setViewportSize({ width: 390, height: 844 });
   await capture(page, "completion-mobile");
-  await page.locator('[data-view="diagnostics"]').click();
+  await navigate(page, "diagnostics");
   await expect(page.locator("#diagnostics-view")).toContainText(
     "bridge/default",
   );
@@ -842,6 +857,7 @@ test("creating a job clears previous audit evidence before a failed attempts req
     .getByLabel("What should the coding agent work on?")
     .fill("New selection without stale evidence");
   const attempts = page.waitForRequest((r) => r.url().endsWith("/attempts"));
+  await reviewJob(page);
   await page.getByRole("button", { name: "Queue job", exact: true }).click();
   const request = await attempts;
   try {
@@ -937,20 +953,19 @@ test("switching workspace views returns to the new heading on mobile", async ({
     profiles: ["default"],
   }).token;
   await login(page, navigationOwner);
-  await page
-    .getByRole("button", { name: "Providers & setup", exact: true })
-    .click();
+  await navigate(page, "providers");
   await page.locator("#content").evaluate((node) => {
     node.scrollTop = 500;
   });
-  await page.getByRole("button", { name: "Diagnostics", exact: true }).click();
+  await navigate(page, "diagnostics");
   await expect(page.locator("#view-title")).toBeInViewport();
   await expect
     .poll(() => page.locator("#content").evaluate((node) => node.scrollTop))
     .toBe(0);
-  await expect(
-    page.getByRole("button", { name: "Diagnostics", exact: true }),
-  ).toHaveAttribute("aria-current", "page");
+  await expect(page.locator('[data-view="diagnostics"]')).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
 });
 
 test("provider guide details follow selection without changing the actual worker", async ({
@@ -962,9 +977,7 @@ test("provider guide details follow selection without changing the actual worker
     profiles: ["default"],
   }).token;
   await login(page, reviewer);
-  await page
-    .getByRole("button", { name: "Providers & setup", exact: true })
-    .click();
+  await navigate(page, "providers");
   const running = await page
     .locator("#setup-provider-detail-running")
     .innerText();
@@ -997,9 +1010,7 @@ test("wizard navigation and card edge remain reachable above the footer on short
     profiles: ["default"],
   }).token;
   await login(page, reviewer);
-  await page
-    .getByRole("button", { name: "Providers & setup", exact: true })
-    .click();
+  await navigate(page, "providers");
   for (const [width, height] of [
     [1440, 900],
     [1440, 768],
@@ -1017,26 +1028,31 @@ test("wizard navigation and card edge remain reachable above the footer on short
           step === 3 ? "#setup-start-job" : "#setup-next",
         );
 
+        await next.scrollIntoViewIfNeeded();
+        await expect(next).toBeInViewport({ ratio: 0.99 });
         const geometry = await page.evaluate(() => ({
+          body: document.querySelector(".setup-body")!.getBoundingClientRect(),
+          actions: document
+            .querySelector(".setup-footer")!
+            .getBoundingClientRect(),
           button: document
             .querySelector(
               "#setup-next:not([hidden]),#setup-start-job:not([hidden])",
             )!
-            .getBoundingClientRect().bottom,
-          card: document
-            .querySelector(".provider-setup")!
-            .getBoundingClientRect().bottom,
-          footer: document
+            .getBoundingClientRect(),
+          globalFooter: document
             .querySelector("main > footer")!
-            .getBoundingClientRect().top,
-          content: document.querySelector("#content")!.getBoundingClientRect()
-            .bottom,
-          outerScroll: document.querySelector("#content")!.scrollTop,
+            .getBoundingClientRect(),
+          clipped: getComputedStyle(document.querySelector(".setup-body")!)
+            .overflowY,
         }));
-        expect(geometry.outerScroll).toBe(0);
-        expect(geometry.button).toBeLessThanOrEqual(geometry.content - 16);
-        expect(geometry.card).toBeLessThanOrEqual(geometry.content - 16);
-        expect(geometry.card).toBeLessThan(geometry.footer);
+        expect(geometry.actions.top).toBeGreaterThanOrEqual(
+          geometry.body.bottom,
+        );
+        expect(geometry.button.bottom).toBeLessThanOrEqual(
+          geometry.globalFooter.top,
+        );
+        expect(geometry.clipped).toBe("visible");
         if (step < 3) await next.click();
       }
     }
@@ -1052,7 +1068,7 @@ test("diagnostic cards keep their borders and actions with the visible form", as
     profiles: ["default"],
   }).token;
   await login(page, reviewer);
-  await page.getByRole("button", { name: "Diagnostics", exact: true }).click();
+  await navigate(page, "diagnostics");
   for (const [width, height] of [
     [1440, 768],
     [1920, 1080],
@@ -1064,7 +1080,7 @@ test("diagnostic cards keep their borders and actions with the visible form", as
     for (const theme of ["light", "dark"]) {
       await page.getByLabel("Appearance", { exact: true }).selectOption(theme);
       for (const section of ["service", "access"]) {
-        if (width <= 760) {
+        if (width <= 900) {
           await page.locator(`[data-diagnostic-tab="${section}"]`).click();
           if (section === "access")
             await expect(
@@ -1078,50 +1094,41 @@ test("diagnostic cards keep their borders and actions with the visible form", as
             ? "#diagnostic-status-panel"
             : "#diagnostic-access-panel",
         );
-        const geometry = await panel.evaluate((node) => {
-          const action = node.querySelector(".diagnostic-card-actions")!;
-          const range = document.createRange();
-          range.selectNodeContents(action.querySelector("button")!);
-          return {
-            card: node.getBoundingClientRect(),
-            header: node
-              .querySelector(".section-heading")!
-              .getBoundingClientRect(),
-            action: action.getBoundingClientRect(),
-            buttonLines: range.getClientRects().length,
-            frame: document
-              .querySelector(".diagnostics-frame")!
-              .getBoundingClientRect(),
-            content: document
-              .querySelector("#content")!
-              .getBoundingClientRect(),
-            outerScroll: document.querySelector("#content")!.scrollTop,
-          };
-        });
-        expect(geometry.outerScroll).toBe(0);
-        expect(geometry.card.top).toBeGreaterThanOrEqual(geometry.frame.top);
-        expect(geometry.card.bottom).toBeLessThanOrEqual(
-          geometry.frame.bottom + 1,
+        const action = panel.locator(".diagnostic-card-actions button");
+        await action.scrollIntoViewIfNeeded();
+        await expect(action).toBeInViewport({ ratio: 0.99 });
+        const geometry = await panel.evaluate((node) => ({
+          body: node
+            .querySelector(".diagnostic-card-body")!
+            .getBoundingClientRect(),
+          action: node
+            .querySelector(".diagnostic-card-actions")!
+            .getBoundingClientRect(),
+          footer: document
+            .querySelector("main > footer")!
+            .getBoundingClientRect(),
+          clipped: getComputedStyle(
+            node.querySelector(".diagnostic-card-body")!,
+          ).overflowY,
+        }));
+        expect(geometry.action.top).toBeGreaterThanOrEqual(
+          geometry.body.bottom,
         );
-        expect(geometry.action.bottom).toBeLessThan(geometry.card.bottom);
-        expect(geometry.card.bottom).toBeLessThanOrEqual(
-          geometry.content.bottom - 16,
-        );
-        expect(geometry.header.top).toBeGreaterThan(geometry.card.top);
-        expect(geometry.buttonLines).toBe(1);
+        expect(geometry.action.bottom).toBeLessThanOrEqual(geometry.footer.top);
+        expect(geometry.clipped).toBe("visible");
         if (section === "access") {
-          await expect(
-            page.getByLabel("Client name", { exact: true }),
-          ).toBeInViewport();
-          await expect(
-            page.getByLabel("Profiles", { exact: true }),
-          ).toBeInViewport();
-          await expect(
-            panel.getByRole("button", { name: "Create token", exact: true }),
-          ).toBeInViewport();
+          for (const field of [
+            "Client name",
+            "Profiles",
+            "Application permissions",
+          ]) {
+            const input = page.getByLabel(field, { exact: true });
+            await input.scrollIntoViewIfNeeded();
+            await expect(input).toBeInViewport({ ratio: 0.99 });
+          }
         }
       }
-      if (width <= 760) {
+      if (width <= 900) {
         await page.getByRole("tab", { name: "Service", exact: true }).focus();
         await page.keyboard.press("ArrowRight");
         await expect(
@@ -1144,9 +1151,7 @@ test("wizard headings, labels and selected profile retain readable text bounds",
     profiles: ["default"],
   }).token;
   await login(page, reviewer);
-  await page
-    .getByRole("button", { name: "Providers & setup", exact: true })
-    .click();
+  await navigate(page, "providers");
   for (const width of [320, 390, 1440, 1920, 2560]) {
     await page.setViewportSize({ width, height: 844 });
     for (let step = 0; step < 4; step++) {
@@ -1160,7 +1165,7 @@ test("wizard headings, labels and selected profile retain readable text bounds",
           "#setup-profile-alias",
           "[data-setup-panel]:not([hidden]) h2",
         ];
-        if (innerWidth > 760) selectors.push(".workspace-label strong");
+        if (innerWidth > 900) selectors.push(".workspace-label strong");
         return selectors.flatMap((selector) =>
           [...document.querySelectorAll(selector)]
             .filter((node) => node.getClientRects().length > 0)
@@ -1214,4 +1219,559 @@ test("default browser logins have distinct principals without changing owner acc
     created.every((principal) => principal.owner && !principal.revoked),
   ).toBe(true);
   expect(tokens.verify(service.ownerToken).owner).toBe(true);
+});
+
+test("anonymous navigation explains its gate and continues to the chosen destination after connection", async ({
+  page,
+}) => {
+  await page.goto(service.address);
+  await expect(page.locator("#view-title")).toHaveText("Connect");
+  await expect(page.locator("#job-count")).toBeHidden();
+  await navigate(page, "providers");
+  await expect(page.locator("#view-title")).toHaveText("Connect");
+  await expect(page.locator("#connection-destination")).toContainText(
+    "Providers & setup",
+  );
+  await expect(page.locator('[data-view="providers"]')).not.toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  const bearer = new Tokens(service.store).create({
+    id: "gated-" + randomUUID(),
+    owner: true,
+    profiles: ["default"],
+  }).token;
+  await page.getByLabel("Bridge token", { exact: true }).fill(bearer);
+  await page.getByRole("button", { name: "Connect", exact: true }).click();
+  await expect(page.locator("#providers-view")).toBeVisible();
+  await expect(page.locator("#view-title")).toHaveText("Providers & setup");
+});
+test("phone shell uses 120 pixels of chrome and a keyboard-safe native navigation dialog", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(service.address);
+  const chrome = await page.evaluate(
+    () =>
+      document.querySelector(".rail")!.getBoundingClientRect().height +
+      document.querySelector(".shell-header")!.getBoundingClientRect().height,
+  );
+  expect(chrome).toBe(120);
+  const menu = page.getByRole("button", { name: "Menu", exact: true });
+  await menu.click();
+  await expect(page.getByRole("dialog", { name: "Navigation" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeFocused();
+  await menu.click();
+  await navigate(page, "diagnostics");
+  await expect(page.getByRole("dialog", { name: "Navigation" })).toBeHidden();
+  await expect(page.locator("#connection-destination")).toContainText(
+    "Diagnostics",
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > innerWidth,
+    ),
+  ).toBe(false);
+});
+test("job wizard validates the task and preserves execution choices when moving back", async ({
+  page,
+}) => {
+  await login(page);
+  await page.getByRole("button", { name: "New job", exact: false }).click();
+  await expect(page.locator("#job-step-count")).toHaveText("Step 1 of 3");
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(page.locator("#job-step-count")).toHaveText("Step 1 of 3");
+  await page.locator("#prompt").fill("Return exactly seven without tools.");
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await page.locator("#mode").selectOption("inference");
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(page.locator("#job-review")).toContainText(
+    "Return exactly seven",
+  );
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(page.locator("#mode")).toHaveValue("inference");
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(page.locator("#prompt")).toHaveValue(
+    "Return exactly seven without tools.",
+  );
+});
+
+test("read-only application access exposes inspection without job, token, or image-probe actions", async ({
+  page,
+}) => {
+  const principal = {
+    id: "read-only-view",
+    owner: false,
+    profiles: ["default"],
+    scopes: ["read"],
+  };
+  const bearer = new Tokens(service.store).create({
+    ...principal,
+    scopes: [...principal.scopes],
+  }).token;
+  const job = service.store.submit(
+    { prompt: "Read-only conversation" },
+    principal,
+  );
+  const attempt = service.store.claim("reader-fixture", "cli", job.id)!;
+  service.store.finish(attempt, {
+    status: "succeeded",
+    result: "Inspection available",
+    sessionId: "11111111-1111-4111-8111-111111111112",
+  });
+  await login(page, bearer);
+  await expect(page.locator("#session-kind")).toHaveText("Read-only access");
+  await expect(page.locator("#new-job")).toBeHidden();
+  await page
+    .getByRole("button", { name: "Read-only conversation", exact: true })
+    .click();
+  await expect(page.locator("#messages")).toContainText("Inspection available");
+  await expect(page.locator("#message-form")).toBeHidden();
+  await expect(page.locator("#job-actions button")).toHaveCount(0);
+  await navigate(page, "providers");
+  await page.locator("#setup-next").click();
+  await page.locator("#setup-next").click();
+  await expect(page.locator("#verify-image")).toBeHidden();
+  await expect(page.locator("#image-owner-help")).toContainText(
+    "Ask the bridge owner",
+  );
+  await navigate(page, "diagnostics");
+  await expect(page.locator("#token-form")).toBeHidden();
+  expect(service.store.get(job.id).status).toBe("succeeded");
+});
+
+test("phone Back to jobs survives polling and browser Back restores the selected destination", async ({
+  page,
+}) => {
+  const prompt = "Back-to-queue " + randomUUID();
+  const job = service.store.submit({ prompt }, owner),
+    attempt = service.store.claim("back-fixture", "cli", job.id)!;
+  service.store.finish(attempt, {
+    status: "succeeded",
+    result: "Navigation fixture complete",
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await login(page);
+  await page.getByRole("button", { name: prompt, exact: true }).click();
+  await expect(page.locator(".detail")).toBeVisible();
+  await page.locator("#back-to-jobs").click();
+  await page.locator("#refresh").click();
+  await expect(page.locator(".queue")).toBeVisible();
+  await expect(page.locator(".detail")).toBeHidden();
+  await navigate(page, "providers");
+  await navigate(page, "diagnostics");
+  await page.goBack();
+  await expect(page.locator("#view-title")).toHaveText("Providers & setup");
+});
+
+test("expired access returns to its connection gate and clears private job details", async ({
+  page,
+}) => {
+  const tokens = new Tokens(service.store),
+    id = "expire-" + randomUUID(),
+    bearer = tokens.create({ id, owner: true, profiles: ["default"] }).token;
+  const prompt = "Expired-access fixture " + randomUUID();
+  const job = service.store.submit({ prompt }, owner),
+    attempt = service.store.claim("expiry-fixture", "cli", job.id)!;
+  service.store.finish(attempt, {
+    status: "succeeded",
+    result: "Private inspection data",
+  });
+  await login(page, bearer);
+  await page.getByRole("button", { name: prompt, exact: true }).click();
+  tokens.revoke(id);
+  await expect(page.locator("#view-title")).toHaveText("Connect");
+  await expect(page.locator("#workspace")).toBeHidden();
+  await expect(page.locator("#messages")).toBeEmpty();
+  await expect(page.locator("#token")).toHaveValue("");
+});
+
+test("image verification is an explicit owner action and a failed check never claims vision support", async ({
+  page,
+}) => {
+  await login(page);
+  await navigate(page, "providers");
+  await page.locator("#setup-next").click();
+  await page.locator("#setup-next").click();
+  await expect(page.locator("#image-state")).toHaveText("Not verified");
+  await page.locator("#verify-image").click();
+  await expect(page.locator("#image-feedback")).toContainText(
+    "Image check failed",
+    { timeout: 15000 },
+  );
+  await expect(page.locator("#image-state")).not.toHaveText("Verified");
+  await expect(page.locator("#verify-image")).toBeEnabled();
+  await navigate(page, "jobs");
+  await expect(page.locator("#new-job")).toBeEnabled();
+});
+
+test("owner chooses read-only application permissions and sees a masked token", async ({
+  page,
+}) => {
+  await login(page);
+  await navigate(page, "diagnostics");
+  await page.locator("#client-name").fill("inspect-ui-" + randomUUID());
+  await page
+    .getByLabel("Application permissions", { exact: true })
+    .selectOption("read");
+  await page.getByRole("button", { name: "Create token", exact: true }).click();
+  await expect(page.locator("#created-token")).toHaveAttribute(
+    "type",
+    "password",
+  );
+  await expect(page.locator("#created-token")).toHaveValue(/^ffb_/);
+  const bearer = await page.locator("#created-token").inputValue();
+  const response = await fetch(service.address + "/v1/bridge/status", {
+    headers: { Authorization: "Bearer " + bearer },
+  });
+  expect((await response.json()).access).toEqual({
+    owner: false,
+    scopes: ["read"],
+  });
+  expect(
+    (
+      await fetch(service.address + "/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + bearer,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "bridge/default",
+          messages: [{ role: "user", content: "Forbidden task" }],
+          bridge: { execution: "inference", background: true },
+        }),
+      })
+    ).status,
+  ).toBe(403);
+  await page.locator("#show-token").click();
+  await expect(page.locator("#created-token")).toHaveAttribute("type", "text");
+  await page.locator("#show-token").click();
+  await expect(page.locator("#created-token")).toHaveAttribute(
+    "type",
+    "password",
+  );
+});
+
+test("unknown job admission reuses its request and creates only one durable job", async ({
+  page,
+}) => {
+  await login(page);
+  let responses = 0;
+  const keys: string[] = [];
+  await page.route("**/v1/chat/completions", async (route) => {
+    keys.push(route.request().headers()["idempotency-key"] ?? "");
+    if (responses++ === 0) {
+      await route.fetch();
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: { message: "Admission outcome could not be delivered" },
+        }),
+      });
+    } else await route.continue();
+  });
+  const prompt = "Admission replay " + randomUUID();
+  await page.locator("#new-job").click();
+  await page.locator("#prompt").fill(prompt);
+  await reviewJob(page);
+  await page.locator("#queue-job").click();
+  await expect(page.locator("#job-form-error")).toContainText(
+    "reuses this request",
+  );
+  await page.locator("#queue-job").click();
+  await expect(page.locator("#job-dialog")).toBeHidden();
+  expect(keys).toHaveLength(2);
+  expect(keys[0]).toBe(keys[1]);
+  expect(
+    service.store
+      .list(owner, 200, "", "desc")
+      .filter(
+        (job) =>
+          job.prompt === prompt ||
+          job.completion?.messages.some((m) => m.content === prompt),
+      ),
+  ).toHaveLength(1);
+});
+
+test("short phone diagnostics exposes real data and setup content scrolls without an internal action overlay", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await login(page);
+  await navigate(page, "diagnostics");
+  await expect(page.locator("#diagnostic-worker")).toBeInViewport({
+    ratio: 1,
+  });
+  await page.locator("#refresh-diagnostics").scrollIntoViewIfNeeded();
+  await expect(page.locator("#refresh-diagnostics")).toBeInViewport({
+    ratio: 1,
+  });
+  await navigate(page, "providers");
+  await page.locator("#setup-next").click();
+  await page.locator("#setup-worker-instructions").scrollIntoViewIfNeeded();
+  const clear = await page
+    .locator("#setup-worker-instructions")
+    .evaluate((node) => {
+      const body = node.closest(".setup-body")!,
+        footer = document.querySelector(".setup-footer")!;
+      return {
+        instruction: node.getBoundingClientRect(),
+        body: body.getBoundingClientRect(),
+        footer: footer.getBoundingClientRect(),
+      };
+    });
+  expect(clear.instruction.bottom).toBeLessThanOrEqual(clear.body.bottom);
+  expect(clear.footer.top).toBeGreaterThanOrEqual(clear.body.bottom);
+});
+
+test("disconnect discards a late authenticated status response instead of repopulating private data", async ({
+  page,
+}) => {
+  await login(page);
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let requested!: () => void;
+  const received = new Promise<void>((resolve) => {
+    requested = resolve;
+  });
+  await page.route("**/v1/bridge/status", async (route) => {
+    const response = await route.fetch();
+    requested();
+    await gate;
+    await route.fulfill({ response });
+  });
+  const response = page.waitForResponse((r) =>
+    r.url().endsWith("/v1/bridge/status"),
+  );
+  await page.locator("#refresh").click();
+  await received;
+  await page.locator("#logout").click();
+  release();
+  await (await response).finished();
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+  await expect(page.locator("#view-title")).toHaveText("Connect");
+  await expect(page.locator("#diagnostics")).toBeEmpty();
+  await expect(page.locator("#health-facts")).toBeEmpty();
+  await expect(page.locator("#messages")).toBeEmpty();
+});
+
+test("interrupted image jobs show their attachment and fresh-request guidance without unsafe retry", async ({
+  page,
+}) => {
+  const { prepareCompletion } =
+      await import("../../src/completion-protocol.js"),
+    { challengeImage } = await import("../../src/image-capabilities.js");
+  const prepared = prepareCompletion({
+    model: "bridge/default",
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "Interrupted image review" },
+          {
+            type: "image_url",
+            image_url: {
+              url:
+                "data:image/png;base64," +
+                challengeImage("12345678").toString("base64"),
+              detail: "auto",
+            },
+          },
+        ],
+      },
+    ],
+  });
+  const job = service.store.submit(
+      { prompt: prepared.prompt, profile: "default", mode: "cli" },
+      owner,
+      undefined,
+      prepared.request,
+    ),
+    attempt = service.store.claim("image-recovery-fixture", "cli", job.id)!;
+  service.store.finish(attempt, {
+    status: "interrupted",
+    error: "Fixture worker interruption",
+  });
+  await login(page);
+  await page
+    .getByRole("button", { name: "Chat completion", exact: true })
+    .first()
+    .click();
+  await expect(page.locator("#messages .message-attachment")).toBeVisible();
+  await expect(
+    page
+      .locator("#job-actions")
+      .getByRole("button", { name: "Retry", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.locator("#image-job-recovery")).toContainText(
+    "fresh request",
+  );
+});
+
+test("workflow inputs use named plain fields and retain JSON as an explicit advanced option", async ({
+  page,
+}) => {
+  await login(page);
+  await navigate(page, "workflows");
+  await page.locator("#template").selectOption("research-and-review");
+  await expect(page.getByLabel("Topic", { exact: true })).toBeVisible();
+  await expect(page.locator("#workflow-inputs")).toBeHidden();
+  await page
+    .getByLabel("Topic", { exact: true })
+    .fill("A readable workflow brief");
+  const request = page.waitForRequest(
+    (r) => r.method() === "POST" && r.url().endsWith("/workflow-runs"),
+  );
+  await page.locator("#workflow-form button").click();
+  expect((await request).postDataJSON().inputs).toEqual({
+    topic: "A readable workflow brief",
+  });
+  await page.locator("#workflow-advanced summary").click();
+  await page.getByLabel("Use JSON values", { exact: true }).check();
+  await expect(page.locator("#workflow-inputs")).toBeVisible();
+  await expect(page.locator("#workflow-inputs")).toHaveValue(
+    /A readable workflow brief/,
+  );
+});
+
+test("diagnostic worker and state values remain complete single lines inside their card width", async ({
+  page,
+}) => {
+  await login(page);
+  await navigate(page, "diagnostics");
+  for (const width of [960, 1280, 1440, 1920, 320]) {
+    await page.setViewportSize({ width, height: 844 });
+    for (const theme of ["light", "dark"]) {
+      await page.locator("#appearance").selectOption(theme);
+      const lines = await page
+        .locator(".diagnostic-signals dd")
+        .evaluateAll((nodes) =>
+          nodes.map((node) => {
+            const range = document.createRange();
+            range.selectNodeContents(node);
+            return {
+              text: node.textContent,
+              lines: range.getClientRects().length,
+              overflow: node.scrollWidth > node.clientWidth + 1,
+              measuredWidth: node.clientWidth,
+              font: getComputedStyle(node).fontSize,
+            };
+          }),
+        );
+      for (const value of lines) {
+        expect(value.lines, value.text ?? "").toBe(1);
+        expect(
+          value.overflow,
+          JSON.stringify({ viewport: width, ...value }),
+        ).toBe(false);
+      }
+    }
+  }
+});
+
+test("uncertain workflow admission returns the existing run when unchanged inputs are submitted again", async ({
+  page,
+}) => {
+  await login(page);
+  await navigate(page, "workflows");
+  await page.locator("#template").selectOption("research-and-review");
+  const topic = "Workflow admission " + randomUUID();
+  await page.getByLabel("Topic", { exact: true }).fill(topic);
+  let count = 0;
+  const ids: string[] = [];
+  await page.route("**/v1/bridge/workflow-runs", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.continue();
+      return;
+    }
+    const response = await route.fetch();
+    ids.push((await response.json()).id);
+    if (count++ === 0)
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: { message: "Workflow admission reply was lost" },
+        }),
+      });
+    else await route.fulfill({ response });
+  });
+  await page.locator("#workflow-form button").click();
+  await expect(page.locator("#notice")).toContainText(
+    "Workflow admission reply was lost",
+  );
+  await page.locator("#workflow-form button").click();
+  await expect.poll(() => ids.length).toBe(2);
+  expect(ids[0]).toBe(ids[1]);
+});
+
+test("changing profile discards a late image-check admission from the previous profile", async ({
+  page,
+}) => {
+  const data = mkdtempSync(join(tmpdir(), "bridge-image-profile-"));
+  const isolated = await startService(
+    parseConfig({
+      dataDir: data,
+      workspace: join(data, "jobs"),
+      claudePath: process.execPath,
+      port: 0,
+      profiles: { default: {}, review: {} },
+    }),
+    {
+      worker: () => ({
+        ready: async () => ({ ready: true }),
+        run: async () => ({
+          status: "succeeded",
+          result: JSON.stringify({ content: "No image proof", tool_calls: [] }),
+        }),
+      }),
+    },
+  );
+  let release!: () => void, admitted!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  const started = new Promise<void>((resolve) => (admitted = resolve));
+  try {
+    await page.goto(isolated.address);
+    await page
+      .getByLabel("Bridge token", { exact: true })
+      .fill(isolated.ownerToken);
+    await page.getByRole("button", { name: "Connect", exact: true }).click();
+    await expect(page.locator("#workspace")).toBeVisible();
+    await navigate(page, "providers");
+    await page.locator("#setup-next").click();
+    await page.locator("#setup-next").click();
+    await page.route("**/v1/bridge/image-input/probes", async (route) => {
+      const response = await route.fetch();
+      admitted();
+      await held;
+      await route.fulfill({ response });
+    });
+    await page.locator("#verify-image").click();
+    await started;
+    await page.locator("#setup-profile").selectOption("review");
+    const finished = page.waitForEvent("requestfinished", {
+      predicate: (request) => request.url().endsWith("/image-input/probes"),
+    });
+    release();
+    await finished;
+    await page.waitForTimeout(100);
+    await expect(page.locator("#setup-profile")).toHaveValue("review");
+    await expect(page.locator("#open-image-job")).toBeHidden();
+    await expect(page.locator("#image-feedback")).toBeEmpty();
+    await expect(page.locator("#verify-image")).toBeEnabled();
+  } finally {
+    release();
+    await isolated.close();
+    rmSync(data, { recursive: true, force: true });
+  }
 });
