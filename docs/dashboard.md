@@ -6,7 +6,7 @@
 
 The console is served by the local bridge. Open the URL returned by `bridge_panel` and authenticate with a bridge token. It submits through `/v1/chat/completions` and uses the same `/v1/bridge` management and notification extensions as other applications.
 
-The screenshots below come from the running application with deterministic fixtures. They illustrate UI behavior without claiming the sample tasks were real production work.
+The screenshots show the running console. Job and tool examples use deterministic fixtures; the current provider and Diagnostics views use an isolated local bridge with an authenticated official Codex CLI. They document interface behavior and login readiness, not production tasks or new model-execution acceptance.
 
 ## Jobs and conversations
 
@@ -58,15 +58,17 @@ Use **New template** to define inputs, ordered steps, instructions, and executio
 
 ## Diagnostics and application access
 
-Service health explains login readiness, dispatch state, active jobs, connected hosts, profiles, OpenAI base URL, model aliases, and the workspace. Expand **Technical details** for the full status payload.
+Service health explains login readiness, dispatch state, active jobs, connected hosts, profiles, OpenAI base URL, model aliases, and the workspace. Expand **Connection and execution details** for the full status payload. Readiness reflects the current official CLI login; it does not establish that every configured model can complete a job.
 
 Create a separate token for each trusted application. New tokens are displayed once in the panel; revocation immediately invalidates requests and active event streams.
 
 ![Diagnostics and client access](../assets/screenshots/diagnostics-desktop.png)
 
+[Mobile service status](../assets/screenshots/diagnostics-mobile.png) · [Mobile application access](../assets/screenshots/diagnostics-access-mobile.png)
+
 ## Responsive navigation
 
-The sidebar becomes a compact navigation row on narrow screens. Queue and conversation panels stack, controls remain accessible, and long diagnostics wrap rather than widening the page. The content area scrolls independently of the shell. The copyright footer occupies its own row, clear of job and connection controls. On desktop its 64-pixel row aligns with the sidebar connection and disconnect rows.
+The sidebar becomes a compact navigation row on narrow screens. Queue and conversation panels stack, controls remain accessible, and long diagnostics wrap rather than widening the page. Jobs scroll within the shell. Provider setup keeps its step navigation, current-worker context and action bar visible while only the step body scrolls. Diagnostics keeps each card header and action row visible while its details scroll. Phones separate Service and Application access into keyboard-accessible tabs; Create token stays with the visible application form. Neither action bar covers the global footer. The copyright footer occupies its own row, clear of job and connection controls. On desktop its 64-pixel row aligns with the sidebar connection and disconnect rows.
 
 | Mobile jobs                                                | Mobile workflows                                                |
 | ---------------------------------------------------------- | --------------------------------------------------------------- |
@@ -82,8 +84,15 @@ The activity stream receives authenticated SSE events and reconnects with the la
 
 Appearance follows the system by default. Choose Light or Dark to save an explicit preference on this browser. The console stores only that preference; reloading clears authentication. The fixed 76-pixel header, 248-pixel desktop rail, Manrope typography, and amber controls match the Firefly developer suite. Mobile navigation preserves access to every view.
 
-Providers & setup shows the selected official worker, subscription readiness, supported native capabilities, effective profiles, configured models, permissions, deadlines, and output bounds. Owner authentication is required for profile details. Claude tools and agents are labeled as Claude capabilities; the view does not imply that they restrict Codex.
+Providers & setup guides you through four focused steps:
+
+1. **Provider:** choose a Codex or Claude Code setup guide. The current running worker stays visible; selecting another guide does not change it.
+2. **Login:** copy the official login command, run it on the bridge host, then refresh the running worker's readiness. Provider credentials are never entered in this form.
+3. **Profile:** choose an existing profile and inspect its effective model, permissions, timeout and output bounds. Advanced provider capabilities remain available when needed.
+4. **Tools:** select your development application, create a scoped token and follow its integration instructions. The Codex and Claude plugins use their stdio adapters; a loopback management address is not a remote ChatGPT connection.
+
+The wizard keeps your selected profile when you move back between steps. Earlier visited steps remain accessible. **Start a job** opens the normal job dialog with that profile; it does not submit work automatically.
 
 ![Provider setup and profiles](../assets/screenshots/providers-light-desktop.png)
 
-Change worker and profile configuration in the saved file while stopped, restart, then check the effective settings here. The console does not accept provider credentials or rewrite executable paths.
+Change worker and profile configuration in the saved file while stopped, restart, then check the effective settings here. The console does not accept provider credentials or rewrite executable paths. Claude tool and agent definitions apply to Claude execution; they do not imply restrictions on Codex.

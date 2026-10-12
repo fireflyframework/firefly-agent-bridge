@@ -18,6 +18,14 @@ Install `docs/requirements.txt` into the Python environment selected by `BRIDGE_
 
 The prose check catches a small set of editorial regressions outside code and links. It does not automate the Humanizer's contextual judgment. Manual review preserves technical claims, API labels, commands, and limitations while removing repetitive or promotional wording.
 
+## 0.2.1 patch checks
+
+The patch gate covers 103 unit/integration tests, seven real Python SDK compatibility cases against a deterministic worker, and 19 browser journeys. The new mobile navigation regression proves that switching views returns to the destination heading rather than keeping the previous panel's scroll position.
+
+A separate isolated Chromium review covers all four provider-wizard steps and Diagnostics in light and dark at 320, 390, 1024, 1440, 1920 and 2560 pixels. The native local preview uses the official signed-in Codex worker for actual readiness checks; it submits no model jobs. Updated screenshots show the current wizard and Diagnostics. Existing subscription execution evidence below belongs to 0.2.0 and is not relabeled as a new patch acceptance.
+
+Version and packaging checks include the CLI, HTTP, MCP, desktop/plugin manifests, installation examples, generated OpenAPI and embedded setup module. Release publication still depends on the complete three-platform native matrix and verified downloaded assets.
+
 ## 0.2.0 release checks
 
 The local release checks cover 103 unit and integration tests, seven OpenAI/Pydantic AI SDK cases, and 13 browser journeys. Types, lint, formatting, generated API/version contracts, license notices, and the strict private documentation build also run before packaging. Native smoke checks compare CLI, HTTP, MCP, and Codex plugin release versions, then connect two stdio hosts to one authenticated service and inspect its embedded theme assets.

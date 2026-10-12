@@ -56,7 +56,7 @@ For a source checkout:
 codex mcp add firefly-agent-bridge -- node /absolute/path/to/firefly-agent-bridge/dist/cli.cjs mcp
 ```
 
-Use `--data-dir /absolute/path/to/state` after `mcp` for a custom bridge instance. The adapter is stdio; the bridge's HTTP listener is not a Streamable HTTP MCP endpoint.
+Use `--data-dir /absolute/path/to/state` after `mcp` for a custom bridge instance. The adapter uses stdio. Applications can also use authenticated Streamable HTTP MCP at `/mcp`; see [ChatGPT remote MCP](#chatgpt-remote-mcp) for gateway and host requirements.
 
 A host can submit native agent jobs or manage workflow steps. Host conversation mode is an explicit claim/acknowledgment protocol: a host claims one job, sends progress, then completes or acknowledges a stop. A notification alone does not claim work. See [CLI and MCP reference](reference.md).
 

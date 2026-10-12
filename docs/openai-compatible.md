@@ -6,7 +6,7 @@
 
 Use the OpenAI Python SDK or Pydantic AI against your own selected coding-agent subscription. The bridge implements **Chat Completions**, model discovery, function-call exchanges, and structured output. One authenticated API and one durable queue also serve the console, Claude integrations, and workflow engine.
 
-![Application functions and Claude execution through one API](../assets/diagrams/openai-compatible.svg)
+![Application functions and native execution through one API](../assets/diagrams/openai-compatible.svg)
 
 [PNG diagram](../assets/diagrams/openai-compatible.png)
 
@@ -89,7 +89,9 @@ The inference worker requests `add` through a validated `tool_calls` result. **P
 
 For typed output, pass a Pydantic class as `Agent(model, output_type=YourModel)`. Pydantic AI's default output-function strategy is supported. `output_type=NativeOutput(YourModel)` uses `response_format.json_schema`. See the [runnable example](../examples/pydantic_agent.py) and [SDK compatibility tests](../tests/clients/openai_clients.py).
 
-## Two execution choices, one admission endpoint
+<a id="two-execution-choices-one-admission-endpoint"></a>
+
+## Execution choices, one admission endpoint
 
 | Choice            | Request                                                                      | Who runs tools?                                                                                       | Result                        |
 | ----------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------- |
@@ -153,4 +155,4 @@ The selected native CLI owns compaction and resumable sessions. For a new infere
 
 ## Sources and verification
 
-The contract follows [OpenAI Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create), [Pydantic AI's OpenAI provider](https://pydantic.dev/docs/ai/models/openai/), and [Claude Code's programmatic interface](https://code.claude.com/docs/en/headless). The [verification record](verification.md) distinguishes deterministic client tests, real Claude execution, native package checks, and host-specific installation limits.
+The contract follows [OpenAI Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create), [Pydantic AI's OpenAI provider](https://pydantic.dev/docs/ai/models/openai/), and [Claude Code's programmatic interface](https://code.claude.com/docs/en/headless). The [verification record](verification.md) records deterministic client tests, live Codex acceptance, native package checks, and host-specific installation limits. Claude subscription acceptance requires an authenticated developer host.

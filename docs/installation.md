@@ -34,28 +34,28 @@ The bridge uses that CLI's existing login. Do not copy its credentials into the 
 
 ## Install a native archive
 
-Authenticate GitHub CLI with an account that can read the private repository, then download the platform archive and checksum list. This macOS example selects release 0.2.0:
+Authenticate GitHub CLI with an account that can read the private repository, then download the platform archive and checksum list. This macOS example selects release 0.2.1:
 
 ```sh
 gh auth login
-gh release download v0.2.0 \
+gh release download v0.2.1 \
   --repo fireflyframework/firefly-agent-bridge \
-  --pattern 'firefly-agent-bridge-0.2.0-darwin-arm64.tar.gz' \
+  --pattern 'firefly-agent-bridge-0.2.1-darwin-arm64.tar.gz' \
   --pattern SHA256SUMS
-shasum -a 256 firefly-agent-bridge-0.2.0-darwin-arm64.tar.gz
+shasum -a 256 firefly-agent-bridge-0.2.1-darwin-arm64.tar.gz
 ```
 
 Compare the digest with that archive's entry in `SHA256SUMS` before extracting. On Linux, choose the `linux-x64` archive and use `sha256sum`. On Windows, choose `win32-x64` and use PowerShell:
 
 ```powershell
-Get-FileHash .\firefly-agent-bridge-0.2.0-win32-x64.tar.gz -Algorithm SHA256
+Get-FileHash .\firefly-agent-bridge-0.2.1-win32-x64.tar.gz -Algorithm SHA256
 ```
 
 Extract the complete archive into a new directory. Keep all included license and runtime files together. For macOS or Linux:
 
 ```sh
 mkdir firefly-bridge-local
-tar -xzf firefly-agent-bridge-0.2.0-darwin-arm64.tar.gz -C firefly-bridge-local
+tar -xzf firefly-agent-bridge-0.2.1-darwin-arm64.tar.gz -C firefly-bridge-local
 cd firefly-bridge-local
 ./firefly-bridge init --worker codex
 ./firefly-bridge serve
@@ -65,7 +65,7 @@ On Windows, run the matching executable:
 
 ```powershell
 New-Item -ItemType Directory firefly-bridge-local
-tar -xzf .\firefly-agent-bridge-0.2.0-win32-x64.tar.gz -C firefly-bridge-local
+tar -xzf .\firefly-agent-bridge-0.2.1-win32-x64.tar.gz -C firefly-bridge-local
 Set-Location firefly-bridge-local
 .\firefly-bridge.exe init --worker codex
 .\firefly-bridge.exe serve

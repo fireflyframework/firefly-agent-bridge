@@ -29,7 +29,7 @@ The adapter's `tools/list` response describes the complete installed schemas. Th
 | Tool                      | Purpose                                                   |
 | ------------------------- | --------------------------------------------------------- |
 | `bridge_status`           | Selected worker, readiness, dispatch, profiles, templates |
-| `bridge_panel`            | Console URL and local owner token path                    |
+| `bridge_panel`            | Console URL and owner-token location instructions         |
 | `bridge_submit`           | Admit a native CLI or host-conversation job               |
 | `bridge_jobs`             | List jobs                                                 |
 | `bridge_job`              | Inspect one job                                           |

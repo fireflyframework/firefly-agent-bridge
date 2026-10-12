@@ -24,6 +24,41 @@ import { tmpdir } from "node:os";
 import { startService } from "../../src/service.js";
 import { parseConfig } from "../../src/config.js";
 import { Tokens } from "../../src/auth.js";
+
+test("provider setup keeps one focused step and preserves profile selection", async ({
+  page,
+}) => {
+  await login(page);
+  await page
+    .getByRole("button", { name: "Providers & setup", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Provider setup guide", exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".toolbar")).toBeHidden();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Subscription login",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page
+    .getByLabel("Execution profile", { exact: true })
+    .selectOption("default");
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Development tools",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(
+    page.getByLabel("Execution profile", { exact: true }),
+  ).toHaveValue("default");
+});
 let service: Awaited<ReturnType<typeof startService>>, directory: string;
 const owner = { id: "owner", owner: true, profiles: ["default"] };
 test.beforeAll(async () => {
@@ -887,4 +922,272 @@ test("desktop footer borders and text baselines match the rail in both themes", 
     await aligned(scaled);
   }
   await context.close();
+});
+
+test("switching workspace views returns to the new heading on mobile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const navigationOwner = new Tokens(service.store).create({
+    id: "navigation-review",
+    owner: true,
+    profiles: ["default"],
+  }).token;
+  await login(page, navigationOwner);
+  await page
+    .getByRole("button", { name: "Providers & setup", exact: true })
+    .click();
+  await page.locator("#content").evaluate((node) => {
+    node.scrollTop = 500;
+  });
+  await page.getByRole("button", { name: "Diagnostics", exact: true }).click();
+  await expect(page.locator("#view-title")).toBeInViewport();
+  await expect
+    .poll(() => page.locator("#content").evaluate((node) => node.scrollTop))
+    .toBe(0);
+  await expect(
+    page.getByRole("button", { name: "Diagnostics", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+});
+
+test("provider guide details follow selection without changing the actual worker", async ({
+  page,
+}) => {
+  const reviewer = new Tokens(service.store).create({
+    id: "provider-detail-review",
+    owner: true,
+    profiles: ["default"],
+  }).token;
+  await login(page, reviewer);
+  await page
+    .getByRole("button", { name: "Providers & setup", exact: true })
+    .click();
+  const running = await page
+    .locator("#setup-provider-detail-running")
+    .innerText();
+  const current = running === "Codex" ? "codex" : "claude";
+  const other = current === "codex" ? "claude" : "codex";
+  await page.locator(`[data-setup-provider="${other}"]`).click();
+  await expect(page.locator("#setup-provider-detail-name")).toHaveText(
+    other === "claude" ? "Claude Code" : "Codex",
+  );
+  await expect(page.locator("#setup-provider-detail-badge")).toHaveText(
+    "Setup guide",
+  );
+  await expect(page.locator("#setup-provider-detail-running")).toHaveText(
+    running,
+  );
+  await page.locator(`[data-setup-provider="${current}"]`).click();
+  await expect(page.locator("#setup-provider-detail-name")).toHaveText(running);
+  await expect(page.locator("#setup-provider-detail-badge")).toHaveText(
+    "Current worker",
+  );
+  await expect(page.locator(".setup-flow")).toHaveCount(0);
+});
+
+test("wizard navigation and card edge remain reachable above the footer on short desktops", async ({
+  page,
+}) => {
+  const reviewer = new Tokens(service.store).create({
+    id: "short-wizard-review",
+    owner: true,
+    profiles: ["default"],
+  }).token;
+  await login(page, reviewer);
+  await page
+    .getByRole("button", { name: "Providers & setup", exact: true })
+    .click();
+  for (const [width, height] of [
+    [1440, 900],
+    [1440, 768],
+    [1920, 1080],
+    [2560, 1440],
+    [390, 844],
+    [320, 844],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    for (const theme of ["light", "dark"]) {
+      await page.getByLabel("Appearance", { exact: true }).selectOption(theme);
+      for (let step = 0; step < 4; step++) {
+        await page.locator(`[data-setup-step="${step}"]`).click();
+        const next = page.locator(
+          step === 3 ? "#setup-start-job" : "#setup-next",
+        );
+
+        const geometry = await page.evaluate(() => ({
+          button: document
+            .querySelector(
+              "#setup-next:not([hidden]),#setup-start-job:not([hidden])",
+            )!
+            .getBoundingClientRect().bottom,
+          card: document
+            .querySelector(".provider-setup")!
+            .getBoundingClientRect().bottom,
+          footer: document
+            .querySelector("main > footer")!
+            .getBoundingClientRect().top,
+          content: document.querySelector("#content")!.getBoundingClientRect()
+            .bottom,
+          outerScroll: document.querySelector("#content")!.scrollTop,
+        }));
+        expect(geometry.outerScroll).toBe(0);
+        expect(geometry.button).toBeLessThanOrEqual(geometry.content - 16);
+        expect(geometry.card).toBeLessThanOrEqual(geometry.content - 16);
+        expect(geometry.card).toBeLessThan(geometry.footer);
+        if (step < 3) await next.click();
+      }
+    }
+  }
+});
+
+test("diagnostic cards keep their borders and actions with the visible form", async ({
+  page,
+}) => {
+  const reviewer = new Tokens(service.store).create({
+    id: "diagnostic-frame-review",
+    owner: true,
+    profiles: ["default"],
+  }).token;
+  await login(page, reviewer);
+  await page.getByRole("button", { name: "Diagnostics", exact: true }).click();
+  for (const [width, height] of [
+    [1440, 768],
+    [1920, 1080],
+    [2560, 1440],
+    [390, 844],
+    [320, 844],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    for (const theme of ["light", "dark"]) {
+      await page.getByLabel("Appearance", { exact: true }).selectOption(theme);
+      for (const section of ["service", "access"]) {
+        if (width <= 760) {
+          await page.locator(`[data-diagnostic-tab="${section}"]`).click();
+          if (section === "access")
+            await expect(
+              page.locator("#diagnostic-access-panel"),
+            ).toBeVisible();
+          else
+            await expect(page.locator("#diagnostic-access-panel")).toBeHidden();
+        }
+        const panel = page.locator(
+          section === "service"
+            ? "#diagnostic-status-panel"
+            : "#diagnostic-access-panel",
+        );
+        const geometry = await panel.evaluate((node) => {
+          const action = node.querySelector(".diagnostic-card-actions")!;
+          const range = document.createRange();
+          range.selectNodeContents(action.querySelector("button")!);
+          return {
+            card: node.getBoundingClientRect(),
+            header: node
+              .querySelector(".section-heading")!
+              .getBoundingClientRect(),
+            action: action.getBoundingClientRect(),
+            buttonLines: range.getClientRects().length,
+            frame: document
+              .querySelector(".diagnostics-frame")!
+              .getBoundingClientRect(),
+            content: document
+              .querySelector("#content")!
+              .getBoundingClientRect(),
+            outerScroll: document.querySelector("#content")!.scrollTop,
+          };
+        });
+        expect(geometry.outerScroll).toBe(0);
+        expect(geometry.card.top).toBeGreaterThanOrEqual(geometry.frame.top);
+        expect(geometry.card.bottom).toBeLessThanOrEqual(
+          geometry.frame.bottom + 1,
+        );
+        expect(geometry.action.bottom).toBeLessThan(geometry.card.bottom);
+        expect(geometry.card.bottom).toBeLessThanOrEqual(
+          geometry.content.bottom - 16,
+        );
+        expect(geometry.header.top).toBeGreaterThan(geometry.card.top);
+        expect(geometry.buttonLines).toBe(1);
+        if (section === "access") {
+          await expect(
+            page.getByLabel("Client name", { exact: true }),
+          ).toBeInViewport();
+          await expect(
+            page.getByLabel("Profiles", { exact: true }),
+          ).toBeInViewport();
+          await expect(
+            panel.getByRole("button", { name: "Create token", exact: true }),
+          ).toBeInViewport();
+        }
+      }
+      if (width <= 760) {
+        await page.getByRole("tab", { name: "Service", exact: true }).focus();
+        await page.keyboard.press("ArrowRight");
+        await expect(
+          page.getByRole("tab", { name: "Application access", exact: true }),
+        ).toBeFocused();
+        await expect(
+          page.getByRole("tab", { name: "Application access", exact: true }),
+        ).toHaveAttribute("aria-selected", "true");
+      }
+    }
+  }
+});
+
+test("wizard headings, labels and selected profile retain readable text bounds", async ({
+  page,
+}) => {
+  const reviewer = new Tokens(service.store).create({
+    id: "type-bounds-review",
+    owner: true,
+    profiles: ["default"],
+  }).token;
+  await login(page, reviewer);
+  await page
+    .getByRole("button", { name: "Providers & setup", exact: true })
+    .click();
+  for (const width of [320, 390, 1440, 1920, 2560]) {
+    await page.setViewportSize({ width, height: 844 });
+    for (let step = 0; step < 4; step++) {
+      await page.locator(`[data-setup-step="${step}"]`).click();
+      const bounds = await page.evaluate(() => {
+        const selectors = [
+          "#view-title",
+          ".setup-footer button:not([hidden])",
+          ".setup-navigation button",
+          ".provider-detail-badge",
+          "#setup-profile-alias",
+          "[data-setup-panel]:not([hidden]) h2",
+        ];
+        if (innerWidth > 760) selectors.push(".workspace-label strong");
+        return selectors.flatMap((selector) =>
+          [...document.querySelectorAll(selector)]
+            .filter((node) => node.getClientRects().length > 0)
+            .map((node) => {
+              const range = document.createRange();
+              range.selectNodeContents(node);
+              const style = getComputedStyle(node);
+              return {
+                text: node.textContent,
+                clipped: node.scrollWidth > node.clientWidth + 1,
+                singleLine: node.matches(
+                  ".workspace-label strong, .provider-detail-badge",
+                ),
+                lines: range.getClientRects().length,
+                heading: node.tagName.startsWith("H"),
+                height: node.getBoundingClientRect().height,
+                lineHeight: parseFloat(style.lineHeight),
+              };
+            }),
+        );
+      });
+      for (const value of bounds) {
+        expect(value.clipped, value.text ?? "").toBe(false);
+        if (value.singleLine) expect(value.lines, value.text ?? "").toBe(1);
+        if (value.heading)
+          expect(value.height, value.text ?? "").toBeLessThanOrEqual(
+            value.lineHeight + 1,
+          );
+      }
+      if (step < 3) await page.locator("#setup-next").click();
+    }
+  }
 });

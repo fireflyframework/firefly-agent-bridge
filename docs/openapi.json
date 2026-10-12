@@ -2,23 +2,12 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Firefly Agent Bridge API",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "OpenAI-compatible Chat Completions and unified /v1/bridge orchestration extensions. Copyright 2026 Firefly Software Foundation. Author @ancongui.",
-    "license": {
-      "name": "Apache-2.0",
-      "identifier": "Apache-2.0"
-    }
+    "license": { "name": "Apache-2.0", "identifier": "Apache-2.0" }
   },
-  "servers": [
-    {
-      "url": "http://127.0.0.1:8766"
-    }
-  ],
-  "security": [
-    {
-      "bearerAuth": []
-    }
-  ],
+  "servers": [{ "url": "http://127.0.0.1:8766" }],
+  "security": [{ "bearerAuth": [] }],
   "paths": {
     "/v1/bridge/status": {
       "get": {
@@ -32,20 +21,14 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -70,13 +53,7 @@
               "default": 100
             }
           },
-          {
-            "name": "after",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
+          { "name": "after", "in": "query", "schema": { "type": "string" } },
           {
             "name": "order",
             "in": "query",
@@ -91,20 +68,14 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -123,10 +94,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -134,9 +102,7 @@
             "description": "Successful response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
+                "schema": { "$ref": "#/components/schemas/Job" }
               }
             }
           },
@@ -144,9 +110,7 @@
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -165,19 +129,12 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           },
           {
             "name": "after",
             "in": "query",
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "default": 0
-            }
+            "schema": { "type": "integer", "minimum": 0, "default": 0 }
           },
           {
             "name": "limit",
@@ -192,10 +149,7 @@
           {
             "name": "through",
             "in": "query",
-            "schema": {
-              "type": "integer",
-              "minimum": 0
-            },
+            "schema": { "type": "integer", "minimum": 0 },
             "description": "Fix this to the first page's through value for an immutable export."
           },
           {
@@ -214,9 +168,7 @@
             "description": "Successful response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuditPage"
-                }
+                "schema": { "$ref": "#/components/schemas/AuditPage" }
               }
             }
           },
@@ -224,9 +176,7 @@
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -245,19 +195,12 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           },
           {
             "name": "after",
             "in": "query",
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "default": 0
-            }
+            "schema": { "type": "integer", "minimum": 0, "default": 0 }
           },
           {
             "name": "limit",
@@ -284,9 +227,7 @@
             "description": "Successful response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ToolPage"
-                }
+                "schema": { "$ref": "#/components/schemas/ToolPage" }
               }
             }
           },
@@ -294,9 +235,7 @@
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -315,19 +254,13 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           },
           {
             "name": "tool",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "integer",
-              "minimum": 1
-            }
+            "schema": { "type": "integer", "minimum": 1 }
           }
         ],
         "responses": {
@@ -335,9 +268,7 @@
             "description": "Successful response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ToolObservation"
-                }
+                "schema": { "$ref": "#/components/schemas/ToolObservation" }
               }
             }
           },
@@ -345,9 +276,7 @@
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -366,30 +295,21 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -408,10 +328,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -419,9 +336,7 @@
             "description": "Successful response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
+                "schema": { "$ref": "#/components/schemas/Job" }
               }
             }
           },
@@ -429,9 +344,7 @@
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -440,10 +353,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false
-              }
+              "schema": { "type": "object", "additionalProperties": false }
             }
           }
         }
@@ -461,10 +371,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -472,9 +379,7 @@
             "description": "Successful response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
+                "schema": { "$ref": "#/components/schemas/Job" }
               }
             }
           },
@@ -482,9 +387,7 @@
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -493,10 +396,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false
-              }
+              "schema": { "type": "object", "additionalProperties": false }
             }
           }
         }
@@ -514,40 +414,27 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "202": {
             "description": "Job is not terminal yet.",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -566,30 +453,21 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -606,38 +484,26 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           },
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "schema": {
-              "type": "string",
-              "maxLength": 128
-            }
+            "schema": { "type": "string", "maxLength": 128 }
           }
         ],
         "responses": {
           "202": {
             "description": "Accepted for asynchronous execution",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -675,10 +541,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -686,9 +549,7 @@
             "description": "Successful response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
+                "schema": { "$ref": "#/components/schemas/Job" }
               }
             }
           },
@@ -696,9 +557,7 @@
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -707,10 +566,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false
-              }
+              "schema": { "type": "object", "additionalProperties": false }
             }
           }
         }
@@ -728,10 +584,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -739,9 +592,7 @@
             "description": "Accepted for asynchronous execution",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
+                "schema": { "$ref": "#/components/schemas/Job" }
               }
             }
           },
@@ -749,9 +600,7 @@
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -760,10 +609,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false
-              }
+              "schema": { "type": "object", "additionalProperties": false }
             }
           }
         }
@@ -780,10 +626,7 @@
           {
             "name": "Last-Event-ID",
             "in": "header",
-            "schema": {
-              "type": "integer",
-              "minimum": 0
-            },
+            "schema": { "type": "integer", "minimum": 0 },
             "description": "Resume after this event; expired cursors return 409."
           }
         ],
@@ -791,20 +634,14 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "text/event-stream": {
-                "schema": {
-                  "type": "string"
-                }
-              }
+              "text/event-stream": { "schema": { "type": "string" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -822,30 +659,21 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "schema": {
-              "type": "string",
-              "maxLength": 128
-            }
+            "schema": { "type": "string", "maxLength": 128 }
           }
         ],
         "responses": {
           "202": {
             "description": "Accepted for asynchronous execution",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -857,14 +685,10 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "templateId": {
-                    "type": "string"
-                  },
+                  "templateId": { "type": "string" },
                   "inputs": {
                     "type": "object",
-                    "additionalProperties": {
-                      "type": "string"
-                    }
+                    "additionalProperties": { "type": "string" }
                   }
                 },
                 "required": ["templateId", "inputs"],
@@ -885,20 +709,14 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -917,30 +735,21 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -959,30 +768,21 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -991,10 +791,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false
-              }
+              "schema": { "type": "object", "additionalProperties": false }
             }
           }
         }
@@ -1012,30 +809,21 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1044,10 +832,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false
-              }
+              "schema": { "type": "object", "additionalProperties": false }
             }
           }
         }
@@ -1065,30 +850,21 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1097,10 +873,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false
-              }
+              "schema": { "type": "object", "additionalProperties": false }
             }
           }
         }
@@ -1118,20 +891,14 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1140,10 +907,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false
-              }
+              "schema": { "type": "object", "additionalProperties": false }
             }
           }
         }
@@ -1161,20 +925,14 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1183,10 +941,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false
-              }
+              "schema": { "type": "object", "additionalProperties": false }
             }
           }
         }
@@ -1204,20 +959,14 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1226,10 +975,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false
-              }
+              "schema": { "type": "object", "additionalProperties": false }
             }
           }
         }
@@ -1247,20 +993,14 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1277,20 +1017,14 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1309,9 +1043,7 @@
                   "profiles": {
                     "type": "array",
                     "minItems": 1,
-                    "items": {
-                      "type": "string"
-                    }
+                    "items": { "type": "string" }
                   },
                   "scopes": {
                     "type": "array",
@@ -1341,20 +1073,14 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1365,11 +1091,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  }
-                },
+                "properties": { "id": { "type": "string" } },
                 "required": ["id"],
                 "additionalProperties": false
               }
@@ -1390,20 +1112,14 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1414,11 +1130,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  }
-                },
+                "properties": { "id": { "type": "string" } },
                 "required": ["id"],
                 "additionalProperties": false
               }
@@ -1439,20 +1151,14 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1463,11 +1169,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  }
-                },
+                "properties": { "id": { "type": "string" } },
                 "required": ["id"],
                 "additionalProperties": false
               }
@@ -1488,20 +1190,14 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1520,20 +1216,14 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1545,13 +1235,8 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "hostId": {
-                    "type": "string"
-                  },
-                  "jobId": {
-                    "type": "string",
-                    "format": "uuid"
-                  }
+                  "hostId": { "type": "string" },
+                  "jobId": { "type": "string", "format": "uuid" }
                 },
                 "required": ["hostId", "jobId"],
                 "additionalProperties": false
@@ -1573,20 +1258,14 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1605,29 +1284,21 @@
             "name": "templateId",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1636,9 +1307,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Template"
-              }
+              "schema": { "$ref": "#/components/schemas/Template" }
             }
           }
         }
@@ -1654,29 +1323,21 @@
             "name": "templateId",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1695,20 +1356,14 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1720,21 +1375,10 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "hostId": {
-                    "type": "string"
-                  },
-                  "attemptId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "fence": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "text": {
-                    "type": "string",
-                    "maxLength": 16000
-                  }
+                  "hostId": { "type": "string" },
+                  "attemptId": { "type": "string", "format": "uuid" },
+                  "fence": { "type": "string", "format": "uuid" },
+                  "text": { "type": "string", "maxLength": 16000 }
                 },
                 "required": ["hostId", "attemptId", "fence", "text"],
                 "additionalProperties": false
@@ -1756,20 +1400,14 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1781,21 +1419,10 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "hostId": {
-                    "type": "string"
-                  },
-                  "attemptId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "fence": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "result": {
-                    "type": "string",
-                    "maxLength": 100000
-                  }
+                  "hostId": { "type": "string" },
+                  "attemptId": { "type": "string", "format": "uuid" },
+                  "fence": { "type": "string", "format": "uuid" },
+                  "result": { "type": "string", "maxLength": 100000 }
                 },
                 "required": ["hostId", "attemptId", "fence", "result"],
                 "additionalProperties": false
@@ -1817,20 +1444,14 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
+              "application/json": { "schema": { "type": "object" } }
             }
           },
           "default": {
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1842,17 +1463,9 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "hostId": {
-                    "type": "string"
-                  },
-                  "attemptId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "fence": {
-                    "type": "string",
-                    "format": "uuid"
-                  }
+                  "hostId": { "type": "string" },
+                  "attemptId": { "type": "string", "format": "uuid" },
+                  "fence": { "type": "string", "format": "uuid" }
                 },
                 "required": ["hostId", "attemptId", "fence"],
                 "additionalProperties": false
@@ -1875,9 +1488,7 @@
             "description": "Successful response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Models"
-                }
+                "schema": { "$ref": "#/components/schemas/Models" }
               }
             }
           },
@@ -1885,9 +1496,7 @@
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1905,10 +1514,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "schema": {
-              "type": "string",
-              "maxLength": 128
-            }
+            "schema": { "type": "string", "maxLength": 128 }
           }
         ],
         "responses": {
@@ -1917,23 +1523,14 @@
             "headers": {
               "X-Bridge-Job-Id": {
                 "description": "Durable job ID for console and recovery",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                }
+                "schema": { "type": "string", "format": "uuid" }
               }
             },
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChatCompletion"
-                }
+                "schema": { "$ref": "#/components/schemas/ChatCompletion" }
               },
-              "text/event-stream": {
-                "schema": {
-                  "type": "string"
-                }
-              }
+              "text/event-stream": { "schema": { "type": "string" } }
             }
           },
           "202": {
@@ -1941,17 +1538,12 @@
             "headers": {
               "X-Bridge-Job-Id": {
                 "description": "Durable job ID for console and recovery",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                }
+                "schema": { "type": "string", "format": "uuid" }
               }
             },
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
+                "schema": { "$ref": "#/components/schemas/Job" }
               }
             }
           },
@@ -1959,17 +1551,13 @@
             "description": "Admission bound or subscription limit. A paused admitted job is retained.",
             "headers": {
               "Retry-After": {
-                "schema": {
-                  "type": "integer"
-                },
+                "schema": { "type": "integer" },
                 "description": "Seconds until a known provider reset"
               }
             },
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           },
@@ -1977,9 +1565,7 @@
             "description": "Rejected request; error.code identifies the reason.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           }
@@ -1988,9 +1574,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChatRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/ChatRequest" }
             }
           }
         }
@@ -2029,22 +1613,15 @@
                   "anyOf": [
                     {
                       "anyOf": [
-                        {
-                          "type": "string"
-                        },
+                        { "type": "string" },
                         {
                           "minItems": 1,
                           "type": "array",
                           "items": {
                             "type": "object",
                             "properties": {
-                              "type": {
-                                "type": "string",
-                                "const": "text"
-                              },
-                              "text": {
-                                "type": "string"
-                              }
+                              "type": { "type": "string", "const": "text" },
+                              "text": { "type": "string" }
                             },
                             "required": ["type", "text"],
                             "additionalProperties": false
@@ -2052,9 +1629,7 @@
                         }
                       ]
                     },
-                    {
-                      "type": "null"
-                    }
+                    { "type": "null" }
                   ]
                 },
                 "name": {
@@ -2073,10 +1648,7 @@
                         "minLength": 1,
                         "maxLength": 200
                       },
-                      "type": {
-                        "type": "string",
-                        "const": "function"
-                      },
+                      "type": { "type": "string", "const": "function" },
                       "function": {
                         "type": "object",
                         "properties": {
@@ -2084,9 +1656,7 @@
                             "type": "string",
                             "pattern": "^[a-zA-Z0-9_-]{1,64}$"
                           },
-                          "arguments": {
-                            "type": "string"
-                          }
+                          "arguments": { "type": "string" }
                         },
                         "required": ["name", "arguments"],
                         "additionalProperties": false
@@ -2113,10 +1683,7 @@
             "items": {
               "type": "object",
               "properties": {
-                "type": {
-                  "type": "string",
-                  "const": "function"
-                },
+                "type": { "type": "string", "const": "function" },
                 "function": {
                   "type": "object",
                   "properties": {
@@ -2124,24 +1691,14 @@
                       "type": "string",
                       "pattern": "^[a-zA-Z0-9_-]{1,64}$"
                     },
-                    "description": {
-                      "type": "string",
-                      "maxLength": 10000
-                    },
+                    "description": { "type": "string", "maxLength": 10000 },
                     "parameters": {
-                      "default": {
-                        "type": "object",
-                        "properties": {}
-                      },
+                      "default": { "type": "object", "properties": {} },
                       "type": "object",
-                      "propertyNames": {
-                        "type": "string"
-                      },
+                      "propertyNames": { "type": "string" },
                       "additionalProperties": {}
                     },
-                    "strict": {
-                      "type": "boolean"
-                    }
+                    "strict": { "type": "boolean" }
                   },
                   "required": ["name"],
                   "additionalProperties": false
@@ -2153,17 +1710,11 @@
           },
           "tool_choice": {
             "anyOf": [
-              {
-                "type": "string",
-                "enum": ["none", "auto", "required"]
-              },
+              { "type": "string", "enum": ["none", "auto", "required"] },
               {
                 "type": "object",
                 "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "function"
-                  },
+                  "type": { "type": "string", "const": "function" },
                   "function": {
                     "type": "object",
                     "properties": {
@@ -2181,22 +1732,20 @@
               }
             ]
           },
-          "parallel_tool_calls": {
-            "default": true,
-            "type": "boolean"
-          },
+          "parallel_tool_calls": { "default": true, "type": "boolean" },
           "response_format": {
-            "default": {
-              "type": "text"
-            },
+            "default": { "type": "text" },
             "anyOf": [
               {
                 "type": "object",
+                "properties": { "type": { "type": "string", "const": "text" } },
+                "required": ["type"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
                 "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "text"
-                  }
+                  "type": { "type": "string", "const": "json_object" }
                 },
                 "required": ["type"],
                 "additionalProperties": false
@@ -2204,21 +1753,7 @@
               {
                 "type": "object",
                 "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "json_object"
-                  }
-                },
-                "required": ["type"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "json_schema"
-                  },
+                  "type": { "type": "string", "const": "json_schema" },
                   "json_schema": {
                     "type": "object",
                     "properties": {
@@ -2226,19 +1761,13 @@
                         "type": "string",
                         "pattern": "^[a-zA-Z0-9_-]{1,64}$"
                       },
-                      "description": {
-                        "type": "string"
-                      },
+                      "description": { "type": "string" },
                       "schema": {
                         "type": "object",
-                        "propertyNames": {
-                          "type": "string"
-                        },
+                        "propertyNames": { "type": "string" },
                         "additionalProperties": {}
                       },
-                      "strict": {
-                        "type": "boolean"
-                      }
+                      "strict": { "type": "boolean" }
                     },
                     "required": ["name", "schema"],
                     "additionalProperties": false
@@ -2249,31 +1778,18 @@
               }
             ]
           },
-          "stream": {
-            "default": false,
-            "type": "boolean"
-          },
+          "stream": { "default": false, "type": "boolean" },
           "stream_options": {
             "anyOf": [
               {
                 "type": "object",
-                "properties": {
-                  "include_usage": {
-                    "type": "boolean"
-                  }
-                },
+                "properties": { "include_usage": { "type": "boolean" } },
                 "additionalProperties": false
               },
-              {
-                "type": "null"
-              }
+              { "type": "null" }
             ]
           },
-          "n": {
-            "default": 1,
-            "type": "number",
-            "const": 1
-          },
+          "n": { "default": 1, "type": "number", "const": 1 },
           "bridge": {
             "default": {},
             "type": "object",
@@ -2283,10 +1799,7 @@
                 "type": "string",
                 "enum": ["inference", "agent", "channel"]
               },
-              "background": {
-                "default": false,
-                "type": "boolean"
-              }
+              "background": { "default": false, "type": "boolean" }
             },
             "additionalProperties": false
           }
@@ -2297,54 +1810,34 @@
       "ChatCompletion": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string"
-          },
-          "object": {
-            "const": "chat.completion"
-          },
-          "created": {
-            "type": "integer"
-          },
-          "model": {
-            "type": "string"
-          },
+          "id": { "type": "string" },
+          "object": { "const": "chat.completion" },
+          "created": { "type": "integer" },
+          "model": { "type": "string" },
           "choices": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "index": {
-                  "type": "integer"
-                },
+                "index": { "type": "integer" },
                 "message": {
                   "type": "object",
                   "properties": {
-                    "role": {
-                      "const": "assistant"
-                    },
-                    "content": {
-                      "type": ["string", "null"]
-                    },
+                    "role": { "const": "assistant" },
+                    "content": { "type": ["string", "null"] },
                     "tool_calls": {
                       "type": "array",
-                      "items": {
-                        "type": "object"
-                      }
+                      "items": { "type": "object" }
                     }
                   }
                 },
-                "finish_reason": {
-                  "enum": ["stop", "tool_calls"]
-                }
+                "finish_reason": { "enum": ["stop", "tool_calls"] }
               },
               "required": ["index", "message", "finish_reason"],
               "additionalProperties": false
             }
           },
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          }
+          "usage": { "$ref": "#/components/schemas/Usage" }
         },
         "required": ["id", "object", "created", "model", "choices"],
         "additionalProperties": false
@@ -2352,15 +1845,9 @@
       "Usage": {
         "type": "object",
         "properties": {
-          "prompt_tokens": {
-            "type": "integer"
-          },
-          "completion_tokens": {
-            "type": "integer"
-          },
-          "total_tokens": {
-            "type": "integer"
-          }
+          "prompt_tokens": { "type": "integer" },
+          "completion_tokens": { "type": "integer" },
+          "total_tokens": { "type": "integer" }
         },
         "required": ["prompt_tokens", "completion_tokens", "total_tokens"],
         "additionalProperties": false
@@ -2368,26 +1855,16 @@
       "Models": {
         "type": "object",
         "properties": {
-          "object": {
-            "const": "list"
-          },
+          "object": { "const": "list" },
           "data": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "object": {
-                  "const": "model"
-                },
-                "created": {
-                  "type": "integer"
-                },
-                "owned_by": {
-                  "type": "string"
-                }
+                "id": { "type": "string" },
+                "object": { "const": "model" },
+                "created": { "type": "integer" },
+                "owned_by": { "type": "string" }
               },
               "required": ["id", "object", "created", "owned_by"],
               "additionalProperties": false
@@ -2401,23 +1878,13 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "pattern": "^[a-zA-Z0-9_-]{1,64}$"
-          },
-          "description": {
-            "default": "",
-            "type": "string",
-            "maxLength": 2000
-          },
+          "id": { "type": "string", "pattern": "^[a-zA-Z0-9_-]{1,64}$" },
+          "description": { "default": "", "type": "string", "maxLength": 2000 },
           "inputs": {
             "default": [],
             "maxItems": 32,
             "type": "array",
-            "items": {
-              "type": "string",
-              "pattern": "^[a-zA-Z0-9_-]{1,64}$"
-            }
+            "items": { "type": "string", "pattern": "^[a-zA-Z0-9_-]{1,64}$" }
           },
           "steps": {
             "minItems": 1,
@@ -2426,10 +1893,7 @@
             "items": {
               "type": "object",
               "properties": {
-                "id": {
-                  "type": "string",
-                  "pattern": "^[a-zA-Z0-9_-]{1,64}$"
-                },
+                "id": { "type": "string", "pattern": "^[a-zA-Z0-9_-]{1,64}$" },
                 "prompt": {
                   "type": "string",
                   "minLength": 1,
@@ -2453,19 +1917,10 @@
         "type": "object",
         "required": ["id", "prompt", "profile", "mode", "status", "messages"],
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "prompt": {
-            "type": "string"
-          },
-          "profile": {
-            "type": "string"
-          },
-          "mode": {
-            "enum": ["cli", "channel"]
-          },
+          "id": { "type": "string", "format": "uuid" },
+          "prompt": { "type": "string" },
+          "profile": { "type": "string" },
+          "mode": { "enum": ["cli", "channel"] },
           "status": {
             "enum": [
               "queued",
@@ -2480,93 +1935,40 @@
               "timed_out"
             ]
           },
-          "sessionId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "result": {
-            "type": "string"
-          },
-          "completion": {
-            "$ref": "#/components/schemas/ChatRequest"
-          },
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "error": {
-            "type": "string"
-          },
+          "sessionId": { "type": "string", "format": "uuid" },
+          "result": { "type": "string" },
+          "completion": { "$ref": "#/components/schemas/ChatRequest" },
+          "usage": { "$ref": "#/components/schemas/Usage" },
+          "error": { "type": "string" },
           "retryAt": {
             "type": "integer",
             "description": "Provider retry time in Unix milliseconds"
           },
-          "messages": {
-            "type": "array",
-            "items": {
-              "type": "object"
-            }
-          },
-          "pendingMessages": {
-            "type": "array",
-            "items": {
-              "type": "object"
-            }
-          },
-          "compactions": {
-            "type": "integer"
-          },
-          "subagents": {
-            "type": "object"
-          }
+          "messages": { "type": "array", "items": { "type": "object" } },
+          "pendingMessages": { "type": "array", "items": { "type": "object" } },
+          "compactions": { "type": "integer" },
+          "subagents": { "type": "object" }
         }
       },
       "ToolObservation": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "jobId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "attemptId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "toolId": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "sessionId": {
-            "type": "string"
-          },
-          "parentToolUseId": {
-            "type": "string"
-          },
-          "status": {
-            "enum": ["requested", "succeeded", "failed", "unknown"]
-          },
-          "requestedAt": {
-            "type": "string"
-          },
-          "completedAt": {
-            "type": "string"
-          },
-          "durationMs": {
-            "type": "number"
-          },
+          "id": { "type": "integer" },
+          "jobId": { "type": "string", "format": "uuid" },
+          "attemptId": { "type": "string", "format": "uuid" },
+          "toolId": { "type": "string" },
+          "name": { "type": "string" },
+          "sessionId": { "type": "string" },
+          "parentToolUseId": { "type": "string" },
+          "status": { "enum": ["requested", "succeeded", "failed", "unknown"] },
+          "requestedAt": { "type": "string" },
+          "completedAt": { "type": "string" },
+          "durationMs": { "type": "number" },
           "file": {
             "type": "object",
             "properties": {
-              "path": {
-                "type": "string"
-              },
-              "operation": {
-                "enum": ["read", "write", "edit"]
-              }
+              "path": { "type": "string" },
+              "operation": { "enum": ["read", "write", "edit"] }
             },
             "required": ["path", "operation"],
             "additionalProperties": false
@@ -2580,33 +1982,14 @@
       "AuditEntry": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "jobId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "attemptId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "sessionId": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          },
-          "source": {
-            "enum": ["claude", "bridge", "client"]
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "data": {
-            "type": "object",
-            "additionalProperties": true
-          }
+          "id": { "type": "integer" },
+          "jobId": { "type": "string", "format": "uuid" },
+          "attemptId": { "type": "string", "format": "uuid" },
+          "sessionId": { "type": "string" },
+          "type": { "type": "string" },
+          "source": { "enum": ["claude", "bridge", "client"] },
+          "createdAt": { "type": "string" },
+          "data": { "type": "object", "additionalProperties": true }
         },
         "required": ["id", "jobId", "type", "source", "createdAt", "data"],
         "additionalProperties": false
@@ -2616,37 +1999,19 @@
         "properties": {
           "entries": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AuditEntry"
-            }
+            "items": { "$ref": "#/components/schemas/AuditEntry" }
           },
-          "through": {
-            "type": "integer"
-          },
-          "nextCursor": {
-            "type": ["integer", "null"]
-          },
+          "through": { "type": "integer" },
+          "nextCursor": { "type": ["integer", "null"] },
           "summary": {
             "type": "object",
             "properties": {
-              "tools": {
-                "type": "integer"
-              },
-              "files": {
-                "type": "integer"
-              },
-              "changedFiles": {
-                "type": "integer"
-              },
-              "failedTools": {
-                "type": "integer"
-              },
-              "unknownTools": {
-                "type": "integer"
-              },
-              "events": {
-                "type": "integer"
-              },
+              "tools": { "type": "integer" },
+              "files": { "type": "integer" },
+              "changedFiles": { "type": "integer" },
+              "failedTools": { "type": "integer" },
+              "unknownTools": { "type": "integer" },
+              "events": { "type": "integer" },
               "coverage": {
                 "enum": ["native_tools", "client_functions", "host_lifecycle"]
               }
@@ -2671,13 +2036,9 @@
         "properties": {
           "tools": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ToolObservation"
-            }
+            "items": { "$ref": "#/components/schemas/ToolObservation" }
           },
-          "nextCursor": {
-            "type": ["integer", "null"]
-          }
+          "nextCursor": { "type": ["integer", "null"] }
         },
         "required": ["tools", "nextCursor"],
         "additionalProperties": false
@@ -2688,25 +2049,12 @@
           "error": {
             "type": "object",
             "properties": {
-              "code": {
-                "type": "string"
-              },
-              "message": {
-                "type": "string"
-              },
-              "type": {
-                "type": "string"
-              },
-              "param": {
-                "type": "null"
-              },
-              "requestId": {
-                "type": "string"
-              },
-              "job_id": {
-                "type": "string",
-                "format": "uuid"
-              }
+              "code": { "type": "string" },
+              "message": { "type": "string" },
+              "type": { "type": "string" },
+              "param": { "type": "null" },
+              "requestId": { "type": "string" },
+              "job_id": { "type": "string", "format": "uuid" }
             },
             "required": ["code", "message", "type", "param"],
             "additionalProperties": false

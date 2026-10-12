@@ -245,7 +245,7 @@ export function createHttpService(d: HttpDependencies) {
   app.get("/v1/bridge/status", async (req) => {
     const p = requireScope(req, "read");
     return {
-      version: "0.2.0",
+      version: "0.2.1",
       protocolVersion: 2,
       eventCursorFloor: d.store.eventFloor(),
       permissionMode: d.config.profiles.default!.permissionMode,
@@ -631,6 +631,9 @@ export function createHttpService(d: HttpDependencies) {
   );
   app.get("/audit.js", async (_req, reply) =>
     reply.type("text/javascript; charset=utf-8").send(uiAssets.auditJs),
+  );
+  app.get("/setup.js", async (_req, reply) =>
+    reply.type("text/javascript; charset=utf-8").send(uiAssets.setupJs),
   );
   app.get("/app.js", async (_req, reply) =>
     reply.type("text/javascript; charset=utf-8").send(uiAssets.js),

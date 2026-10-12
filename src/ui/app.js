@@ -18,6 +18,7 @@
  */
 
 import { createAuditPanel } from "./audit.js";
+import { createProviderSetup } from "./setup.js";
 
 /* All rendered task content uses textContent: prompts and Claude output are untrusted data. */
 const el = (id) => document.getElementById(id);
@@ -241,7 +242,7 @@ async function selectJob(id, loadedJob) {
   el("subagents").replaceChildren();
   for (const [id, task] of Object.entries(job.subagents ?? {})) {
     const li = document.createElement("li");
-    li.textContent = (task.description || id) + " — " + task.status;
+    li.textContent = (task.description || id) + ": " + task.status;
     el("subagents").append(li);
   }
   if (!Object.keys(job.subagents ?? {}).length) {
@@ -501,6 +502,7 @@ async function refresh() {
       el("health-facts").append(term, description);
     }
     renderProvider(status);
+    providerSetup.render(status, selectedWorker);
     const previous = el("profile").value;
     el("profile").replaceChildren(
       ...status.profiles.map((id) => new Option(id, id)),
@@ -608,6 +610,7 @@ function renderProvider(status) {
     const card = document.createElement("article"),
       heading = document.createElement("h3");
     card.className = "profile-card";
+    card.dataset.profile = name;
     heading.textContent = "bridge/" + name;
     card.append(heading);
     for (const value of [
@@ -621,17 +624,6 @@ function renderProvider(status) {
         "s · Output limit: " +
         profile.maxOutputBytes +
         " bytes",
-      config.capabilities.profileToolAllowlist
-        ? "Tools: " + profile.tools.join(", ")
-        : "Codex controls native tools through its sandbox; this profile's Claude tool list does not restrict Codex.",
-      config.capabilities.nativeAgents
-        ? "Turn limit: " +
-          profile.maxTurns +
-          " · Child-task limit: " +
-          profile.maxSubagents +
-          " · Agents: " +
-          (profile.agents.join(", ") || "none")
-        : "Claude turn limits and native agent definitions do not apply to Codex.",
     ]) {
       const p = document.createElement("p");
       p.textContent = value;
@@ -692,6 +684,11 @@ function showView(name) {
     b.classList.toggle("selected", b.dataset.view === name);
     b.setAttribute("aria-current", b.dataset.view === name ? "page" : "false");
   }
+  document.querySelector(".toolbar").hidden = !["jobs", "workflows"].includes(
+    name,
+  );
+  document.querySelector(".activity").hidden = name === "providers";
+  el("new-job").hidden = !["jobs", "workflows"].includes(name);
   text(
     "view-title",
     {
@@ -711,6 +708,7 @@ function showView(name) {
       diagnostics: "Inspect service state and manage application access.",
     }[name],
   );
+  el("content").scrollTop = 0;
   requestAnimationFrame(keepCurrentNavVisible);
   void refresh();
 }
@@ -899,6 +897,7 @@ el("token-form").onsubmit = async (event) => {
     });
     text("new-token", result.token);
     el("new-token").hidden = false;
+    el("token-created-help").hidden = false;
     await renderTokens();
   } catch (e) {
     notice(e.message);
@@ -921,6 +920,12 @@ el("new-job").onclick = () => {
   el("job-dialog").showModal();
   el("prompt").focus();
 };
+const providerSetup = createProviderSetup(
+  refresh,
+  () => showView("diagnostics"),
+  () => el("new-job").click(),
+  notice,
+);
 el("close-job").onclick = () => el("job-dialog").close();
 el("new-template").onclick = () => openTemplate();
 el("close-template").onclick = () => el("template-dialog").close();

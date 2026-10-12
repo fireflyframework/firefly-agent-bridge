@@ -33,6 +33,7 @@ const uiAssets = {
   css: readFileSync("src/ui/app.css", "utf8"),
   themeJs: readFileSync("src/ui/theme.js", "utf8"),
   auditJs: readFileSync("src/ui/audit.js", "utf8"),
+  setupJs: readFileSync("src/ui/setup.js", "utf8"),
   js: readFileSync("src/ui/app.js", "utf8"),
   brandDark: readFileSync("assets/brand/bridge-lockup-dark.svg").toString(
     "base64",

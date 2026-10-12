@@ -79,7 +79,7 @@ limitations under the License.
         <div class="connection-row">
           <span class="status-dot"></span
           ><span id="connection">Disconnected</span
-          ><span class="version">v0.2.0</span>
+          ><span class="version">v0.2.1</span>
         </div>
         <button id="logout" hidden>Disconnect session</button>
       </div>
@@ -385,111 +385,401 @@ limitations under the License.
             </div>
           </section>
           <section id="providers-view" class="view" hidden>
-            <div class="providers-layout">
-              <section class="diagnostic-panel">
-                <p class="eyebrow">Execution provider</p>
-                <h2 id="provider-name">Configured coding agent</h2>
-                <p id="provider-readiness" class="section-caption">
-                  Checking subscription readiness…
-                </p>
-                <dl id="provider-facts" class="health-facts"></dl>
-                <div class="setup-note">
-                  <h3>Trusted local execution</h3>
-                  <p>
-                    Agent jobs run using the selected official CLI and its
-                    existing subscription login. Default permissions stay
-                    enabled. Job directories organize work; permission policies
-                    and the operating system determine access.
-                  </p>
-                </div>
-              </section>
-              <section class="diagnostic-panel">
-                <h2>Setup &amp; integrations</h2>
-                <ol class="setup-steps">
-                  <li>
-                    <strong>Sign in with the official CLI.</strong>
-                    <p>
-                      Run <code>codex login</code> or
-                      <code>claude auth login</code> on this machine. Provider
-                      credentials never belong in the console.
-                    </p>
-                  </li>
-                  <li>
-                    <strong>Configure the bridge worker.</strong>
-                    <p>
-                      Set <code>worker</code> and its absolute executable path
-                      in the saved configuration, then restart your bridge.
-                      Changes take effect on service startup.
-                    </p>
-                  </li>
-                  <li>
-                    <strong>Connect your application.</strong>
-                    <p>
-                      Use <code id="provider-url"></code> with a scoped bridge
-                      token and <code>bridge/default</code>, or install the
-                      included MCP integrations.
-                    </p>
-                  </li>
-                </ol>
-                <h3>Skills &amp; agents</h3>
-                <p class="section-caption">
-                  The Claude Code and Codex plugins include Bridge operation
-                  skills. Claude native agent definitions belong to execution
-                  profiles. Codex uses its own thread protocol; Claude agent
-                  definitions and tool allowlists are not portable restrictions.
-                </p>
-              </section>
-            </div>
-            <section class="diagnostic-panel profiles-panel">
-              <div class="section-heading">
-                <div>
-                  <h2>Execution profiles</h2>
-                  <p class="section-caption">
-                    Effective models, permissions, limits, and native
-                    capabilities. Edit saved configuration to change profiles.
-                  </p>
-                </div>
+            <section class="provider-setup" aria-label="Provider setup">
+              <ol class="setup-navigation" aria-label="Setup steps">
+                <li>
+                  <button type="button" data-setup-step="0" aria-current="step">
+                    <span>1</span>Provider
+                  </button>
+                </li>
+                <li>
+                  <button type="button" data-setup-step="1">
+                    <span>2</span>Login
+                  </button>
+                </li>
+                <li>
+                  <button type="button" data-setup-step="2">
+                    <span>3</span>Profile
+                  </button>
+                </li>
+                <li>
+                  <button type="button" data-setup-step="3">
+                    <span>4</span>Tools
+                  </button>
+                </li>
+              </ol>
+              <div class="setup-context" aria-live="polite">
+                <span
+                  ><strong id="provider-name">Coding provider</strong
+                  ><span id="provider-readiness">Checking readiness</span></span
+                >
+                <span class="setup-context-profile"
+                  >Selected profile<strong id="setup-profile-alias"
+                    >bridge/default</strong
+                  ></span
+                >
               </div>
-              <div id="profile-cards" class="profile-cards"></div>
+              <div class="setup-body">
+                <section data-setup-panel="0">
+                  <h2 tabindex="-1">Provider setup guide</h2>
+                  <p class="setup-description">
+                    Choose a guide for your subscription.
+                  </p>
+                  <div class="provider-choice-layout">
+                    <div
+                      class="setup-provider-options"
+                      aria-label="Provider setup guides"
+                    >
+                      <button
+                        type="button"
+                        data-setup-provider="codex"
+                        aria-pressed="true"
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <rect x="3" y="4" width="18" height="16" rx="3" />
+                          <path d="m7 8 3 3-3 3m6 2h4" />
+                        </svg>
+                        <span class="provider-option-copy"
+                          ><strong>Codex</strong
+                          ><span>ChatGPT subscription</span
+                          ><small id="setup-codex-current"></small
+                        ></span>
+                        <span
+                          class="provider-choice-indicator"
+                          aria-hidden="true"
+                        ></span>
+                      </button>
+                      <button
+                        type="button"
+                        data-setup-provider="claude"
+                        aria-pressed="false"
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18" />
+                        </svg>
+                        <span class="provider-option-copy"
+                          ><strong>Claude Code</strong
+                          ><span>Claude subscription</span
+                          ><small id="setup-claude-current"></small
+                        ></span>
+                        <span
+                          class="provider-choice-indicator"
+                          aria-hidden="true"
+                        ></span>
+                      </button>
+                    </div>
+                    <section
+                      class="provider-guide-detail"
+                      aria-label="Selected provider guide"
+                    >
+                      <div class="provider-detail-heading">
+                        <h3 id="setup-provider-detail-name">Codex</h3>
+                        <span
+                          id="setup-provider-detail-badge"
+                          class="provider-detail-badge"
+                          >Current worker</span
+                        >
+                      </div>
+                      <p id="setup-provider-detail-summary"></p>
+                      <div class="provider-detail-content">
+                        <svg
+                          class="provider-route"
+                          viewBox="0 0 432 142"
+                          role="img"
+                          aria-label="Official CLI login stays on this machine; the local bridge connects your tools"
+                        >
+                          <rect
+                            class="route-window"
+                            x="1"
+                            y="12"
+                            width="250"
+                            height="112"
+                            rx="8"
+                          />
+                          <path class="route-divider" d="M1 40h250" />
+                          <circle class="route-dot" cx="16" cy="26" r="3" />
+                          <circle class="route-dot" cx="28" cy="26" r="3" />
+                          <circle class="route-dot" cx="40" cy="26" r="3" />
+                          <text class="route-label" x="16" y="64">
+                            Official CLI
+                          </text>
+                          <text
+                            class="route-command"
+                            id="setup-provider-route-command"
+                            x="16"
+                            y="88"
+                          >
+                            $ codex login
+                          </text>
+                          <text class="route-caption" x="16" y="108">
+                            Login stays with CLI
+                          </text>
+                          <path
+                            class="route-link"
+                            d="M251 68h38m-6-5 6 5-6 5"
+                          />
+                          <rect
+                            class="route-bridge"
+                            x="298"
+                            y="28"
+                            width="126"
+                            height="80"
+                            rx="8"
+                          />
+                          <path
+                            class="route-mark"
+                            d="M342 44h38m-34 0v20m30-20v20m-23-8h16"
+                          />
+                          <text class="route-label" x="311" y="86">
+                            Local bridge
+                          </text>
+                        </svg>
+                        <dl class="provider-guide-facts">
+                          <div>
+                            <dt>Running worker</dt>
+                            <dd id="setup-provider-detail-running">Checking</dd>
+                          </div>
+                          <div>
+                            <dt>Official login</dt>
+                            <dd id="setup-provider-detail-readiness">
+                              Checking
+                            </dd>
+                          </div>
+                        </dl>
+                      </div>
+                      <p
+                        id="setup-provider-detail-instruction"
+                        class="provider-guide-note"
+                      ></p>
+                    </section>
+                  </div>
+                </section>
+                <section data-setup-panel="1" hidden>
+                  <h2 tabindex="-1">Subscription login</h2>
+                  <p class="setup-description">
+                    Sign in on the machine running the bridge. Your subscription
+                    credentials stay with the official CLI.
+                  </p>
+                  <div class="setup-command">
+                    <code id="setup-login-command">codex login</code
+                    ><button type="button" id="setup-copy-login">
+                      Copy command
+                    </button>
+                  </div>
+                  <p id="setup-worker-instructions" class="hint"></p>
+                  <div class="setup-check-row">
+                    <div>
+                      <strong>Current worker readiness</strong>
+                      <p id="setup-access-status"></p>
+                    </div>
+                    <button type="button" id="setup-refresh">
+                      Refresh readiness
+                    </button>
+                  </div>
+                  <a
+                    class="setup-doc-link"
+                    href="https://github.com/fireflyframework/firefly-agent-bridge/blob/main/docs/configuration.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >Open worker configuration guide</a
+                  >
+                </section>
+                <section data-setup-panel="2" hidden>
+                  <h2 tabindex="-1">Execution profile</h2>
+                  <p class="setup-description">
+                    A profile defines the model and limits used by a job. Choose
+                    one already configured on this bridge.
+                  </p>
+                  <label for="setup-profile">Execution profile</label
+                  ><select id="setup-profile"></select>
+                  <div id="profile-cards" class="setup-selected-profile"></div>
+                  <details class="setup-advanced">
+                    <summary>Provider capabilities and limits</summary>
+                    <dl id="provider-facts" class="health-facts"></dl>
+                  </details>
+                </section>
+                <section data-setup-panel="3" hidden>
+                  <h2 tabindex="-1">Development tools</h2>
+                  <p class="setup-description">
+                    Give each application a scoped token, then connect it using
+                    the selected profile.
+                  </p>
+                  <label for="setup-client">Application</label
+                  ><select id="setup-client">
+                    <option value="codex">Codex plugin</option>
+                    <option value="claude">
+                      Claude Code or Claude Desktop
+                    </option>
+                    <option value="chatgpt">ChatGPT remote MCP</option>
+                    <option value="openai">
+                      OpenAI-compatible application
+                    </option>
+                  </select>
+                  <p id="setup-client-instructions" class="hint"></p>
+                  <div class="setup-command">
+                    <code id="provider-url"></code
+                    ><button type="button" id="setup-copy-url">
+                      Copy address
+                    </button>
+                  </div>
+                  <div class="setup-connect-actions">
+                    <button type="button" id="setup-client-access">
+                      Create application token</button
+                    ><a
+                      class="setup-doc-link"
+                      href="https://github.com/fireflyframework/firefly-agent-bridge/blob/main/docs/integrations.md"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      >Open integration guide</a
+                    >
+                  </div>
+                  <details class="setup-advanced">
+                    <summary>Skills and native agents</summary>
+                    <p>
+                      The Codex and Claude plugins include bridge operation
+                      skills. Claude profiles can define native agents. Codex
+                      uses its own thread protocol and sandbox; Claude agent
+                      definitions and tool allowlists apply to Claude execution.
+                    </p>
+                  </details>
+                </section>
+              </div>
+              <div class="setup-footer">
+                <button type="button" id="setup-back" hidden>Back</button
+                ><span id="setup-step-count" class="hint">Step 1 of 4</span
+                ><button type="button" id="setup-next" class="primary">
+                  Continue</button
+                ><button
+                  type="button"
+                  id="setup-start-job"
+                  class="primary"
+                  hidden
+                >
+                  Start a job
+                </button>
+              </div>
             </section>
           </section>
           <section id="diagnostics-view" class="view" hidden>
-            <div class="diagnostics-layout">
-              <section class="diagnostic-panel">
-                <h2>Service health</h2>
-                <p class="section-caption">
-                  Readiness, connections, and local execution settings.
-                </p>
-                <dl id="health-facts" class="health-facts"></dl>
-                <details>
-                  <summary>Technical details</summary>
-                  <pre id="diagnostics"></pre>
-                </details>
-              </section>
-              <section class="diagnostic-panel">
-                <h2>Client access</h2>
-                <p class="section-caption">
-                  Give each application its own revocable token.
-                </p>
-                <form id="token-form">
-                  <label
-                    >Client name
-                    <input
-                      id="client-name"
-                      pattern="[a-zA-Z0-9_-]{1,64}"
-                      required
-                      placeholder="local-app" /></label
-                  ><label
-                    >Profiles
-                    <input
-                      id="client-profiles"
-                      required
-                      value="default" /></label
-                  ><button class="primary">Create token</button>
-                </form>
-                <pre id="new-token" hidden></pre>
-                <div id="tokens"></div>
-              </section>
+            <div class="diagnostics-frame">
+              <div
+                class="diagnostic-tabs"
+                role="tablist"
+                aria-label="Diagnostics section"
+              >
+                <button
+                  id="diagnostic-service-tab"
+                  type="button"
+                  role="tab"
+                  data-diagnostic-tab="service"
+                  aria-controls="diagnostic-status-panel"
+                  aria-selected="true"
+                >
+                  Service
+                </button>
+                <button
+                  id="diagnostic-access-tab"
+                  type="button"
+                  role="tab"
+                  data-diagnostic-tab="access"
+                  aria-controls="diagnostic-access-panel"
+                  aria-selected="false"
+                  tabindex="-1"
+                >
+                  Application access
+                </button>
+              </div>
+              <div class="diagnostics-workspace">
+                <section
+                  id="diagnostic-status-panel"
+                  class="diagnostic-panel diagnostic-status"
+                  aria-labelledby="diagnostic-status-heading"
+                >
+                  <div class="section-heading">
+                    <div>
+                      <h2 id="diagnostic-status-heading">Service status</h2>
+                      <p class="section-caption">
+                        Current worker readiness and queue activity.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="diagnostic-card-body">
+                    <dl class="diagnostic-signals">
+                      <div>
+                        <dt>Provider</dt>
+                        <dd id="diagnostic-worker">Checking</dd>
+                      </div>
+                      <div>
+                        <dt>Subscription</dt>
+                        <dd id="diagnostic-readiness">Checking</dd>
+                      </div>
+                      <div>
+                        <dt>Dispatch</dt>
+                        <dd id="diagnostic-dispatch">Checking</dd>
+                      </div>
+                      <div>
+                        <dt>Active jobs</dt>
+                        <dd id="diagnostic-active">0</dd>
+                      </div>
+                    </dl>
+                    <details class="setup-advanced">
+                      <summary>Connection and execution details</summary>
+                      <dl id="health-facts" class="health-facts"></dl>
+                      <pre id="diagnostics"></pre>
+                    </details>
+                  </div>
+                  <div class="diagnostic-card-actions">
+                    <button
+                      type="button"
+                      id="refresh-diagnostics"
+                      aria-label="Refresh status"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                </section>
+                <section
+                  id="diagnostic-access-panel"
+                  class="diagnostic-panel diagnostic-access"
+                  aria-labelledby="diagnostic-access-heading"
+                >
+                  <div class="section-heading">
+                    <div>
+                      <h2 id="diagnostic-access-heading">Application access</h2>
+                      <p class="section-caption">
+                        Grant only the profiles each application needs.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="diagnostic-card-body">
+                    <form id="token-form">
+                      <label
+                        >Client name
+                        <input
+                          id="client-name"
+                          pattern="[a-zA-Z0-9_-]{1,64}"
+                          required
+                          placeholder="local-app" /></label
+                      ><label
+                        >Profiles
+                        <input id="client-profiles" required value="default"
+                      /></label>
+                    </form>
+                    <p id="token-created-help" class="hint" hidden>
+                      Save this token in your application. Its value is shown
+                      only when created.
+                    </p>
+                    <pre id="new-token" hidden></pre>
+                    <div id="tokens"></div>
+                  </div>
+                  <div class="diagnostic-card-actions">
+                    <span class="hint">Token shown once</span>
+                    <button class="primary" type="submit" form="token-form">
+                      Create token
+                    </button>
+                  </div>
+                </section>
+              </div>
             </div>
           </section>
           <section class="activity">
