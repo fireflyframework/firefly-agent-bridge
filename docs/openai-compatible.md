@@ -1,7 +1,5 @@
 <!-- Copyright (c) 2026 Signature Management Consultants SLU; Author: @ancongui. Modified by Firefly Software Foundation for Firefly Agent Bridge (2026). SPDX-License-Identifier: Apache-2.0. -->
 
-Worker selection: choose official Codex or Claude Code in [configuration](configuration.md). Claude-native agent/tool details in this guide apply to the Claude adapter; Codex uses its own thread protocol and sandbox. Default permissions remain enabled; explicit bypass is owner configuration.
-
 # OpenAI-compatible applications
 
 [Quickstart](installation.md) · [Get a token](tokens.md) · [API reference](api.md) · [Architecture](architecture.md)
@@ -14,7 +12,7 @@ Use the OpenAI Python SDK or Pydantic AI against your own selected coding-agent 
 
 ## Connect in four steps
 
-1. [Install the Desktop extension or Code plugin](installation.md), sign in through official Claude Code, and start the host.
+1. [Install the Desktop extension or Code plugin](installation.md), sign in through the selected official Codex or Claude Code CLI, and start the host.
 2. [Copy the local owner token](tokens.md#2-get-the-owner-token-for-the-console), open the console, and create an application token under **Diagnostics → Client access**. Chat requests require `read` and `submit`; allow the `default` profile.
 3. Put that application's `ffb_` token in `BRIDGE_TOKEN`. Set `BRIDGE_URL` to `http://127.0.0.1:8766`, or your configured HTTPS tunnel origin.
 4. Set the SDK base URL to **`$BRIDGE_URL/v1`**, the SDK `api_key` to **`BRIDGE_TOKEN`**, and the model to **`bridge/default`**.
@@ -52,7 +50,7 @@ with OpenAI(
     print(response.choices[0].message.content)
 ```
 
-`GET /v1/models` lists only configured profiles available to that token. `bridge/default` selects the default bridge profile, not a model hosted by OpenAI. The profile may pin an official Claude model; otherwise Claude uses its native default.
+`GET /v1/models` lists only configured profiles available to that token. `bridge/default` selects the default bridge profile, not a model hosted by OpenAI. The profile may pin a native model; otherwise the selected official CLI uses its default.
 
 ## Pydantic AI with local Python functions
 
@@ -87,7 +85,7 @@ async def main():
 asyncio.run(main())
 ```
 
-Claude requests `add` through a validated `tool_calls` result. **Pydantic AI executes the Python function in your application**, then submits the full history with its tool result. Each model turn is a separate durable inference job. Function names, JSON arguments, declared schemas, and tool-result IDs are validated. The bridge never runs client function code.
+The inference worker requests `add` through a validated `tool_calls` result. **Pydantic AI executes the Python function in your application**, then submits the full history with its tool result. Each model turn is a separate durable inference job. Function names, JSON arguments, declared schemas, and tool-result IDs are validated. The bridge never runs client function code.
 
 For typed output, pass a Pydantic class as `Agent(model, output_type=YourModel)`. Pydantic AI's default output-function strategy is supported. `output_type=NativeOutput(YourModel)` uses `response_format.json_schema`. See the [runnable example](../examples/pydantic_agent.py) and [SDK compatibility tests](../tests/clients/openai_clients.py).
 
@@ -96,7 +94,7 @@ For typed output, pass a Pydantic class as `Agent(model, output_type=YourModel)`
 | Choice            | Request                                                                      | Who runs tools?                                                                                       | Result                        |
 | ----------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------- |
 | Inference         | Standard Chat Completions request; default `bridge.execution` is `inference` | Your application runs declared functions. Native Bash, filesystem, MCP, and Agent tools are disabled. | OpenAI completion JSON or SSE |
-| Native agent      | `bridge: {"execution":"agent","background":true}`                            | Claude Code runs the selected profile's tools and native subagents with bypass enabled.               | HTTP 202 durable job receipt  |
+| Native agent      | `bridge: {"execution":"agent","background":true}`                            | The selected official CLI runs native tools under the profile's permission policy.                    | HTTP 202 durable job receipt  |
 | Host conversation | `bridge: {"execution":"channel","background":true}`                          | A Desktop/Code conversation explicitly claims work through MCP.                                       | HTTP 202 durable job receipt  |
 
 `background:true` also works with inference. It returns immediately and preserves the queued job independently of the submitting connection. Read the result and control execution through `/v1/bridge/jobs/{id}` and the console. Native agent requests may use `background:false` to wait for completion JSON or SSE. Channel requests require background execution.
@@ -117,7 +115,7 @@ Configure `code-workflow` first using [the advanced workflow guide](advanced-wor
 
 ## Streaming behavior
 
-Set `stream=True` in the OpenAI SDK, or use Pydantic AI's `run_stream`. The bridge sends SSE keepalive comments while Claude runs, then sends the **fully validated final output** as standard completion chunks followed by `data: [DONE]`. Function deltas include stable IDs, names, and JSON arguments. `stream_options={"include_usage": True}` adds a final usage chunk when Claude reports counts.
+Set `stream=True` in the OpenAI SDK, or use Pydantic AI's `run_stream`. The bridge sends SSE keepalive comments while the selected CLI runs, then sends the **fully validated final output** as standard completion chunks followed by `data: [DONE]`. Function deltas include stable IDs, names, and JSON arguments. `stream_options={"include_usage": True}` adds a final usage chunk when the provider reports counts.
 
 This is buffered streaming: it keeps the connection active but does not expose token-by-token generation. A structured response must pass validation before any answer is released. The console's `/v1/bridge/events` stream carries durable job progress, compaction, workflow, and quota notifications; it is an orchestration extension of the same API, with its own event format and replay cursor.
 
@@ -125,7 +123,7 @@ This is buffered streaming: it keeps the connection active but does not expose t
 
 | Field or capability                      | Support                                                                                                                                                                                     |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `messages`                               | 1–128 messages; system, developer, user, assistant, tool; strings or text-only content parts                                                                                                |
+| `messages`                               | 1 to 128 messages; system, developer, user, assistant, tool; strings or text-only content parts                                                                                             |
 | `tools`                                  | Up to 32 function definitions; up to 16 returned calls; validated JSON arguments                                                                                                            |
 | `tool_choice`                            | `auto`, `none`, `required`, or a named function                                                                                                                                             |
 | `parallel_tool_calls`                    | Boolean; false rejects a response containing multiple calls                                                                                                                                 |
@@ -139,7 +137,7 @@ This is buffered streaming: it keeps the connection active but does not expose t
 
 The request object is strict: unsupported fields return an error rather than silently changing behavior. The expanded conversation is limited to 100,000 characters and the HTTP body to 120,000 bytes. Profiles bound attempt duration, output size, and model turns. Schema validation is enforced even when `strict` is false.
 
-Usage reflects Claude's reported invocation totals, including cache reads/writes and bridge instructions. It is not an OpenAI billing record or an exact tokenization of the submitted messages. Missing provider usage is omitted.
+Usage reflects the provider's reported invocation totals, including cache reads/writes and bridge instructions. It is not an OpenAI billing record or an exact tokenization of the submitted messages. Missing provider usage is omitted.
 
 ## Timeouts, retries, and quota recovery
 
@@ -151,7 +149,7 @@ Usage reflects Claude's reported invocation totals, including cache reads/writes
 - Synchronous disconnects, revoked tokens, and deadlines cancel work when its last waiter leaves. Background jobs survive a disconnected submitter. Service shutdown records unfinished execution for inspection. Cancellation cannot roll back application functions or native tool effects.
 - Resume a paused job through the console or `/v1/bridge/jobs/{id}/resume` after checking the [recovery guide](operations.md). Reattach by sending the same body and idempotency key. Do not create a new job simply because a paused request ended.
 
-Native Claude owns compaction and resumable sessions. For a new inference turn, the application owns the complete OpenAI message history; for recovery of that same interrupted turn, the bridge uses its saved native session.
+The selected native CLI owns compaction and resumable sessions. For a new inference turn, the application owns the complete OpenAI message history; for recovery of that same interrupted turn, the bridge uses its saved native session.
 
 ## Sources and verification
 

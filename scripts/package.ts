@@ -29,6 +29,7 @@ import {
 } from "node:fs";
 import { join, resolve } from "node:path";
 import { createHash } from "node:crypto";
+import { assembleCodexPlugin } from "./codex-plugin.js";
 import { packDesktopBundle } from "./desktop-bundle.js";
 const version = JSON.parse(readFileSync("package.json", "utf8"))
   .version as string;
@@ -81,6 +82,7 @@ if (bundledRuntime) {
   });
   cpSync("dist/runtime", join(portable, "runtime"), { recursive: true });
 }
+assembleCodexPlugin(portable, binaryName);
 for (const file of ["LICENSE", "NOTICE"]) {
   copyFileSync(file, join(desktop, file));
   copyFileSync(file, join(portable, file));

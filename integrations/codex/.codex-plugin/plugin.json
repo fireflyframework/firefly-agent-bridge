@@ -1,0 +1,31 @@
+{
+  "name": "firefly-agent-bridge",
+  "version": "0.2.0",
+  "description": "Private local jobs and workflows through your official Codex or Claude Code subscription.",
+  "author": {
+    "name": "Firefly Software Foundation",
+    "url": "https://github.com/fireflyframework"
+  },
+  "homepage": "https://github.com/fireflyframework/firefly-agent-bridge",
+  "repository": "https://github.com/fireflyframework/firefly-agent-bridge",
+  "license": "Apache-2.0",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Firefly Agent Bridge",
+    "shortDescription": "Local agents, jobs, and execution records",
+    "longDescription": "Manage durable local work, inspect results and audit, and run sequential workflows through your configured coding agent. Uses the official CLI login and owner-configured permissions.",
+    "developerName": "Firefly Software Foundation",
+    "category": "Developer tools",
+    "capabilities": ["Read", "Write"],
+    "brandColor": "#FFB34A",
+    "composerIcon": "./assets/bridge-mark-light.svg",
+    "logo": "./assets/bridge-lockup-light.svg",
+    "logoDark": "./assets/bridge-lockup-dark.svg",
+    "defaultPrompt": [
+      "Check my bridge connection and selected provider.",
+      "Run a job and inspect its result.",
+      "Start a saved bridge workflow."
+    ]
+  }
+}

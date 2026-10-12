@@ -33,9 +33,9 @@ try {
         readFileSync("assets/diagrams/" + name, "utf8") +
         "</body></html>",
     );
-    await page.screenshot({
+    await page.evaluate(() => document.fonts.ready);
+    await page.locator("svg").screenshot({
       path: "assets/diagrams/" + name.replace(".svg", ".png"),
-      fullPage: true,
     });
   }
 } finally {

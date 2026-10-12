@@ -24,8 +24,35 @@ const directory = fileURLToPath(new URL("./ui/", import.meta.url));
 export const uiAssets = {
   html: readFileSync(directory + "index.html", "utf8"),
   css: readFileSync(directory + "app.css", "utf8"),
+  themeJs: readFileSync(directory + "theme.js", "utf8"),
   auditJs: readFileSync(directory + "audit.js", "utf8"),
   js: readFileSync(directory + "app.js", "utf8"),
+  brandDark: readFileSync(
+    fileURLToPath(
+      new URL("../assets/brand/bridge-lockup-dark.svg", import.meta.url),
+    ),
+  ).toString("base64"),
+  brandLight: readFileSync(
+    fileURLToPath(
+      new URL("../assets/brand/bridge-lockup-light.svg", import.meta.url),
+    ),
+  ).toString("base64"),
+  mark: readFileSync(
+    fileURLToPath(new URL("../assets/brand/bridge-mark.svg", import.meta.url)),
+  ).toString("base64"),
+  markLight: readFileSync(
+    fileURLToPath(
+      new URL("../assets/brand/bridge-mark-mono-light.svg", import.meta.url),
+    ),
+  ).toString("base64"),
+  font: readFileSync(
+    fileURLToPath(
+      new URL(
+        "../assets/fonts/manrope/manrope-latin-wght-normal.woff2",
+        import.meta.url,
+      ),
+    ),
+  ).toString("base64"),
   brand: readFileSync(
     fileURLToPath(new URL("../assets/logo.png", import.meta.url)),
   ).toString("base64"),

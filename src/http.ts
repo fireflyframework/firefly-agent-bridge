@@ -29,6 +29,8 @@ import { Workflows } from "./workflows.js";
 import { EventStreams } from "./events.js";
 import { Channels } from "./channels.js";
 import { uiAssets } from "./ui-assets.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { createAdapter } from "./mcp.js";
 import { registerOpenAI, CompletionError, openAIError } from "./openai.js";
 export type HttpDependencies = {
   store: QueueStore;
@@ -143,7 +145,7 @@ export function createHttpService(d: HttpDependencies) {
       !d.config.allowedOrigins.includes(origin)
     )
       throw new BridgeError("invalid_origin", "Origin is not allowed", 403);
-    if (!req.url.startsWith("/v1/")) return;
+    if (!req.url.startsWith("/v1/") && req.url.split("?")[0] !== "/mcp") return;
     // Browser preflight carries no bearer token. Only approved origins receive CORS headers;
     // the subsequent command still passes the normal authentication and scope checks.
     if (origin)
@@ -159,7 +161,7 @@ export function createHttpService(d: HttpDependencies) {
         )
         .header(
           "Access-Control-Allow-Headers",
-          "Authorization, Content-Type, Idempotency-Key, Last-Event-ID",
+          "Authorization, Content-Type, Idempotency-Key, Last-Event-ID, MCP-Protocol-Version",
         )
         .header("Access-Control-Max-Age", "600");
       return reply.code(204).send();
@@ -207,7 +209,7 @@ export function createHttpService(d: HttpDependencies) {
       .header("Cache-Control", "no-store")
       .header(
         "Content-Security-Policy",
-        "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+        "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
       );
     return payload;
   });
@@ -215,10 +217,35 @@ export function createHttpService(d: HttpDependencies) {
     clearInterval(reaper);
     streams.close();
   });
+  app.all("/mcp", async (req, reply) => {
+    requireScope(req, "read");
+    const server = createAdapter(
+      {
+        address: "http://127.0.0.1:" + req.raw.socket.localPort,
+        token: req.headers.authorization!.slice(7),
+      },
+      false,
+      false,
+    );
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+      enableJsonResponse: true,
+    });
+    for (const [name, value] of Object.entries(reply.getHeaders()))
+      if (value !== undefined) reply.raw.setHeader(name, value);
+    reply.raw.setHeader("Cache-Control", "no-store");
+    reply.raw.setHeader("X-Content-Type-Options", "nosniff");
+    reply.hijack();
+    reply.raw.once("close", () => {
+      void server.close();
+    });
+    await server.connect(transport);
+    await transport.handleRequest(req.raw, reply.raw, req.body);
+  });
   app.get("/v1/bridge/status", async (req) => {
     const p = requireScope(req, "read");
     return {
-      version: "0.1.0",
+      version: "0.2.0",
       protocolVersion: 2,
       eventCursorFloor: d.store.eventFloor(),
       permissionMode: d.config.profiles.default!.permissionMode,
@@ -238,6 +265,36 @@ export function createHttpService(d: HttpDependencies) {
             p.owner || t.steps.every((s) => p.profiles.includes(s.profile)),
         )
         .map((t) => ({ id: t.id, inputs: t.inputs, steps: t.steps.length })),
+      ...(p.owner
+        ? {
+            configuration: {
+              worker: d.config.worker,
+              concurrency: d.config.concurrency,
+              queueCapacity: d.config.queueCapacity,
+              capabilities: {
+                nativeAgents: d.config.worker === "claude",
+                profileToolAllowlist: d.config.worker === "claude",
+                callerFunctions: true,
+                durableWorkflows: true,
+              },
+              profiles: Object.fromEntries(
+                Object.entries(d.config.profiles).map(([name, profile]) => [
+                  name,
+                  {
+                    model: profile.model ?? null,
+                    permissionMode: profile.permissionMode,
+                    tools: profile.tools,
+                    timeoutMs: profile.timeoutMs,
+                    maxOutputBytes: profile.maxOutputBytes,
+                    maxTurns: profile.maxTurns,
+                    maxSubagents: profile.maxSubagents,
+                    agents: Object.keys(profile.agents),
+                  },
+                ]),
+              ),
+            },
+          }
+        : {}),
       ...(p.owner ? d.diagnostics?.() : {}),
     };
   });
@@ -552,6 +609,19 @@ export function createHttpService(d: HttpDependencies) {
   });
   app.get("/", async (_req, reply) =>
     reply.type("text/html; charset=utf-8").send(uiAssets.html),
+  );
+  for (const [path, asset, type] of [
+    ["/brand-dark.svg", uiAssets.brandDark, "image/svg+xml"],
+    ["/brand-light.svg", uiAssets.brandLight, "image/svg+xml"],
+    ["/bridge-mark.svg", uiAssets.mark, "image/svg+xml"],
+    ["/bridge-mark-light.svg", uiAssets.markLight, "image/svg+xml"],
+    ["/fonts/manrope.woff2", uiAssets.font, "font/woff2"],
+  ])
+    app.get(path!, async (_req, reply) =>
+      reply.type(type!).send(Buffer.from(asset!, "base64")),
+    );
+  app.get("/theme.js", async (_req, reply) =>
+    reply.type("text/javascript; charset=utf-8").send(uiAssets.themeJs),
   );
   app.get("/brand.png", async (_req, reply) =>
     reply.type("image/png").send(Buffer.from(uiAssets.brand, "base64")),

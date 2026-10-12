@@ -45,7 +45,7 @@ Start a run with:
 { "topic": "how to document a local integration" }
 ```
 
-A profile must include the tools the work actually needs. The default profile does not include web search; enable a suitable profile locally when research requires current online sources.
+For Claude, a profile must allow the tools the work needs; the default Claude tool list omits web search. Codex uses its own native controls and sandbox. Review Providers & setup before assigning a task that needs online sources.
 
 ## Define a template through Claude or the API
 
@@ -75,7 +75,7 @@ You can also edit the `workflows` array in `config.json` while the service is st
 ## Validation rules
 
 - IDs use letters, digits, underscores, or hyphens, up to 64 characters.
-- A template has 1–32 ordered steps and up to 32 unique input names.
+- A template has 1 to 32 ordered steps and up to 32 unique input names.
 - Every step ID is unique and every execution profile must exist locally.
 - An input reference must name a declared input.
 - A step reference must name an earlier step. Forward references and cycles are rejected.
@@ -94,7 +94,7 @@ If a step fails, inspect its job and use **Retry** only when repeating its actio
 
 A saved template edit does not repair an existing snapshot. For a definition error in an old run, create a corrected new run.
 
-## Configure native subagents
+## Configure Claude native subagents
 
 Execution profiles are owner-controlled configuration. Add `Agent` to the parent's tools and define the allowed named agents:
 
@@ -116,6 +116,8 @@ Execution profiles are owner-controlled configuration. Add `Agent` to the parent
   }
 }
 ```
+
+These definitions apply when Claude is selected. Codex does not translate Claude agent definitions.
 
 Merge this into `profiles` in `config.json`, keep the required `default` profile, and restart. Choose the profile on a job or template step.
 

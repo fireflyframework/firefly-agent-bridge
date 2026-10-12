@@ -1,7 +1,5 @@
 <!-- Copyright (c) 2026 Signature Management Consultants SLU; Author: @ancongui. Modified by Firefly Software Foundation for Firefly Agent Bridge (2026). SPDX-License-Identifier: Apache-2.0. -->
 
-Worker selection: choose official Codex or Claude Code in [configuration](configuration.md). Claude-native agent/tool details in this guide apply to the Claude adapter; Codex uses its own thread protocol and sandbox. Default permissions remain enabled; explicit bypass is owner configuration.
-
 # Launch and observe native subagents
 
 [Advanced workflow](advanced-workflows.md) · [Profiles](configuration.md) · [Tokens](tokens.md)
@@ -61,3 +59,9 @@ Pause or cancel the **parent job** to stop its owned process tree. Children do n
 If no child task appears, confirm the selected profile includes Agent and the named definition, inspect the job's error/result, and verify that Claude actually delegated. The bridge does not invent a completed child task merely because the prompt requested one.
 
 Open the parent job's **Activity** tab to inspect the Agent invocation and emitted child tool calls. Expand **Raw input, result, and correlation** to see the parent tool ID and session metadata. **Files** includes reported child file actions. See [execution audit](audit.md) for full payloads and coverage.
+
+## Host skills
+
+The Claude Code and Codex plugins include the `bridge` operation skill. It checks readiness before submission, uses the durable job and workflow tools, distinguishes resume from retry, and keeps tokens out of chat. The skill guides the host's tool sequence; it does not change the selected worker or grant native permissions.
+
+Worker processes do not inherit arbitrary host plugins or personal skills. Put task-specific instructions in the prompt or saved workflow. Claude native specialists belong to the configured profile; Codex uses its own native thread behavior.

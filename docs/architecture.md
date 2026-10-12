@@ -1,104 +1,74 @@
 <!-- Copyright (c) 2026 Signature Management Consultants SLU; Author: @ancongui. Modified by Firefly Software Foundation for Firefly Agent Bridge (2026). SPDX-License-Identifier: Apache-2.0. -->
 
-Worker selection: choose official Codex or Claude Code in [configuration](configuration.md). Claude-native agent/tool details in this guide apply to the Claude adapter; Codex uses its own thread protocol and sandbox. Default permissions remain enabled; explicit bypass is owner configuration.
+# Architecture
 
-# Architecture and design decisions
-
-[README](../README.md) · [API](api.md) · [Operations](operations.md)
+A local service owns the queue, HTTP listener, scheduler, workflows, and audit. Stdio MCP hosts, the console, SDKs, and remote MCP clients use that service. The selected official Codex or Claude Code CLI owns its provider login, native session, model access, and context.
 
 ![Local bridge architecture](../assets/diagrams/architecture.svg)
 
-[Download PNG](../assets/diagrams/architecture.png)
+## Request lifecycle
 
-## Follow a request from start to finish
+| Stage    | Caller                                                                  | Bridge                                                         | Official CLI                                                 |
+| -------- | ----------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------ |
+| Submit   | Send messages, profile alias, bearer token and optional idempotency key | Authorize and validate; commit job and admission event         | Not running yet                                              |
+| Claim    | Wait for response or retain background job receipt                      | Claim an exclusive fenced attempt                              | Start or resume the selected worker                          |
+| Execute  | Inference caller waits; host conversation claims its own work           | Bound attempt time and output; persist observations            | Produce a structured answer or perform permitted native work |
+| Return   | Receive completion JSON, buffered SSE, or terminal job result           | Validate envelope, function names, arguments and output schema | Report result, native session and observed usage             |
+| Continue | Inference sends full history; native job sends a follow-up              | New inference job or continuation of existing native job       | Resume the job's saved native session when available         |
 
-| Stage     | Client / caller                                                                                     | Firefly Agent Bridge                                                                    | Claude                                                                                                   |
-| --------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Start     | Configure an SDK, open the console, or use host MCP tools                                           | The host-loaded MCP adapter starts or discovers the local service                       | Official Claude Code is installed and authenticated by its user                                          |
-| Submit    | `POST /v1/chat/completions` with messages, `bridge/<profile>`, token, and optional idempotency key  | Validate authorization and message/schema contract; commit the job to SQLite            | Execution has not started                                                                                |
-| Execute   | Wait for a completion, or receive a background receipt                                              | Claim a fenced attempt; select inference or native-agent execution                      | Inference: produce structured output with native tools disabled. Agent: use profile tools and subagents. |
-| Return    | Consume OpenAI JSON/SSE; execute requested client functions locally                                 | Validate answer/function arguments; map observed usage and stable IDs into the response | Emit a structured final envelope, native session identity, usage, and limit events                       |
-| Observe   | Use the console or `/v1/bridge` state, control, workflow, and event routes                          | Persist observations and coordinate pause/resume, quota gates, and workflow checkpoints | Own native context, compaction, and session continuation                                                 |
-| Next turn | Inference: send full OpenAI history including function results. Native agent: send a job follow-up. | New inference turn becomes a new job; a native follow-up continues its existing job     | Resume the saved native session only for that job's recovery or native continuation                      |
+`bridge.execution` selects inference, native agent, or host conversation work. The `/v1/bridge` routes provide durable job state, execution controls, workflow checkpoints, scoped access, and replayable events. `/mcp` is a stateless Streamable HTTP view of the same management tools; it preserves its caller's authorization.
 
-The plugin is the host integration and startup mechanism. The durable queue and HTTP listener run in a separate local service process. Automatic model work runs in an owned Claude Code process. These responsibilities stay separate even when everything runs on the same laptop.
+## One state owner
 
-For optional channel jobs, the current Claude host conversation performs the work after claiming it through MCP. That path uses explicit progress/completion acknowledgments because the bridge cannot directly control a Desktop or Code conversation's process.
+MCP adapters discover or start a shared local service. A renewable filesystem lock gives one process ownership of the database and worker processes. Service identity and protocol checks prevent a different listener from being accepted as the bridge. A port collision is detected before crash recovery changes attempts.
 
-## One API, explicit execution ownership
+This lets several hosts share one queue while configuration and history remain outside plugin cache directories. A host lease keeps managed services available. Plain `serve` stays available independently of host lifecycle.
 
-The OpenAI-compatible surface is the common admission path. SDKs, the console, and MCP job tools submit through `/v1/chat/completions`; `bridge.execution` selects inference, native agent work, or host-owned channel work. Workflows create their sequential steps directly in the same queue. There is one authentication layer, scheduler, database, and set of controls.
+## Identities and transactions
 
-The `/v1/bridge` namespace supplies the operations OpenAI Chat Completions does not define: durable job state, pause/resume, workflows, templates, host leases, token administration, and replayable events. These extensions do not run a separate inference service.
+| Identity             | Purpose                                   | Lifetime                                            |
+| -------------------- | ----------------------------------------- | --------------------------------------------------- |
+| Principal            | Application ownership and scopes          | Until token revocation or replacement               |
+| Job ID               | Durable work and conversation             | Retained in local state                             |
+| Attempt ID and fence | Authority to finish one exclusive attempt | Ends when the attempt finishes or ownership is lost |
+| Native session ID    | Coding-agent context and continuation     | Managed by the official CLI                         |
 
-Inference disables native filesystem, Bash, MCP, and Agent tools. Claude returns requests for the application's declared functions; Pydantic AI or another client executes those functions and sends results on its next request. Native agent execution instead grants the profile's tools to an owned Claude process. This distinction prevents a client function name from becoming a local command.
+SQLite uses WAL, foreign keys, prepared statements, full synchronous commits, and immediate transactions. Job transitions, admission keys, and event records commit together. A fence rejects stale completion of a newer attempt.
+
+An idempotency key belongs to a principal, operation, and exact request body. Repeating that request returns its existing resource; changing the body under the same key fails with a conflict. A resume continues an available native session. Retry starts a new session and retains the job's history and workspace; it does not roll back prior effects.
+
+## Tool authority
+
+Inference disables native actions and returns requests for declared application functions. The caller executes those functions and sends their results in its next model turn. Structured validation prevents an undeclared function name from becoming an accepted call. The bridge does not execute function code.
+
+Native Codex jobs use its workspace sandbox by default. Native Claude jobs use acceptEdits and the profile tool list. Claude profile-defined agents and native turn controls do not translate to Codex. Explicit bypass is a trusted-host owner choice. A job directory organizes files; the operating system and worker permission policy determine access.
 
 ![Inference and native execution boundaries](../assets/diagrams/openai-compatible.svg)
 
-[PNG](../assets/diagrams/openai-compatible.png) · [SDK contract and examples](openai-compatible.md)
+## Worker and process ownership
 
-## One service owns mutable state
+Prompts go to the owned CLI over stdin without a shell. Worker setup rejects alternate billing environment settings and preserves official subscription authentication. Codex ignores personal configuration while applying deliberate bridge profile options. Claude suppresses host customizations; arbitrary host plugins and skills are not automatically inherited.
 
-Desktop and Code run thin stdio MCP adapters. They discover or start a shared local service. A renewable filesystem lock gives one service ownership of the database and worker processes. HTTP clients and the console use that same service.
+The bridge observes the provider's structured protocol. It retains session IDs and reported compaction boundaries without rewriting provider transcripts or inventing replacement summaries. Missing or unavailable sessions remain explicit errors.
 
-This avoids two independent queues when both Claude hosts are open. It also keeps configuration and job history independent of plugin-cache paths, which change during updates.
+An owned POSIX process group, or Windows process tree, supports cancellation and shutdown. Graceful termination is followed by bounded escalation. Descendants are reconciled even if the leader exits first. Host conversation jobs have a different boundary: the bridge requests a stop and waits for an explicit claim receipt acknowledgment because it does not own that host process.
 
-The service validates the saved instance ID and protocol version when reconnecting. An unrelated process listening on the same port is not accepted as the bridge. A port collision is detected before crash recovery mutates active attempts.
+## Streaming and retention
 
-## Three identities with different lifetimes
+Chat Completions sends keepalives while work runs, then releases validated final chunks and optional observed usage. It is buffered completion streaming. Job notifications use a separate durable SSE sequence with replay cursors.
 
-| Identity           | Purpose                                    | Lifetime                            |
-| ------------------ | ------------------------------------------ | ----------------------------------- |
-| Job ID             | User-visible work and conversation         | Durable                             |
-| Attempt ID + fence | Exclusive authority to execute one attempt | Ends when the attempt finishes      |
-| Claude session ID  | Native conversation and compacted context  | Managed by Claude's session storage |
+![Request and event contracts](../assets/diagrams/communication.svg)
 
-A resume uses the same Claude session. An explicit retry creates a new attempt and a new session while retaining the job's history. The job workspace remains available; retry is not a filesystem rollback.
+Synchronous disconnects and deadlines cancel work when the last waiter leaves. Background jobs remain admitted after a disconnected submitter. Operator and quota pauses retain state for explicit recovery. A reported future reset can permit bounded automatic continuation; an unknown reset stays paused.
 
-## Requests, jobs, and events commit together
+The service retains approximately 10,000 recent notification IDs. Expired cursors require a state refresh, preventing silent replay gaps. Jobs and full audit remain durable beyond that event window.
 
-SQLite uses WAL, foreign keys, full synchronous commits, prepared statements, and immediate transactions. Job transitions, idempotency records, and events are written together.
+## Audit and workflows
 
-An idempotency key is scoped to a principal and operation. The same request returns its existing resource; changing its body under the same key produces a conflict. A fence prevents a disconnected or superseded worker from finishing a newer attempt.
+Native observations commit complete emitted tool payloads and correlation metadata before publishing lightweight tool notifications. A current projection supplies outcomes and reported file targets; immutable entries support a fixed-cursor export. Missing results remain unknown. Client function requests and reports retain caller provenance rather than being classified as native actions.
 
-OpenAI streaming sends keepalives while inference runs and releases only validated final chunks. Its response is not the orchestration event log. Synchronous disconnects and deadlines cancel the job when its last waiter leaves; background execution remains durable without a waiting socket. Quota/operator pauses retain admitted work and expose its job ID for recovery.
+![Execution audit](../assets/diagrams/execution-audit.svg)
 
-The latest 10,000 event sequence IDs are retained. Clients reconnect with a cursor. An expired cursor is explicit and requires a state refresh, preventing silent gaps.
+A workflow snapshots its template and inputs. A successful current job creates its next sequential step. Failed steps require an explicit retry; an operator pause blocks advancement. Editing a reusable template changes future runs and preserves existing snapshots.
 
-![Bidirectional REST/SSE communication](../assets/diagrams/communication.svg)
-
-[Download PNG](../assets/diagrams/communication.png)
-
-## Tool observations become a durable audit
-
-![Execution audit responsibilities](../assets/diagrams/execution-audit.svg)
-
-[PNG](../assets/diagrams/execution-audit.png) · [Payloads, provenance, and export](audit.md)
-
-Claude emits tool requests and results. The bridge correlates them by job, fenced attempt, and native tool ID; it retains reported parent/session IDs for subagents. Complete input/result payloads and immutable observation entries commit to SQLite before lightweight notifications reach clients. A separate tool projection supplies current outcomes and reported file targets.
-
-The console loads metadata first and full content only when an inspector opens. Export reads immutable entries through a fixed high-water mark. Notification pruning does not remove the audit. Unfinished tools become unknown when an attempt ends; a successful process exit cannot manufacture a missing tool result. Client-owned functions retain request/client-report provenance and are never classified as native filesystem actions.
-
-## Claude owns its context
-
-The worker invokes the unmodified installed Claude Code executable. Prompts go over stdin, never through a shell. The worker enables the configured permission policy and suppresses host customizations with safe mode while preserving the official subscription login.
-
-The bridge observes structured session, compaction, rate-limit, and child-task events. It does not rewrite Claude's transcripts, invent a summary, scrape authentication secrets, or reconstruct native tool history after compaction.
-
-Model access still depends on Anthropic's current subscription support and managed policy. The bridge checks for conflicting API/provider environment settings and never silently changes the billing path.
-
-## Process ownership is the execution boundary
-
-Each job has its own working directory. This organizes files; it does not sandbox tools. The worker uses a separate POSIX process group, or Windows process-tree termination, for cancellation and shutdown. Graceful termination gives Claude time to record unfinished work; a bounded escalation stops unresponsive processes.
-
-A channel host is different: the bridge does not own that conversation's process. It requests control changes and waits for explicit acknowledgment. Losing the host marks the attempt interrupted, so external side effects can be reconciled.
-
-## Workflows have durable checkpoints
-
-Each run snapshots its template and inputs. Only a successful current step creates the next step. Failed steps do not automatically replay. Explicit workflow pause blocks advancement even when a current job has already completed.
-
-Subagents run inside a Claude execution. The bridge observes their lifecycle, limits reported child-task count, and stops them with their parent. Independent agent teams and arbitrary graph scheduling are not part of this release.
-
-![Workflow and child-task ownership](../assets/diagrams/workflows.svg)
-
-[Download PNG](../assets/diagrams/workflows.png)
+External effects are outside database atomicity. A command can write a file or call a remote service before its result is lost. Crash recovery marks lost attempts interrupted and retains their evidence; the operator reconciles effects before retrying.

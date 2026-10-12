@@ -440,6 +440,11 @@ async function refresh() {
   refreshing = true;
   try {
     const status = await api("/status");
+    el("health").dataset.state = status.scheduler.paused
+      ? "paused"
+      : status.readiness.ready
+        ? "ready"
+        : "attention";
     selectedWorker = status.worker === "claude" ? "Claude Code" : "Codex";
     text(
       "health",
@@ -495,6 +500,7 @@ async function refresh() {
       if (label === "Workspace") description.className = "path";
       el("health-facts").append(term, description);
     }
+    renderProvider(status);
     const previous = el("profile").value;
     el("profile").replaceChildren(
       ...status.profiles.map((id) => new Option(id, id)),
@@ -547,6 +553,93 @@ async function refresh() {
     refreshing = false;
   }
 }
+function renderProvider(status) {
+  text("provider-name", selectedWorker);
+  text(
+    "provider-readiness",
+    status.readiness.ready
+      ? "Subscription ready on this machine"
+      : (status.readiness.reason ?? "Checking official CLI login"),
+  );
+  text("provider-url", location.origin + "/v1");
+  el("provider-facts").replaceChildren();
+  const config = status.configuration;
+  const facts = config
+    ? [
+        ["Execution", status.execution],
+        ["Parallel jobs", config.concurrency],
+        ["Queue capacity", config.queueCapacity],
+        [
+          "Inference",
+          "Native actions disabled; caller executes declared functions",
+        ],
+        [
+          "Native agents",
+          config.capabilities.nativeAgents
+            ? "Claude profile agents"
+            : "Codex threads; Claude agent definitions are not applied",
+        ],
+        [
+          "Tool restrictions",
+          config.capabilities.profileToolAllowlist
+            ? "Claude profile tool allowlist"
+            : "Codex sandbox; Claude tool allowlist is not enforced",
+        ],
+      ]
+    : [
+        [
+          "Configuration",
+          "Owner authentication required to inspect profiles and limits",
+        ],
+      ];
+  for (const [label, value] of facts) {
+    const dt = document.createElement("dt"),
+      dd = document.createElement("dd");
+    dt.textContent = label;
+    dd.textContent = String(value);
+    el("provider-facts").append(dt, dd);
+  }
+  el("profile-cards").replaceChildren();
+  if (!config) {
+    text("profile-cards", "Owner authentication required.");
+    return;
+  }
+  for (const [name, profile] of Object.entries(config.profiles)) {
+    const card = document.createElement("article"),
+      heading = document.createElement("h3");
+    card.className = "profile-card";
+    heading.textContent = "bridge/" + name;
+    card.append(heading);
+    for (const value of [
+      "Model: " + (profile.model ?? "Official CLI default"),
+      "Permissions: " +
+        (profile.permissionMode === "bypass"
+          ? "Explicit bypass; trusted host required"
+          : "Default enabled"),
+      "Deadline: " +
+        profile.timeoutMs / 1000 +
+        "s · Output limit: " +
+        profile.maxOutputBytes +
+        " bytes",
+      config.capabilities.profileToolAllowlist
+        ? "Tools: " + profile.tools.join(", ")
+        : "Codex controls native tools through its sandbox; this profile's Claude tool list does not restrict Codex.",
+      config.capabilities.nativeAgents
+        ? "Turn limit: " +
+          profile.maxTurns +
+          " · Child-task limit: " +
+          profile.maxSubagents +
+          " · Agents: " +
+          (profile.agents.join(", ") || "none")
+        : "Claude turn limits and native agent definitions do not apply to Codex.",
+    ]) {
+      const p = document.createElement("p");
+      p.textContent = value;
+      card.append(p);
+    }
+    el("profile-cards").append(card);
+  }
+}
 async function renderTokens() {
   try {
     const { tokens } = await api("/admin/tokens");
@@ -570,6 +663,28 @@ async function renderTokens() {
     text("tokens", e.message);
   }
 }
+function keepCurrentNavVisible() {
+  const nav = document.querySelector(".rail nav");
+  const selected = nav?.querySelector("[data-view].selected");
+  if (!nav || !selected) return;
+  const rail = nav.getBoundingClientRect();
+  const button = selected.getBoundingClientRect();
+  const left =
+    button.left < rail.left
+      ? button.left - rail.left
+      : button.right > rail.right
+        ? button.right - rail.right
+        : 0;
+  const top =
+    button.top < rail.top
+      ? button.top - rail.top
+      : button.bottom > rail.bottom
+        ? button.bottom - rail.bottom
+        : 0;
+  nav.scrollBy({ left, top, behavior: "instant" });
+}
+const navigationResize = new ResizeObserver(keepCurrentNavVisible);
+navigationResize.observe(document.querySelector(".rail nav"));
 function showView(name) {
   for (const node of document.querySelectorAll(".view"))
     node.hidden = node.id !== name + "-view";
@@ -582,18 +697,21 @@ function showView(name) {
     {
       jobs: "Jobs & conversations",
       workflows: "Workflows",
+      providers: "Providers & setup",
       diagnostics: "Diagnostics",
     }[name],
   );
   text(
     "view-description",
     {
-      jobs: "Keep every task moving, with the context to pick it up again.",
-      workflows: "Coordinate repeatable work with a checkpoint at every step.",
-      diagnostics:
-        "Understand your service, its connections, and application access.",
+      jobs: "Track queued work, inspect execution records, and continue native sessions.",
+      workflows: "Run saved steps in order and inspect each checkpoint.",
+      providers:
+        "Connect your subscription, review profiles, and understand execution access.",
+      diagnostics: "Inspect service state and manage application access.",
     }[name],
   );
+  requestAnimationFrame(keepCurrentNavVisible);
   void refresh();
 }
 for (const button of document.querySelectorAll("[data-view]"))
@@ -671,8 +789,21 @@ async function stream(signal) {
     delay = Math.min(15000, delay * 2);
   }
 }
+const pending = (form, label) => {
+  const button = form.querySelector("button.primary"),
+    original = button.textContent;
+  button.disabled = true;
+  button.textContent = label;
+  form.setAttribute("aria-busy", "true");
+  return () => {
+    button.disabled = false;
+    button.textContent = original;
+    form.removeAttribute("aria-busy");
+  };
+};
 el("connect-form").onsubmit = async (event) => {
   event.preventDefault();
+  const finished = pending(el("connect-form"), "Connecting…");
   token = el("token").value.trim();
   try {
     await api("/status");
@@ -688,6 +819,9 @@ el("connect-form").onsubmit = async (event) => {
   } catch (e) {
     token = "";
     notice(e.message);
+    el("token").focus();
+  } finally {
+    finished();
   }
 };
 el("logout").onclick = () => {

@@ -2,14 +2,82 @@
 
 # Install Firefly Agent Bridge
 
-Private developer infrastructure. The GitHub repository and all release assets require access to `fireflyframework/firefly-agent-bridge`.
+You need access to the private [Firefly Agent Bridge repository](https://github.com/fireflyframework/firefly-agent-bridge) and an official Codex or Claude Code subscription login on the machine that runs the service. Bridge authentication is separate from provider authentication.
 
-## Source installation
+## Choose an installation
 
-Install Node.js 24 or later and the official coding-agent CLI. Sign in using `codex login` for ChatGPT subscription access or `claude auth login` for Claude subscription access. Check `codex login status` or `claude auth status`; no credentials need to be copied into this service.
+| Installation      | Use it for                                                               | Prerequisites                                                        |
+| ----------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| Native archive    | A local service or stdio MCP server without a separate Node installation | Authenticated GitHub CLI for the download; official coding-agent CLI |
+| Desktop extension | Claude Desktop management tools                                          | Matching macOS or Windows `.mcpb`; Desktop extension consent         |
+| Source            | Development, debugging, or custom internal packaging                     | Node.js 24+, npm, Git, official coding-agent CLI                     |
+
+Native release verification covers macOS arm64, Linux x64, and Windows x64. Download an archive for your machine's architecture. Desktop extensions are built for macOS and Windows.
+
+## Sign in to the provider
+
+For ChatGPT subscription access through official Codex:
+
+```sh
+codex login
+codex login status
+```
+
+For official Claude subscription access:
+
+```sh
+claude auth login
+claude auth status
+```
+
+The bridge uses that CLI's existing login. Do not copy its credentials into the bridge. API-key and third-party provider environment overrides fail the subscription readiness check. Your provider's account policy and model access still apply.
+
+## Install a native archive
+
+Authenticate GitHub CLI with an account that can read the private repository, then download the platform archive and checksum list. This macOS example selects release 0.2.0:
 
 ```sh
 gh auth login
+gh release download v0.2.0 \
+  --repo fireflyframework/firefly-agent-bridge \
+  --pattern 'firefly-agent-bridge-0.2.0-darwin-arm64.tar.gz' \
+  --pattern SHA256SUMS
+shasum -a 256 firefly-agent-bridge-0.2.0-darwin-arm64.tar.gz
+```
+
+Compare the digest with that archive's entry in `SHA256SUMS` before extracting. On Linux, choose the `linux-x64` archive and use `sha256sum`. On Windows, choose `win32-x64` and use PowerShell:
+
+```powershell
+Get-FileHash .\firefly-agent-bridge-0.2.0-win32-x64.tar.gz -Algorithm SHA256
+```
+
+Extract the complete archive into a new directory. Keep all included license and runtime files together. For macOS or Linux:
+
+```sh
+mkdir firefly-bridge-local
+tar -xzf firefly-agent-bridge-0.2.0-darwin-arm64.tar.gz -C firefly-bridge-local
+cd firefly-bridge-local
+./firefly-bridge init --worker codex
+./firefly-bridge serve
+```
+
+On Windows, run the matching executable:
+
+```powershell
+New-Item -ItemType Directory firefly-bridge-local
+tar -xzf .\firefly-agent-bridge-0.2.0-win32-x64.tar.gz -C firefly-bridge-local
+Set-Location firefly-bridge-local
+.\firefly-bridge.exe init --worker codex
+.\firefly-bridge.exe serve
+```
+
+Use `init --worker claude` to select Claude before first startup. If configuration already exists, initialization preserves it; change the saved `worker` and executable path using the [configuration procedure](configuration.md).
+
+If macOS or Windows prompts for installation approval, follow your organization's normal verification and host consent process. Desktop extensions do not bypass that process.
+
+## Install from source
+
+```sh
 gh repo clone fireflyframework/firefly-agent-bridge
 cd firefly-agent-bridge
 npm ci
@@ -18,20 +86,20 @@ node dist/cli.cjs init --worker codex
 node dist/cli.cjs serve
 ```
 
-Use `init --worker claude` before first startup for Claude Code 2.1.260+. The saved configuration chooses the worker after initialization. Read [configuration](configuration.md) before changing an existing service. API-key or third-party provider environment overrides fail the subscription preflight.
+The source entry point and the native `firefly-bridge` executable expose the same commands. A terminal running `serve` keeps the service available; MCP adapters can also start a managed service when they connect.
 
-## Native internal release
+## Open the console
 
-Use authenticated GitHub CLI to download the platform archive and `SHA256SUMS` from the private repository. Verify the matching checksum, unpack the archive intact and run `firefly-bridge init --worker codex`, then `firefly-bridge serve`. The portable package includes the runtime.
+Open [http://127.0.0.1:8766](http://127.0.0.1:8766), or run `firefly-bridge panel` to locate the actual address and owner token file. Paste the local owner token into the console. The console clears the input after connection and retains the token only in tab memory.
 
-Claude Desktop users may install their internal platform `.mcpb` in Extensions. Claude Code developers may install the private repository's marketplace or use the local integration directory. The native bootstrap requires `gh` with access to the private release. Host consent and organizational policies stay with that host.
+| Platform | Default data directory                                    |
+| -------- | --------------------------------------------------------- |
+| macOS    | `~/Library/Application Support/Firefly Agent Bridge/`     |
+| Windows  | `%LOCALAPPDATA%\Firefly Agent Bridge\`                    |
+| Linux    | `${XDG_STATE_HOME:-~/.local/state}/Firefly Agent Bridge/` |
 
-## Verify the connection
+The default job workspace is the data directory's `jobs` folder. A custom instance needs the same `--data-dir` on every CLI invocation. `init` creates configuration; the first successful service start creates `owner.token`.
 
-Open [http://127.0.0.1:8766](http://127.0.0.1:8766). Use `owner.token` from the selected data directory. `GET /v1/bridge/status` reports protocol version 2, selected `worker`, `execution: local-codex` or `local-claude-code`, default profile permissions, and readiness.
+Open Providers & setup and confirm the selected worker, subscription readiness, profile model, and permission mode. Create a job that writes a disposable file in its own job directory, then inspect its result and audit. A successful setup check alone does not verify a particular coding task.
 
-On macOS state lives in `~/Library/Application Support/Firefly Agent Bridge/`. Windows uses `%LOCALAPPDATA%\Firefly Agent Bridge\`; Linux uses `${XDG_STATE_HOME:-~/.local/state}/Firefly Agent Bridge/`. The default job workspace is its `jobs` directory. Specify `--data-dir` on every CLI invocation when using a custom directory.
-
-Create a scoped application token in Diagnostics. Set Firefly Forge's `FORGE_BRIDGE_URL` and `FORGE_BRIDGE_TOKEN` using that token; do not share the owner token across application callers.
-
-[Tokens](tokens.md) · [Troubleshooting and recovery](operations.md) · [Compatibility](compatibility.md)
+Create a scoped application token under Diagnostics before connecting an SDK or Firefly Forge. Follow [host integrations](integrations.md), [tokens](tokens.md), or [troubleshooting](troubleshooting.md) for the next step.

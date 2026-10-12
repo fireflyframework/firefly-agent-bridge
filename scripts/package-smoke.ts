@@ -19,14 +19,38 @@
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { resolve, join } from "node:path";
+import { resolve, join, dirname } from "node:path";
 import { parseConfig } from "../src/config.js";
 const binary = resolve(
   process.argv[2] ??
-    "dist/firefly-bridge" + (process.platform === "win32" ? ".exe" : ""),
+    "release/firefly-agent-bridge-" +
+      JSON.parse(readFileSync("package.json", "utf8")).version +
+      "-" +
+      process.platform +
+      "-" +
+      process.arch +
+      "/portable/firefly-bridge" +
+      (process.platform === "win32" ? ".exe" : ""),
 );
+const pluginRoot = dirname(binary);
+const version = JSON.parse(readFileSync("package.json", "utf8")).version;
+const plugin = JSON.parse(
+  readFileSync(join(pluginRoot, ".codex-plugin/plugin.json"), "utf8"),
+);
+const mcp = JSON.parse(readFileSync(join(pluginRoot, ".mcp.json"), "utf8"));
+const server = mcp.mcpServers["firefly-agent-bridge"];
+if (
+  plugin.interface.displayName !== "Firefly Agent Bridge" ||
+  plugin.version !== version ||
+  resolve(server.command.replace("${PLUGIN_ROOT}", pluginRoot)) !== binary ||
+  !readFileSync(join(pluginRoot, "skills/bridge/SKILL.md"), "utf8").includes(
+    "bridge_status",
+  )
+)
+  throw new Error("Packaged Codex manifest/MCP/skill contract failed");
 const directory = mkdtempSync(join(tmpdir(), "bridge-native-"));
 const config = parseConfig({
   dataDir: directory,
@@ -47,12 +71,14 @@ try {
     clients.push(client);
     await client.connect(
       new StdioClientTransport({
-        command: binary,
-        args: ["mcp", "--data-dir", directory],
+        command: server.command.replace("${PLUGIN_ROOT}", pluginRoot),
+        args: [...server.args, "--data-dir", directory],
         cwd: directory,
         stderr: "pipe",
       }),
     );
+    if (client.getServerVersion()?.version !== version)
+      throw new Error("Packaged MCP release version mismatch");
     const tools = await client.listTools();
     if (!tools.tools.some((t) => t.name === "bridge_template_save"))
       throw new Error("Packaged MCP tools are missing");
@@ -73,11 +99,31 @@ try {
   const status = await fetch(address + "/v1/bridge/status", {
     headers: { Authorization: "Bearer " + token },
   });
+  const payload = (await status.json()) as {
+    protocolVersion: number;
+    version: string;
+  };
   if (
     !status.ok ||
-    ((await status.json()) as { protocolVersion: number }).protocolVersion !== 2
+    payload.protocolVersion !== 2 ||
+    payload.version !== version
   )
     throw new Error("Packaged API failed");
+  const remote = new Client({ name: "package-http-smoke", version: "1" });
+  clients.push(remote);
+  await remote.connect(
+    new StreamableHTTPClientTransport(new URL(address + "/mcp"), {
+      requestInit: { headers: { Authorization: "Bearer " + token } },
+    }),
+  );
+  if (remote.getServerVersion()?.version !== version)
+    throw new Error("Packaged HTTP MCP release version mismatch");
+  const remoteTools = await remote.listTools();
+  if (
+    !remoteTools.tools.some((tool) => tool.name === "bridge_submit") ||
+    remoteTools.tools.some((tool) => tool.name === "bridge_channel_claim")
+  )
+    throw new Error("Packaged HTTP MCP capability contract failed");
   const models = await fetch(address + "/v1/models", {
     headers: { Authorization: "Bearer " + token },
   });
@@ -95,6 +141,15 @@ try {
     !page.includes("export-audit")
   )
     throw new Error("Embedded console is missing");
+  for (const path of [
+    "/theme.js",
+    "/brand-dark.svg",
+    "/brand-light.svg",
+    "/bridge-mark-light.svg",
+    "/fonts/manrope.woff2",
+  ])
+    if (!(await fetch(address + path)).ok)
+      throw new Error("Native embedded asset missing: " + path);
   const auditModule = await fetch(address + "/audit.js");
   if (
     !auditModule.ok ||
@@ -104,7 +159,7 @@ try {
   if ((await fetch(address + "/v1/bridge/jobs")).status !== 401)
     throw new Error("Packaged API lost authentication");
   console.log(
-    "Native package: two stdio hosts share one authenticated service; embedded console and template tools passed.",
+    "Native package: two stdio hosts and HTTP MCP share one authenticated service; release versions, capabilities, embedded console and template tools passed.",
   );
 } finally {
   if (address && token)

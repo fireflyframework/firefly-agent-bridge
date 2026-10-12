@@ -23,6 +23,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { startService } from "../../src/service.js";
 import { parseConfig } from "../../src/config.js";
+import { Tokens } from "../../src/auth.js";
 let service: Awaited<ReturnType<typeof startService>>, directory: string;
 const owner = { id: "owner", owner: true, profiles: ["default"] };
 test.beforeAll(async () => {
@@ -175,11 +176,12 @@ test.afterAll(async () => {
   await service.close();
   rmSync(directory, { recursive: true, force: true });
 });
-async function login(page: import("@playwright/test").Page) {
+async function login(
+  page: import("@playwright/test").Page,
+  bearer = service.ownerToken,
+) {
   await page.goto(service.address);
-  await page
-    .getByLabel("Bridge token", { exact: true })
-    .fill(service.ownerToken);
+  await page.getByLabel("Bridge token", { exact: true }).fill(bearer);
   await page.getByRole("button", { name: "Connect", exact: true }).click();
   await expect(page.locator("#workspace")).toBeVisible();
   await expect(page.locator("#stream-state")).toContainText("Live");
@@ -215,12 +217,108 @@ async function capture(page: import("@playwright/test").Page, name: string) {
       });
     }
     await page.screenshot({
+      animations: "disabled",
       path: "assets/screenshots/" + name + ".png",
       fullPage: (await page.locator("dialog[open]").count()) === 0,
     });
+    if (!/-(?:light|dark)-/.test(name)) {
+      const preference = await page.locator("#appearance").inputValue();
+      for (const theme of ["light", "dark"]) {
+        await page.locator("#appearance").selectOption(theme);
+        await page.screenshot({
+          animations: "disabled",
+          path: "assets/screenshots/" + name + "-" + theme + ".png",
+          fullPage: (await page.locator("dialog[open]").count()) === 0,
+        });
+      }
+      await page.locator("#appearance").selectOption(preference);
+    }
     await page.setViewportSize(original);
   }
 }
+test("shared shell honors system appearance, preserves only theme, and stays aligned in both palettes", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto(service.address);
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  expect(
+    await page
+      .locator(".shell-header")
+      .evaluate((n) => n.getBoundingClientRect().height),
+  ).toBe(76);
+  expect(
+    await page
+      .locator(".wordmark")
+      .evaluate((n) => n.getBoundingClientRect().height),
+  ).toBe(76);
+  expect(
+    await page
+      .locator(".rail")
+      .evaluate((n) => n.getBoundingClientRect().width),
+  ).toBe(248);
+  await page.getByLabel("Appearance", { exact: true }).selectOption("light");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  const appearanceOwner = new Tokens(service.store).create({
+    id: "appearance-review",
+    owner: true,
+    profiles: ["default"],
+  }).token;
+  await login(page, appearanceOwner);
+  expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([
+    "firefly-bridge-theme",
+  ]);
+  for (const theme of ["light", "dark"]) {
+    await page.getByLabel("Appearance", { exact: true }).selectOption(theme);
+    for (const width of [1440, 390, 320]) {
+      await page.setViewportSize({ width, height: 960 });
+      for (const view of ["jobs", "workflows", "providers", "diagnostics"]) {
+        await page.locator('[data-view="' + view + '"]').click();
+        await expect(page.locator("#" + view + "-view")).toBeVisible();
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+        ).toBe(true);
+        if (width !== 320)
+          await capture(
+            page,
+            view + "-" + theme + "-" + (width === 1440 ? "desktop" : "mobile"),
+          );
+      }
+    }
+  }
+  await page.getByLabel("Appearance", { exact: true }).selectOption("system");
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+});
+test("connection explains loading and authentication errors while keeping credentials out of browser storage", async ({
+  page,
+}) => {
+  await page.route("**/v1/bridge/status", async (route) => {
+    await new Promise((r) => setTimeout(r, 250));
+    await route.continue();
+  });
+  await page.goto(service.address);
+  await page.getByLabel("Bridge token", { exact: true }).fill("ffb_invalid");
+  await page.getByRole("button", { name: "Connect", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Connecting…", exact: true }),
+  ).toBeDisabled();
+  await expect(page.locator("#notice")).toContainText("authentication", {
+    ignoreCase: true,
+  });
+  await expect(page.locator("#token")).toBeFocused();
+  await expect(page.locator("#workspace")).toBeHidden();
+  expect(
+    await page.evaluate(() =>
+      Object.keys(localStorage).filter((k) => k !== "firefly-bridge-theme"),
+    ),
+  ).toEqual([]);
+});
 test("desktop renders branded state, safely displays output, and supports bidirectional follow-up", async ({
   page,
 }) => {
@@ -730,4 +828,63 @@ test("creating a job clears previous audit evidence before a failed attempts req
   expect((await exportRequest).url()).toContain(
     request.url().replace("/attempts", "/audit"),
   );
+});
+
+test("desktop footer borders and text baselines match the rail in both themes", async ({
+  page,
+  browser,
+}) => {
+  async function aligned(target: import("@playwright/test").Page) {
+    const result = await target.evaluate(() => {
+      const rail = document.querySelector(".rail-footer")!,
+        footer = document.querySelector("main > footer")!;
+      const left = rail.getBoundingClientRect(),
+        right = footer.getBoundingClientRect();
+      const leftLine = rail
+          .querySelector(".connection-row")!
+          .getBoundingClientRect(),
+        rightLine = footer.querySelector("span")!.getBoundingClientRect();
+      return {
+        top: Math.abs(left.top - right.top),
+        height: Math.abs(left.height - right.height),
+        baseline: Math.abs(leftLine.top - rightLine.top),
+        footerHeight: right.height,
+        overflow: document.documentElement.scrollWidth > innerWidth,
+      };
+    });
+    expect(result.top).toBeLessThanOrEqual(1);
+    expect(result.height).toBeLessThanOrEqual(1);
+    expect(result.baseline).toBeLessThanOrEqual(1);
+    expect(result.footerHeight).toBe(64);
+    expect(result.overflow).toBe(false);
+  }
+  for (const connected of [false, true]) {
+    if (connected) await login(page);
+    else await page.goto(service.address);
+    for (const theme of ["light", "dark"]) {
+      await page.getByLabel("Appearance", { exact: true }).selectOption(theme);
+      for (const width of [1440, 1280, 1024]) {
+        await page.setViewportSize({ width, height: 1100 });
+        await aligned(page);
+      }
+    }
+  }
+  await expect(page.locator(".rail-footer")).not.toContainText(
+    /Built around your workspace/i,
+  );
+  await expect(page.locator(".rail-note")).toHaveCount(0);
+  await expect(page.locator("main > footer")).not.toContainText(
+    /Made for local work/i,
+  );
+  const context = await browser.newContext({
+    viewport: { width: 960, height: 550 },
+    deviceScaleFactor: 2,
+  });
+  const scaled = await context.newPage();
+  await login(scaled);
+  for (const theme of ["light", "dark"]) {
+    await scaled.getByLabel("Appearance", { exact: true }).selectOption(theme);
+    await aligned(scaled);
+  }
+  await context.close();
 });

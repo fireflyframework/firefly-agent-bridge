@@ -20,6 +20,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { parseConfig } from "../src/config.js";
 import { QueueStore } from "../src/store.js";
 import { Workflows } from "../src/workflows.js";
@@ -36,12 +37,34 @@ function inventory(directory = "."): string[] {
         "test-results",
         "playwright-report",
         ".client-venv",
+        ".venv",
       ].includes(entry.name)
     )
       return [];
     const path = directory === "." ? entry.name : directory + "/" + entry.name;
     return entry.isDirectory() ? inventory(path) : [path];
   });
+}
+const brand = JSON.parse(
+  readFileSync("assets/brand/inventory.json", "utf8"),
+) as {
+  files: { path: string; sha256: string; owner: string; license: string }[];
+};
+const brandPaths = new Set(brand.files.map((file) => file.path));
+for (const file of brand.files) {
+  assert(
+    file.path.startsWith("assets/") && !file.path.includes(".."),
+    "Brand inventory path must stay inside assets",
+  );
+  assert(
+    file.owner && file.license,
+    "Brand ownership and license required: " + file.path,
+  );
+  assert.equal(
+    createHash("sha256").update(readFileSync(file.path)).digest("hex"),
+    file.sha256,
+    file.path + " asset digest",
+  );
 }
 const files = inventory();
 const read = (path: string) => readFileSync(path, "utf8");
@@ -68,6 +91,7 @@ try {
 const version = JSON.parse(read("package.json")).version;
 for (const file of [
   "integrations/desktop/manifest.json",
+  "integrations/codex/.codex-plugin/plugin.json",
   "integrations/claude-code/.claude-plugin/plugin.json",
 ])
   assert.equal(JSON.parse(read(file)).version, version, file + " version");
@@ -81,8 +105,16 @@ assert(
   ),
 );
 assert(read("src/cli.ts").includes('console.log("' + version + '")'));
+assert(
+  read("src/http.ts").includes('version: "' + version + '"'),
+  "HTTP status release version",
+);
+assert(
+  read("src/mcp.ts").includes('version: "' + version + '"'),
+  "MCP server release version",
+);
 for (const file of files) {
-  if (file.startsWith("vendor-licenses/")) continue;
+  if (file.startsWith("vendor-licenses/") || brandPaths.has(file)) continue;
   if (/\.(ts|js|mjs|css|svg|html|sh|yml|py)$/.test(file)) {
     const start = read(file).slice(0, 1800);
     for (const notice of [
@@ -114,6 +146,7 @@ for (const file of files) {
   }
 }
 const api = JSON.parse(read("docs/openapi.json"));
+assert.equal(api.info.version, version, "OpenAPI release version");
 for (const match of (read("src/http.ts") + read("src/openai.ts")).matchAll(
   /app\.(get|post|put|delete)\(\s*["'](\/v1\/[^"']+)["']/g,
 )) {

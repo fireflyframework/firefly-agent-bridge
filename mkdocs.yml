@@ -1,0 +1,82 @@
+# Copyright (c) 2026 Signature Management Consultants SLU
+# Author: @ancongui (https://github.com/ancongui)
+# Modified by Firefly Software Foundation for Firefly Agent Bridge (2026).
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+site_name: Firefly Agent Bridge
+site_description: Private developer jobs, subscriptions, workflows, and execution records
+site_author: Firefly Software Foundation
+docs_dir: docs
+site_dir: work/docs-site
+use_directory_urls: true
+theme:
+  name: material
+  font: false
+  logo: assets/brand/bridge-mark.svg
+  favicon: assets/brand/bridge-favicon-light.svg
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark appearance
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light appearance
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - content.code.copy
+    - search.highlight
+    - search.suggest
+nav:
+  - Overview: index.md
+  - Set up:
+      - Installation: installation.md
+      - Host integrations: integrations.md
+      - Provider configuration: configuration.md
+      - Tokens and access: tokens.md
+      - Compatibility: compatibility.md
+  - Work:
+      - Console tour: dashboard.md
+      - SDK and function calls: openai-compatible.md
+      - Workflows: workflows.md
+      - Claude agents and skills: subagents.md
+      - Development workflow: advanced-workflows.md
+      - Audit and file activity: audit.md
+  - Operate:
+      - Service lifecycle: operations.md
+      - Security boundaries: security.md
+      - Troubleshooting: troubleshooting.md
+      - Remote access: tunnels.md
+  - Reference:
+      - Architecture: architecture.md
+      - HTTP API: api.md
+      - CLI and MCP tools: reference.md
+      - Verification and packaging: verification.md
+plugins:
+  - search
+markdown_extensions:
+  - attr_list
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+extra_css:
+  - assets/docs.css
+copyright: Private Firefly developer infrastructure · © 2026 Firefly Software Foundation

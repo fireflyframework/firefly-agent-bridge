@@ -105,3 +105,28 @@ it("rejects entry points escaping the bundle root", async () => {
     /inside|manifest/i,
   );
 });
+it("packages a Codex plugin using a root-contained native command, operation skills, and distinct Bridge assets", async () => {
+  const module = await import("../scripts/codex-plugin.js").catch(
+    () => undefined,
+  );
+  expect(module?.assembleCodexPlugin).toBeDefined();
+  module!.assembleCodexPlugin(dir, "server/firefly-bridge");
+  const manifest = JSON.parse(
+    readFileSync(join(dir, ".codex-plugin/plugin.json"), "utf8"),
+  );
+  expect(manifest.interface.displayName).toBe("Firefly Agent Bridge");
+  expect(manifest.skills).toBe("./skills/");
+  const mcp = JSON.parse(readFileSync(join(dir, ".mcp.json"), "utf8"));
+  expect(mcp.mcpServers["firefly-agent-bridge"].command).toBe(
+    "${PLUGIN_ROOT}/server/firefly-bridge",
+  );
+  expect(readFileSync(join(dir, "skills/bridge/SKILL.md"), "utf8")).toContain(
+    "bridge_status",
+  );
+  expect(
+    readFileSync(join(dir, "assets/bridge-lockup-dark.svg"), "utf8"),
+  ).toContain("Firefly Agent Bridge");
+  expect(() => module!.assembleCodexPlugin(dir, "../outside")).toThrow(
+    /inside/,
+  );
+});

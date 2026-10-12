@@ -4,7 +4,7 @@
 
 [README](../README.md) · [Console tour](dashboard.md) · [API](api.md) · [Operations](operations.md)
 
-Every native job can expose its tool calls, file targets, commands, and complete emitted inputs/results. Select the job, then open **Activity** or **Files**. Workflow steps use the same views through **Open step**.
+The selected official CLI supplies observations for native jobs. A job can expose its tool calls, file targets, commands, and complete emitted inputs/results. Select the job, then open **Activity** or **Files**. Workflow steps use the same views through **Open step**.
 
 ![Execution activity architecture](../assets/diagrams/execution-audit.svg)
 
@@ -35,7 +35,7 @@ A failed or unknown action may already have produced effects. Pausing, cancellat
 
 ## Execution ownership and coverage
 
-- **Native agent jobs:** Claude's streamed tool requests/results are captured. Known built-in file tools provide target paths. Bash, network tools, and external commands have complete emitted payloads, but their indirect file effects are not inferred from command text.
+- **Native agent jobs:** emitted Codex or Claude tool observations are captured. Claude's streamed tool requests/results include its native tool identifiers. Known built-in file tools provide target paths. Bash, network tools, and external commands have complete emitted payloads, but their indirect file effects are not inferred from command text.
 - **OpenAI inference:** the application executes functions. Generated requests are recorded as `client.tool_requested`. Function requests and results supplied on a subsequent request are recorded as `client.tool_request_reported` and `client.tool_result_reported` in that new job. These are client reports, not bridge-verified execution. Use the stable tool-call ID to correlate turns.
 - **Host conversation jobs:** the host reports progress and completion through MCP. The bridge cannot observe that conversation's internal tools or filesystem effects.
 
@@ -72,7 +72,7 @@ The example creates a new private file, pages until completion, retries rate-lim
 | `GET /v1/bridge/jobs/{id}/tools`        | Native tool metadata and `nextCursor`; no raw inputs/results.                                  |
 | `GET /v1/bridge/jobs/{id}/tools/{tool}` | One complete tool observation, including input/output; `tool` is the numeric bridge record ID. |
 
-Both lists accept `after` (numeric, default 0) and `limit` (1–200, default 100). Audit accepts `through` and `includePayloads=true`; tools accepts `filesOnly=true`. Audit pages also stop around 4 MB, always returning at least one whole record. Always follow `nextCursor` until it is `null`, even when a page has fewer entries than `limit`. `summary` describes current state and is not part of the immutable export snapshot. Tool projections are live; use audit entries for historical state.
+Both lists accept `after` (numeric, default 0) and `limit` (1 to 200, default 100). Audit accepts `through` and `includePayloads=true`; tools accepts `filesOnly=true`. Audit pages also stop around 4 MB, always returning at least one whole record. Always follow `nextCursor` until it is `null`, even when a page has fewer entries than `limit`. `summary` describes current state and is not part of the immutable export snapshot. Tool projections are live; use audit entries for historical state.
 
 ```sh
 curl --fail-with-body "$BRIDGE_URL/v1/bridge/jobs/$JOB_ID/audit?limit=100&includePayloads=true" \
