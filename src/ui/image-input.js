@@ -71,6 +71,7 @@ export function createImageInput(api, openJob) {
         profile,
         request_id: requestId,
       });
+      if (ownGeneration !== generation) return;
       probeId = admitted.job_id;
       el("open-image-job").hidden = false;
       const deadline = Date.now() + 125000;

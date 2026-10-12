@@ -1714,3 +1714,64 @@ test("uncertain workflow admission returns the existing run when unchanged input
   await expect.poll(() => ids.length).toBe(2);
   expect(ids[0]).toBe(ids[1]);
 });
+
+test("changing profile discards a late image-check admission from the previous profile", async ({
+  page,
+}) => {
+  const data = mkdtempSync(join(tmpdir(), "bridge-image-profile-"));
+  const isolated = await startService(
+    parseConfig({
+      dataDir: data,
+      workspace: join(data, "jobs"),
+      claudePath: process.execPath,
+      port: 0,
+      profiles: { default: {}, review: {} },
+    }),
+    {
+      worker: () => ({
+        ready: async () => ({ ready: true }),
+        run: async () => ({
+          status: "succeeded",
+          result: JSON.stringify({ content: "No image proof", tool_calls: [] }),
+        }),
+      }),
+    },
+  );
+  let release!: () => void, admitted!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  const started = new Promise<void>((resolve) => (admitted = resolve));
+  try {
+    await page.goto(isolated.address);
+    await page
+      .getByLabel("Bridge token", { exact: true })
+      .fill(isolated.ownerToken);
+    await page.getByRole("button", { name: "Connect", exact: true }).click();
+    await expect(page.locator("#workspace")).toBeVisible();
+    await navigate(page, "providers");
+    await page.locator("#setup-next").click();
+    await page.locator("#setup-next").click();
+    await page.route("**/v1/bridge/image-input/probes", async (route) => {
+      const response = await route.fetch();
+      admitted();
+      await held;
+      await route.fulfill({ response });
+    });
+    await page.locator("#verify-image").click();
+    await started;
+    await page.locator("#setup-profile").selectOption("review");
+    const finished = page.waitForEvent("requestfinished", {
+      predicate: (request) => request.url().endsWith("/image-input/probes"),
+    });
+    release();
+    await finished;
+    await page.waitForTimeout(100);
+    await expect(page.locator("#setup-profile")).toHaveValue("review");
+    await expect(page.locator("#open-image-job")).toBeHidden();
+    await expect(page.locator("#image-feedback")).toBeEmpty();
+    await expect(page.locator("#verify-image")).toBeEnabled();
+  } finally {
+    release();
+    await isolated.close();
+    rmSync(data, { recursive: true, force: true });
+  }
+});
