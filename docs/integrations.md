@@ -79,9 +79,11 @@ export FORGE_BRIDGE_URL=http://127.0.0.1:8766
 # Load FORGE_BRIDGE_TOKEN from your private application configuration.
 ```
 
-Forge uses `bridge/default` through Chat Completions. FireflyAgent executes the declared factory tools in the application's workspace; the bridge's inference worker returns function requests and validated answers. Those functions run in the caller process.
+Forge can use its own supported providers independently of the bridge. When the bridge provider is selected, it uses `bridge/default` or another configured profile through Chat Completions. FireflyAgent executes the declared factory tools in the application's workspace; the bridge's inference worker returns function requests and validated answers. Those functions run in the caller process.
 
 An OpenAI SDK uses `base_url=BRIDGE_URL + "/v1"` and the bridge token as `api_key`. It needs no OpenAI API key. See [SDK examples and supported fields](openai-compatible.md).
+
+A hosted Forge instance needs the reachable gateway URL, not its server's loopback address. The bridge does not automatically connect to a developer host. Each bridge process uses one configured worker; profiles can choose different native models supported by that worker, not switch between providers per task. Model discovery reports those aliases and image verification, not an account-wide provider model catalog.
 
 Keep the bridge port distinct from your application's port. Forge defaults to 8787; the bridge defaults to 8766. A saved bridge configuration may choose another free loopback port.
 

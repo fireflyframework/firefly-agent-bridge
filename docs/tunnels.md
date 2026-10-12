@@ -6,6 +6,8 @@
 
 The bridge remains bound to `127.0.0.1`. A tunnel provides the HTTPS edge; the bridge still authenticates every application request.
 
+A hosted application cannot reach a developer's bridge through its own `127.0.0.1`: that address refers to the application server. A deliberately configured tunnel or private gateway is required. The bridge has no automatic discovery, device pairing, OAuth server or authenticated outbound relay.
+
 ## Configure the public identity
 
 For a public hostname such as `bridge.example.com`, stop the service and add the exact values to `config.json`:
@@ -19,7 +21,7 @@ For a public hostname such as `bridge.example.com`, stop the service and add the
 
 Merge these settings into the existing file; do not replace the whole configuration. Restart the service.
 
-Create a separate scoped client token under **Diagnostics → Client access**. Keep the owner token local.
+Create a separate scoped client token under **Diagnostics → Application access**. Keep the owner token local.
 
 ## Cloudflare Tunnel
 
@@ -41,7 +43,7 @@ Configure the assigned hostname and HTTPS origin in the allowlists. See [ngrok's
 
 ## Streaming and verification
 
-Use `https://bridge.example.com/v1` as the SDK base URL and the same scoped bridge token as `api_key`. Preserve `Authorization`, `Idempotency-Key`, `Last-Event-ID`, and the response header `X-Bridge-Job-Id`. Disable proxy response buffering. Completion streams send five-second keepalives; orchestration streams send 15-second heartbeats. A nonstreaming completion needs a proxy request timeout longer than the configured completion deadline.
+Use `https://bridge.example.com/v1` as the SDK base URL and the same scoped bridge token as `api_key`. Preserve `Authorization`, `Idempotency-Key`, `Last-Event-ID`, `X-Bridge-Image-Revision`, and the response header `X-Bridge-Job-Id`. Disable proxy response buffering. Completion streams send five-second keepalives; orchestration streams send 15-second heartbeats. A nonstreaming completion needs a proxy request timeout longer than the configured completion deadline.
 
 ```sh
 curl --fail-with-body "https://bridge.example.com/v1/bridge/status" \

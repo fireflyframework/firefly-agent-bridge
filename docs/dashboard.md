@@ -6,7 +6,15 @@
 
 The console is served by the local bridge. Open the URL returned by `bridge_panel` and authenticate with a bridge token. It submits through `/v1/chat/completions` and uses the same `/v1/bridge` management and notification extensions as other applications.
 
-The screenshots show the running console. Job and tool examples use deterministic fixtures; the current provider and Diagnostics views use an isolated local bridge with an authenticated official Codex CLI. They document interface behavior and login readiness, not production tasks or new model-execution acceptance.
+The screenshots show the running console. Job, workflow and tool examples use deterministic fixtures. Provider and Diagnostics views use an isolated local bridge with an authenticated official Codex CLI. Screenshots demonstrate the interface; separate execution evidence is described in [verification](verification.md).
+
+## Connect
+
+The initial heading is **Connect**. Choose a destination from the sidebar or phone menu to see where the console will continue after authentication. Locked destinations explain that access is required; they do not claim to show private job or service state.
+
+Paste an owner or application token into **Bridge token**. It remains in tab memory and is cleared from the form after connection. Reloading or disconnecting clears the session. Expired or revoked access returns to the connection gate and clears loaded private details.
+
+![Connection on a phone](../assets/screenshots/connect-mobile-light.png)
 
 ## Jobs and conversations
 
@@ -14,11 +22,13 @@ Select a row to inspect messages, attempts, session continuity, and reported chi
 
 ![Job queue and conversation on desktop](../assets/screenshots/dashboard-desktop.png)
 
-**New job** opens a focused dialog. Choose a configured profile and native coding-agent execution, a Chat Completion, or the current host conversation.
+**New job** opens three steps: Task, Execution and Review. Describe the work, choose an existing profile and execution mode, then review the actual worker, native model, permissions and limits. Back preserves your choices. Queue job appears only on the review step.
+
+Native coding jobs use the official CLI's configured capabilities. Text completions disable native actions; application callers execute declared functions. Host conversations wait for a connected host to claim the work. A failed or unknown admission keeps the request key when you queue unchanged content again.
 
 ![New-job dialog](../assets/screenshots/new-job-desktop.png)
 
-Pause, resume, cancel, and retry are shown according to the job's state. Retry is explicitly different from resume: it starts a new session and can repeat prior effects.
+Pause, resume, cancel, and retry follow the job state and your token scopes. Image jobs require a fresh explicit request after interruption; their view does not offer in-place resume or retry. Retry is explicitly different from resume: it starts a new session and can repeat prior effects.
 
 ## Tool activity, files, and audit
 
@@ -42,9 +52,11 @@ SDK requests and console-created completions appear in the same queue. Select on
 
 ## Workflows
 
-Choose a configured template, provide its required inputs as a JSON object, and start a run. Each run shows its current state and links to the jobs created for its steps. **Open step** switches directly to that job's conversation.
+Choose a configured template, fill its named inputs, and start a run. JSON is available only under Advanced input when you explicitly select Use JSON values. Each run shows its current state and links to the jobs created for its steps. **Open step** switches directly to that job's conversation.
 
 ![Workflow administration](../assets/screenshots/workflows-desktop.png)
+
+A failed or unknown admission retains its request key when you start again with unchanged inputs. It returns the existing run instead of repeating admitted work.
 
 A workflow pause blocks the next step and requests a pause of its current job. Resuming the workflow clears that barrier. A failed step can be retried from its job view after reviewing its effects.
 
@@ -60,7 +72,7 @@ Use **New template** to define inputs, ordered steps, instructions, and executio
 
 Service health explains login readiness, dispatch state, active jobs, connected hosts, profiles, OpenAI base URL, model aliases, and the workspace. Expand **Connection and execution details** for the full status payload. Readiness reflects the current official CLI login; it does not establish that every configured model can complete a job.
 
-Create a separate token for each trusted application. New tokens are displayed once in the panel; revocation immediately invalidates requests and active event streams.
+Create a separate token for each trusted application. Choose Jobs and conversations, Read-only inspection, or Jobs and workflows. New tokens start masked; Show and Copy token are explicit actions. Revocation immediately invalidates requests and active event streams. Read-only access hides submission, continuation, administration and image-probe actions.
 
 ![Diagnostics and client access](../assets/screenshots/diagnostics-desktop.png)
 
@@ -68,7 +80,9 @@ Create a separate token for each trusted application. New tokens are displayed o
 
 ## Responsive navigation
 
-The sidebar becomes a compact navigation row on narrow screens. Queue and conversation panels stack, controls remain accessible, and long diagnostics wrap rather than widening the page. Jobs scroll within the shell. Provider setup keeps its step navigation, current-worker context and action bar visible while only the step body scrolls. Diagnostics keeps each card header and action row visible while its details scroll. Phones separate Service and Application access into keyboard-accessible tabs; Create token stays with the visible application form. Neither action bar covers the global footer. The copyright footer occupies its own row, clear of job and connection controls. On desktop its 64-pixel row aligns with the sidebar connection and disconnect rows.
+Phones use a 60-pixel brand row and a 60-pixel context row. **Menu** opens a native modal with full navigation rows. Escape returns focus to Menu; selecting a destination closes it and focuses the heading. Resizing to desktop restores the sidebar and closes the dialog.
+
+At narrower widths, select a job to open its details. **Back to jobs** returns to the queue and stays there during polling. Provider setup and Diagnostics use the page scroller, so short screens retain complete fields and readable status. Their action rows follow the content and never cover it. Diagnostics uses Service and Application access tabs on phones. Scroll to the end of a card for its actions; the global footer remains in its own row. Desktop uses an aligned 64-pixel status and legal footer; the phone footer occupies a separate 44-pixel row with safe-area padding.
 
 | Mobile jobs                                                | Mobile workflows                                                |
 | ---------------------------------------------------------- | --------------------------------------------------------------- |
@@ -88,8 +102,8 @@ Providers & setup guides you through four focused steps:
 
 1. **Provider:** choose a Codex or Claude Code setup guide. The current running worker stays visible; selecting another guide does not change it.
 2. **Login:** copy the official login command, run it on the bridge host, then refresh the running worker's readiness. Provider credentials are never entered in this form.
-3. **Profile:** choose an existing profile and inspect its effective model, permissions, timeout and output bounds. Advanced provider capabilities remain available when needed.
-4. **Tools:** select your development application, create a scoped token and follow its integration instructions. The Codex and Claude plugins use their stdio adapters; a loopback management address is not a remote ChatGPT connection.
+3. **Profile:** choose an existing profile and inspect its effective model, permissions, timeout and output bounds. Image input has a separate verification status. An owner can run one explicit image-only check and inspect its durable job; unverified or failed checks do not block ordinary text jobs.
+4. **Tools:** select your application and follow its connection instructions. Codex and Claude plugins use the local stdio adapter. HTTP applications use a scoped bearer token. ChatGPT requires a reachable HTTPS gateway and authentication supported by its workspace; this console does not establish that connection.
 
 The wizard keeps your selected profile when you move back between steps. Earlier visited steps remain accessible. **Start a job** opens the normal job dialog with that profile; it does not submit work automatically.
 

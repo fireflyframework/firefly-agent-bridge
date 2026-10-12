@@ -39,7 +39,7 @@ For example, create `research-review` with input `topic` and these steps:
 | `research` | `Research {{input.topic}} and summarize the findings.`                      | `default` |
 | `review`   | `Review these findings for gaps and unsupported claims: {{steps.research}}` | `default` |
 
-Start a run with:
+Choose `research-review` in the console, enter the topic in its named field, and select Start workflow. Advanced input supports the equivalent JSON when you need to paste structured values:
 
 ```json
 { "topic": "how to document a local integration" }

@@ -245,11 +245,17 @@ export function createHttpService(d: HttpDependencies) {
   app.get("/v1/bridge/status", async (req) => {
     const p = requireScope(req, "read");
     return {
-      version: "0.2.3",
+      version: "0.2.4",
       protocolVersion: 2,
       eventCursorFloor: d.store.eventFloor(),
       permissionMode: d.config.profiles.default!.permissionMode,
       worker: d.config.worker,
+      access: {
+        owner: p.owner,
+        scopes: p.owner
+          ? ["read", "submit", "control", "workflows"]
+          : (p.scopes ?? []),
+      },
       execution:
         d.config.worker === "codex" ? "local-codex" : "local-claude-code",
       activeJobs: d.scheduler.activeCount,
@@ -634,6 +640,25 @@ export function createHttpService(d: HttpDependencies) {
   );
   app.get("/setup.js", async (_req, reply) =>
     reply.type("text/javascript; charset=utf-8").send(uiAssets.setupJs),
+  );
+  app.get("/navigation.js", async (_req, reply) =>
+    reply.type("application/javascript").send(uiAssets.navigationJs),
+  );
+  app.get("/job-wizard.js", async (_req, reply) =>
+    reply.type("application/javascript").send(uiAssets.jobWizardJs),
+  );
+  app.get("/image-input.js", async (_req, reply) =>
+    reply.type("application/javascript").send(uiAssets.imageInputJs),
+  );
+  app.get("/bridge-emblem-dark.svg", async (_req, reply) =>
+    reply
+      .type("image/svg+xml")
+      .send(Buffer.from(uiAssets.emblemDark, "base64")),
+  );
+  app.get("/bridge-emblem-light.svg", async (_req, reply) =>
+    reply
+      .type("image/svg+xml")
+      .send(Buffer.from(uiAssets.emblemLight, "base64")),
   );
   app.get("/app.js", async (_req, reply) =>
     reply.type("text/javascript; charset=utf-8").send(uiAssets.js),

@@ -60,8 +60,8 @@ for (const file of readdirSync(staging).filter((name) =>
   body = body.replace(
     /!\[([^\]]*)\]\((assets\/(diagrams|screenshots)\/[^)]+)\)/g,
     (original, alt, path) => {
-      const themed = path.includes("-light-")
-        ? path.replace("-light-", "-dark-")
+      const themed = /-light(?=-|\.)/.test(path)
+        ? path.replace(/-light(?=-|\.)/, "-dark")
         : path.replace(/\.(svg|png)$/, "-dark.$1");
       return (
         original +

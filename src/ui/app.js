@@ -19,10 +19,79 @@
 
 import { createAuditPanel } from "./audit.js";
 import { createProviderSetup } from "./setup.js";
+import { createMobileNavigation } from "./navigation.js";
+import { createJobWizard } from "./job-wizard.js";
+import { createImageInput } from "./image-input.js";
 
 /* All rendered task content uses textContent: prompts and Claude output are untrusted data. */
 const el = (id) => document.getElementById(id);
-let selectedWorker = "Codex";
+let selectedWorker = "Codex",
+  connected = false,
+  sessionEpoch = 0,
+  runtimeStatus,
+  modelCards = [],
+  access = { owner: false, scopes: [] };
+const viewLabels = {
+  jobs: "Jobs",
+  workflows: "Workflows",
+  providers: "Providers & setup",
+  diagnostics: "Diagnostics",
+};
+let workflowInputSignature = "";
+function workflowValues() {
+  const fields = [...el("workflow-fields").querySelectorAll("textarea")];
+  if (!el("workflow-json-mode").checked)
+    return Object.fromEntries(fields.map((field) => [field.name, field.value]));
+  const values = JSON.parse(el("workflow-inputs").value);
+  if (
+    !values ||
+    typeof values !== "object" ||
+    Array.isArray(values) ||
+    Object.entries(values).some(
+      ([name, value]) =>
+        typeof value !== "string" ||
+        !fields.some((field) => field.name === name),
+    )
+  )
+    throw new Error(
+      "Use a JSON object with text values for this template's named inputs.",
+    );
+  return values;
+}
+function renderWorkflowInputs(template) {
+  const signature = JSON.stringify([template?.id, template?.inputs]);
+  if (signature === workflowInputSignature) return;
+  workflowInputSignature = signature;
+  el("workflow-json-mode").checked = false;
+  el("workflow-json-values").hidden = true;
+  el("workflow-fields").hidden = false;
+  el("workflow-fields").replaceChildren();
+  for (const name of template?.inputs ?? []) {
+    const label = document.createElement("label"),
+      field = document.createElement("textarea");
+    label.textContent = name
+      .replaceAll("_", " ")
+      .replace(/^./, (value) => value.toUpperCase());
+    field.name = name;
+    field.required = true;
+    field.rows = 3;
+    field.maxLength = 100000;
+    label.append(field);
+    el("workflow-fields").append(label);
+  }
+  if (template && !template.inputs.length)
+    text("workflow-fields", "No input values needed.");
+}
+const hashView = () =>
+  Object.hasOwn(viewLabels, location.hash.slice(1))
+    ? location.hash.slice(1)
+    : "jobs";
+let currentView = hashView(),
+  jobRequestId = crypto.randomUUID(),
+  lastJobPayload = "",
+  workflowRequestId = crypto.randomUUID(),
+  lastWorkflowPayload = "";
+const can = (scope) => access.owner || access.scopes.includes(scope);
 let token = "",
   selected = "",
   jobs = [],
@@ -66,26 +135,44 @@ const action = (label, fn) => {
       .catch((e) => notice(e.message));
   return b;
 };
-async function api(path, body, method = body === undefined ? "GET" : "POST") {
+async function api(
+  path,
+  body,
+  method = body === undefined ? "GET" : "POST",
+  requestKey,
+) {
+  const issuedEpoch = sessionEpoch;
   const response = await fetch(
-    (path === "/chat/completions" ? "/v1" : "/v1/bridge") + path,
+    (["/chat/completions", "/models"].includes(path) ? "/v1" : "/v1/bridge") +
+      path,
     {
       method,
       headers: {
         Authorization: "Bearer " + token,
         "Content-Type": "application/json",
+        ...(requestKey ? { "Idempotency-Key": requestKey } : {}),
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     },
   );
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error?.message ?? "Request failed");
+  if (issuedEpoch !== sessionEpoch)
+    throw new DOMException(
+      "The session changed; its response was discarded.",
+      "AbortError",
+    );
+  if (!response.ok) {
+    if (response.status === 401 && connected)
+      lockSession("Session expired. Connect with a valid token to continue.");
+    throw new Error(data.error?.message ?? "Request failed");
+  }
   return data;
 }
 function renderJobs() {
   el("jobs").replaceChildren();
   el("empty").hidden = jobs.length > 0;
   text("job-count", jobs.length);
+  el("job-count").hidden = !connected;
   el("more").hidden = !cursor;
   for (const job of jobs) {
     const row = document.createElement("tr");
@@ -124,7 +211,13 @@ function completionText(value) {
   if (typeof value === "string") return value;
   if (Array.isArray(value))
     return value
-      .map((part) => (part.type === "text" ? part.text : JSON.stringify(part)))
+      .map((part) =>
+        part.type === "text"
+          ? part.text
+          : part.type === "image_url"
+            ? "Image attachment"
+            : JSON.stringify(part),
+      )
       .join("\n");
   return value == null ? "" : JSON.stringify(value, null, 2);
 }
@@ -146,7 +239,7 @@ function completionResult(raw) {
   }
 }
 const auditPanel = createAuditPanel(api, notice);
-async function selectJob(id, loadedJob) {
+async function selectJob(id, loadedJob, openDetail = true) {
   // Creation preselects the new row; the audit panel owns a separate identity.
   auditPanel.begin(id);
   if (selected !== id) {
@@ -174,15 +267,26 @@ async function selectJob(id, loadedJob) {
   text("job-error", human(job.error ?? ""));
   el("job-error").hidden = !job.error;
   el("job-actions").replaceChildren();
-  const controls =
-    job.status === "paused"
-      ? ["resume", "cancel"]
+  const imageJob = job.completion?.messages.some(
+    (message) =>
+      Array.isArray(message.content) &&
+      message.content.some((part) => part.type === "image_url"),
+  );
+  el("image-job-recovery").hidden = !imageJob;
+  const controls = !can("control")
+    ? []
+    : job.status === "paused"
+      ? imageJob
+        ? ["cancel"]
+        : ["resume", "cancel"]
       : ["running", "queued"].includes(job.status)
         ? ["pause", "cancel"]
         : ["failed", "interrupted", "timed_out", "canceled"].includes(
               job.status,
             )
-          ? ["retry"]
+          ? imageJob
+            ? []
+            : ["retry"]
           : [];
   for (const command of controls)
     el("job-actions").append(
@@ -203,6 +307,14 @@ async function selectJob(id, loadedJob) {
     ? [
         ...job.completion.messages.map((m) => ({
           role: m.role,
+          parts: m.content,
+          functions: (m.tool_calls ?? []).map(
+            (call) =>
+              "Client function: " +
+              call.function.name +
+              "\n" +
+              call.function.arguments,
+          ),
           text: [
             completionText(m.content),
             ...(m.tool_calls ?? []).map(
@@ -232,11 +344,39 @@ async function selectJob(id, loadedJob) {
           ? (job.worker ?? selectedWorker)
           : message.role;
     const body = document.createElement("span");
-    body.textContent = message.text;
+    body.className = "message-content";
+    if (message.parts && Array.isArray(message.parts)) {
+      for (const [index, part] of message.parts.entries()) {
+        if (
+          part.type === "image_url" &&
+          /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(
+            part.image_url?.url ?? "",
+          )
+        ) {
+          const image = document.createElement("img");
+          image.src = part.image_url.url;
+          image.alt = "Attached image " + (index + 1);
+          image.className = "message-attachment";
+          image.loading = "lazy";
+          body.append(image);
+        } else {
+          const text = document.createElement("span");
+          text.textContent =
+            part.type === "text" ? part.text : "Unsupported attachment";
+          body.append(text);
+        }
+      }
+      for (const value of message.functions ?? []) {
+        const functionText = document.createElement("span");
+        functionText.textContent = value;
+        body.append(functionText);
+      }
+    } else body.textContent = message.text;
     node.append(label, body);
     el("messages").append(node);
   }
   el("message-form").hidden =
+    !can("submit") ||
     Boolean(job.workflowRunId || job.completion) ||
     ["paused", "pause_requested", "cancel_requested"].includes(job.status);
   el("subagents").replaceChildren();
@@ -275,6 +415,11 @@ async function selectJob(id, loadedJob) {
   );
   await auditPanel.select(job);
   renderJobs();
+  if (openDetail && matchMedia("(max-width: 1100px)").matches) {
+    document.body.dataset.jobDetail = "open";
+    el("back-to-jobs").hidden = false;
+    el("content").scrollTop = 0;
+  }
 }
 async function renderWorkflows() {
   const { runs } = await api("/workflow-runs");
@@ -325,6 +470,12 @@ async function renderWorkflows() {
 }
 async function renderTemplates() {
   try {
+    if (!access.owner) {
+      el("new-template").hidden = true;
+      el("templates-list").textContent =
+        "Templates are managed by the bridge owner.";
+      return;
+    }
     templates = (await api("/admin/templates")).templates;
     el("templates-list").replaceChildren();
     el("new-template").hidden = false;
@@ -441,6 +592,30 @@ async function refresh() {
   refreshing = true;
   try {
     const status = await api("/status");
+    runtimeStatus = status;
+    access = status.access ?? {
+      owner: Boolean(status.configuration),
+      scopes: [],
+    };
+    el("new-job").hidden =
+      !can("submit") || !["jobs", "workflows"].includes(currentView);
+    for (const id of ["pause-all", "resume-all"]) el(id).hidden = !access.owner;
+    text(
+      "session-kind",
+      access.owner
+        ? "Owner access"
+        : can("submit")
+          ? "Application access"
+          : "Read-only access",
+    );
+    text("queue-heading", access.owner ? "All jobs" : "Your jobs");
+    text(
+      "sidebar-description",
+      status.worker === "claude" ? "Claude Code worker" : "Codex worker",
+    );
+    el("token-form").hidden = !access.owner;
+    document.querySelector('[form="token-form"]').hidden = !access.owner;
+    el("diagnostic-access-tab").hidden = !access.owner;
     el("health").dataset.state = status.scheduler.paused
       ? "paused"
       : status.readiness.ready
@@ -503,6 +678,12 @@ async function refresh() {
     }
     renderProvider(status);
     providerSetup.render(status, selectedWorker);
+    modelCards = (await api("/models")).data;
+    imageInput.render(
+      modelCards,
+      status,
+      el("setup-profile").value || "default",
+    );
     const previous = el("profile").value;
     el("profile").replaceChildren(
       ...status.profiles.map((id) => new Option(id, id)),
@@ -517,6 +698,7 @@ async function refresh() {
       : (status.templates[0]?.id ?? "");
     const templateHelp = () => {
       const t = status.templates.find((t) => t.id === el("template").value);
+      renderWorkflowInputs(t);
       text(
         "template-help",
         t
@@ -527,7 +709,7 @@ async function refresh() {
     el("template").onchange = templateHelp;
     templateHelp();
     el("workflow-form").querySelector("button").disabled =
-      !status.templates.length;
+      !status.templates.length || !can("workflows");
     // Refresh the pages the operator opened, keeping recent jobs first as history grows.
     const refreshed = [];
     let after = "";
@@ -546,11 +728,16 @@ async function refresh() {
       await selectJob(
         selected,
         jobs.find((job) => job.id === selected),
+        false,
       );
     if (!el("workflows-view").hidden) await renderWorkflows();
     if (!el("diagnostics-view").hidden) await renderTokens();
   } catch (e) {
-    notice(e.message);
+    if (connected && e.name !== "AbortError") notice(e.message);
+    if (connected && e.name !== "AbortError") {
+      el("health").dataset.state = "attention";
+      text("health", "Connection needs attention");
+    }
   } finally {
     refreshing = false;
   }
@@ -633,6 +820,10 @@ function renderProvider(status) {
   }
 }
 async function renderTokens() {
+  if (!access.owner) {
+    text("tokens", "Application access is managed by the bridge owner.");
+    return;
+  }
   try {
     const { tokens } = await api("/admin/tokens");
     el("tokens").replaceChildren();
@@ -677,43 +868,152 @@ function keepCurrentNavVisible() {
 }
 const navigationResize = new ResizeObserver(keepCurrentNavVisible);
 navigationResize.observe(document.querySelector(".rail nav"));
-function showView(name) {
+function showView(name, { history = true } = {}) {
+  if (!Object.hasOwn(viewLabels, name)) name = "jobs";
+  currentView = name;
+  if (history && location.hash !== "#" + name)
+    window.history.pushState({ view: name }, "", "#" + name);
   for (const node of document.querySelectorAll(".view"))
     node.hidden = node.id !== name + "-view";
-  for (const b of document.querySelectorAll("[data-view]")) {
-    b.classList.toggle("selected", b.dataset.view === name);
-    b.setAttribute("aria-current", b.dataset.view === name ? "page" : "false");
+  for (const button of document.querySelectorAll("[data-view]")) {
+    button.setAttribute("aria-label", viewLabels[button.dataset.view]);
+    button.classList.toggle(
+      "selected",
+      connected && button.dataset.view === name,
+    );
+    button.dataset.access = connected ? "available" : "locked";
+    if (connected && button.dataset.view === name)
+      button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
+    if (!connected) button.setAttribute("aria-describedby", "nav-access-state");
+    else button.removeAttribute("aria-describedby");
   }
-  document.querySelector(".toolbar").hidden = !["jobs", "workflows"].includes(
-    name,
-  );
-  document.querySelector(".activity").hidden = name === "providers";
-  el("new-job").hidden = !["jobs", "workflows"].includes(name);
+  text("nav-access-state", connected ? "Workspace" : "Connect required");
+  text("shell-context", connected ? viewLabels[name] : "Connect");
   text(
     "view-title",
-    {
-      jobs: "Jobs & conversations",
-      workflows: "Workflows",
-      providers: "Providers & setup",
-      diagnostics: "Diagnostics",
-    }[name],
+    connected
+      ? {
+          jobs: "Jobs & conversations",
+          workflows: "Workflows",
+          providers: "Providers & setup",
+          diagnostics: "Diagnostics",
+        }[name]
+      : "Connect",
   );
   text(
     "view-description",
-    {
-      jobs: "Track queued work, inspect execution records, and continue native sessions.",
-      workflows: "Run saved steps in order and inspect each checkpoint.",
-      providers:
-        "Connect your subscription, review profiles, and understand execution access.",
-      diagnostics: "Inspect service state and manage application access.",
-    }[name],
+    connected
+      ? {
+          jobs: "Inspect work and continue native sessions.",
+          workflows: "Run saved steps in order and inspect each checkpoint.",
+          providers: "Set up your worker and application access.",
+          diagnostics: "Inspect service state and application permissions.",
+        }[name]
+      : "Open your private bridge with an owner or application token.",
   );
+  text(
+    "connection-destination",
+    "Continue to " + viewLabels[name] + " after connection.",
+  );
+  document.body.dataset.connection = connected ? "connected" : "disconnected";
+  document.querySelector(".toolbar").hidden =
+    !connected || !["jobs", "workflows"].includes(name);
+  document.querySelector(".activity").hidden = name === "providers";
+  el("new-job").hidden =
+    !connected || !can("submit") || !["jobs", "workflows"].includes(name);
+  el("mobile-disconnect").hidden = !connected;
+  el("header-connect").hidden = connected;
+  el("connect-session").hidden = connected;
   el("content").scrollTop = 0;
+  mobileNavigation.close();
   requestAnimationFrame(keepCurrentNavVisible);
-  void refresh();
+  if (connected) void refresh();
 }
 for (const button of document.querySelectorAll("[data-view]"))
   button.onclick = () => showView(button.dataset.view);
+window.addEventListener("popstate", () =>
+  showView(hashView(), { history: false }),
+);
+function lockSession(message = "") {
+  sessionEpoch++;
+  connected = false;
+  token = "";
+  for (const id of [
+    "job-form",
+    "message-form",
+    "workflow-form",
+    "token-form",
+    "template-form",
+  ])
+    el(id).reset();
+  controller?.abort();
+  access = { owner: false, scopes: [] };
+  runtimeStatus = undefined;
+  modelCards = [];
+  jobs = [];
+  templates = [];
+  workflowInputSignature = "";
+  lastJobPayload = "";
+  lastWorkflowPayload = "";
+  el("workflow-advanced").open = false;
+  selected = "";
+  selectionRevision++;
+  eventCursor = 0;
+  seenEvents.clear();
+  document.body.dataset.jobDetail = "closed";
+  cursor = null;
+  attemptsSnapshot = undefined;
+  imageInput.disconnect();
+  for (const id of ["job-dialog", "template-dialog"])
+    if (el(id).open) el(id).close();
+  for (const id of [
+    "jobs",
+    "messages",
+    "templates-list",
+    "workflow-runs",
+    "events",
+    "health-facts",
+    "tokens",
+    "profile-cards",
+    "template-steps",
+    "workflow-fields",
+  ])
+    el(id).replaceChildren();
+  el("job-detail").hidden = true;
+  el("login").hidden = false;
+  el("workspace").hidden = true;
+  el("logout").hidden = true;
+  el("job-count").hidden = true;
+  el("new-token").hidden = true;
+  el("created-token").value = "";
+  el("token").value = "";
+  text("attempts", "");
+  text("diagnostics", "");
+  text("job-error", "");
+  text("connection", "Disconnected");
+  text("session-kind", "Not connected");
+  text("health", "Not connected");
+  el("health").dataset.state = "disconnected";
+  text("sidebar-description", "Connect to inspect runtime");
+  showView(currentView, { history: false });
+  notice(message);
+}
+function focusConnection() {
+  el("content").scrollTop = 0;
+  el("token").focus({ preventScroll: true });
+}
+el("header-connect").onclick = focusConnection;
+el("connect-session").onclick = focusConnection;
+const detailViewport = matchMedia("(max-width: 1100px)");
+detailViewport.addEventListener("change", () => {
+  if (detailViewport.matches && selected)
+    document.body.dataset.jobDetail = "open";
+});
+el("back-to-jobs").onclick = () => {
+  document.body.dataset.jobDetail = "closed";
+  el("content").scrollTop = 0;
+};
 /* fetch streaming permits bearer headers; EventSource would force a cookie or a URL token. */
 async function stream(signal) {
   let delay = 1000;
@@ -733,6 +1033,10 @@ async function stream(signal) {
         notice(data.error.message + " State refreshed.");
         await new Promise((r) => setTimeout(r, delay));
         continue;
+      }
+      if (response.status === 401) {
+        lockSession("Session expired. Connect with a valid token to continue.");
+        return;
       }
       if (!response.ok)
         throw new Error("Event connection rejected (" + response.status + ")");
@@ -788,7 +1092,7 @@ async function stream(signal) {
   }
 }
 const pending = (form, label) => {
-  const button = form.querySelector("button.primary"),
+  const button = form.querySelector("button.primary:not([hidden])"),
     original = button.textContent;
   button.disabled = true;
   button.textContent = label;
@@ -804,12 +1108,17 @@ el("connect-form").onsubmit = async (event) => {
   const finished = pending(el("connect-form"), "Connecting…");
   token = el("token").value.trim();
   try {
-    await api("/status");
+    runtimeStatus = await api("/status");
+    access = runtimeStatus.access ?? {
+      owner: Boolean(runtimeStatus.configuration),
+      scopes: [],
+    };
+    connected = true;
     el("token").value = "";
     el("login").hidden = true;
     el("workspace").hidden = false;
     el("logout").hidden = false;
-    el("new-job").hidden = false;
+    showView(currentView, { history: false });
     notice("");
     controller = new AbortController();
     void stream(controller.signal);
@@ -824,9 +1133,8 @@ el("connect-form").onsubmit = async (event) => {
 };
 el("logout").onclick = () => {
   void api("/hosts/disconnect", { id: hostId }).catch(() => {});
-  token = "";
-  controller?.abort();
-  location.reload();
+  lockSession();
+  focusConnection();
 };
 el("refresh").onclick = () => {
   notice("");
@@ -842,23 +1150,43 @@ for (const cmd of ["pause", "resume"])
       .catch((e) => notice(e.message));
 el("job-form").onsubmit = async (event) => {
   event.preventDefault();
+  if (!jobWizard.reviewing()) {
+    jobWizard.next();
+    return;
+  }
+  const body = {
+    model: "bridge/" + el("profile").value,
+    messages: [{ role: "user", content: el("prompt").value }],
+    bridge: {
+      execution: el("mode").value === "cli" ? "agent" : el("mode").value,
+      background: true,
+    },
+  };
+  const fingerprint = JSON.stringify(body);
+  if (fingerprint !== lastJobPayload) {
+    jobRequestId = crypto.randomUUID();
+    lastJobPayload = fingerprint;
+  }
+  const finished = pending(el("job-form"), "Queueing…");
   try {
-    const job = await api("/chat/completions", {
-      model: "bridge/" + el("profile").value,
-      messages: [{ role: "user", content: el("prompt").value }],
-      bridge: {
-        execution: el("mode").value === "cli" ? "agent" : el("mode").value,
-        background: true,
-      },
-    });
+    const job = await api("/chat/completions", body, "POST", jobRequestId);
     el("prompt").value = "";
     el("job-dialog").close();
     selected = job.id;
+    if (detailViewport.matches) document.body.dataset.jobDetail = "open";
+    lastJobPayload = "";
+    showView("jobs");
     notice("");
     await refresh();
-  } catch (e) {
-    text("job-form-error", e.message);
+  } catch (error) {
+    text(
+      "job-form-error",
+      error.message +
+        " Queue again reuses this request when its content is unchanged.",
+    );
     el("job-form-error").hidden = false;
+  } finally {
+    finished();
   }
 };
 el("message-form").onsubmit = async (event) => {
@@ -875,14 +1203,29 @@ el("message-form").onsubmit = async (event) => {
 };
 el("workflow-form").onsubmit = async (event) => {
   event.preventDefault();
+  let finished;
   try {
-    await api("/workflow-runs", {
-      templateId: el("template").value,
-      inputs: JSON.parse(el("workflow-inputs").value),
-    });
+    const body = { templateId: el("template").value, inputs: workflowValues() };
+    const fingerprint = JSON.stringify(body);
+    if (fingerprint !== lastWorkflowPayload) {
+      workflowRequestId = crypto.randomUUID();
+      lastWorkflowPayload = fingerprint;
+    }
+    finished = pending(el("workflow-form"), "Starting…");
+    await api("/workflow-runs", body, "POST", workflowRequestId);
+    lastWorkflowPayload = "";
+    notice("");
     await refresh();
-  } catch (e) {
-    notice(e.message);
+  } catch (error) {
+    if (error.name !== "AbortError")
+      notice(
+        error.message +
+          " Start again reuses this request when its inputs are unchanged.",
+      );
+  } finally {
+    finished?.();
+    el("workflow-form").querySelector("button").disabled =
+      !connected || !can("workflows") || !runtimeStatus?.templates.length;
   }
 };
 el("token-form").onsubmit = async (event) => {
@@ -893,9 +1236,12 @@ el("token-form").onsubmit = async (event) => {
       profiles: el("client-profiles")
         .value.split(",")
         .map((x) => x.trim()),
-      scopes: ["read", "submit", "control", "workflows"],
+      scopes: el("client-permissions").value.split(","),
     });
-    text("new-token", result.token);
+    el("created-token").value = result.token;
+    el("created-token").type = "password";
+    text("show-token", "Show");
+    el("show-token").setAttribute("aria-pressed", "false");
     el("new-token").hidden = false;
     el("token-created-help").hidden = false;
     await renderTokens();
@@ -916,10 +1262,21 @@ setInterval(() => {
 }, 5000);
 
 el("new-job").onclick = () => {
-  el("job-form-error").hidden = true;
-  el("job-dialog").showModal();
-  el("prompt").focus();
+  if (connected && can("submit")) jobWizard.open();
 };
+const mobileNavigation = createMobileNavigation();
+const jobWizard = createJobWizard(() => runtimeStatus);
+const imageInput = createImageInput(api, async (id) => {
+  showView("jobs");
+  await selectJob(id);
+});
+el("setup-profile").addEventListener("change", () =>
+  imageInput.render(
+    modelCards,
+    runtimeStatus,
+    el("setup-profile").value || "default",
+  ),
+);
 const providerSetup = createProviderSetup(
   refresh,
   () => showView("diagnostics"),
@@ -960,3 +1317,56 @@ el("template-form").onsubmit = async (event) => {
 el("template-form").addEventListener("input", () => {
   el("template-error").hidden = true;
 });
+
+showView(currentView, { history: false });
+el("copy-token").onclick = async () => {
+  try {
+    await navigator.clipboard.writeText(el("created-token").value);
+    notice("Token copied.");
+  } catch {
+    notice(
+      "Clipboard access is unavailable. Show and copy the token manually.",
+    );
+  }
+};
+el("show-token").onclick = () => {
+  const hidden = el("created-token").type === "password";
+  el("created-token").type = hidden ? "text" : "password";
+  text("show-token", hidden ? "Hide" : "Show");
+  el("show-token").setAttribute("aria-pressed", String(hidden));
+};
+
+el("mobile-disconnect").onclick = () => {
+  mobileNavigation.close();
+  el("logout").click();
+};
+
+el("workflow-json-mode").onchange = () => {
+  if (el("workflow-json-mode").checked) {
+    el("workflow-inputs").value = JSON.stringify(
+      Object.fromEntries(
+        [...el("workflow-fields").querySelectorAll("textarea")].map((field) => [
+          field.name,
+          field.value,
+        ]),
+      ),
+      null,
+      2,
+    );
+  } else {
+    try {
+      el("workflow-json-mode").checked = true;
+      const values = workflowValues();
+      el("workflow-json-mode").checked = false;
+      for (const field of el("workflow-fields").querySelectorAll("textarea"))
+        field.value = values[field.name] ?? "";
+    } catch (error) {
+      notice(error.message);
+    }
+  }
+  const advanced = el("workflow-json-mode").checked;
+  el("workflow-fields").hidden = advanced;
+  for (const field of el("workflow-fields").querySelectorAll("textarea"))
+    field.disabled = advanced;
+  el("workflow-json-values").hidden = !advanced;
+};

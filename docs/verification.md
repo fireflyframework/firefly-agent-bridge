@@ -18,6 +18,16 @@ Install `docs/requirements.txt` into the Python environment selected by `BRIDGE_
 
 The prose check catches a small set of editorial regressions outside code and links. It does not automate the Humanizer's contextual judgment. Manual review preserves technical claims, API labels, commands, and limitations while removing repetitive or promotional wording.
 
+## 0.2.4 console checks
+
+The console checks cover anonymous destination gating, 120-pixel phone chrome, native modal navigation, Escape and focus restoration, three-step job validation and Back behavior, masked token creation, explicit permission choices, expired access cleanup, job admission replay, and image-probe failure without a false vision claim. Named workflow inputs replace the primary JSON box; JSON remains an explicit advanced option. Diagnostic values are tested against their card width so worker names and states remain readable. Existing conversation, workflow, file/audit and footer checks remain in the release gate.
+
+An isolated official-Codex preview is reviewed directly in light and dark at 1280×720, 390×844 and 320×568. Phone token fields and Connect remain above the footer; the old first-entry layout placed the token below the screen. Provider setup and Diagnostics use natural page flow; complete data and fields remain readable, and actions follow the content without covering it. Fixture examples are labeled separately from actual subscription execution.
+
+A fresh console journey used the authenticated official Codex worker to create a small file inside its job workspace and continue the same native session. The first image challenge misread one digit and remained unverified; a second explicit owner check passed. Both outcomes are retained, with no automatic probe retry.
+
+Version 0.2.4 still requires the complete native matrix and downloaded asset checks before release. A source screenshot or local build does not establish Windows/Linux acceptance or a ChatGPT web connection.
+
 ## 0.2.3 image checks
 
 The attachment tests cover canonical data URLs, real PNG/JPEG/WebP frames, aggregate decoded limits, invalid checksums, pixel bounds, PNG expansion bombs, role restrictions, and the Chat Completions body limit. Worker checks inspect exclusive image files and verify cleanup on success, cancellation, and setup failure. Recovery checks remove interrupted image files and reject in-place resume or retry even when no native session ID was observed.
@@ -26,7 +36,7 @@ The capability checks cover owner authorization, durable probe replay, failed re
 
 A separate real Codex ChatGPT-subscription check returned eight random digits that existed only as PNG pixels. The expected code was absent from the text prompt, schema, and filename. The same probe request reused its durable job, and staged files were absent after completion. Claude image subscription acceptance remains unverified. Run `npm run test:live:codex:images` to repeat this bounded check on an authenticated host; its private evidence stays under ignored `work/`.
 
-The complete local gate and all three native CI targets must pass before 0.2.3 is published. Downloaded release assets and their checksums are checked separately; these source tests do not claim a ChatGPT web connector installation.
+Version 0.2.3 passed the complete local gate and all three native CI targets. All five product assets were downloaded and checked against SHA256SUMS and GitHub asset digests. Downloaded macOS native and MCP bundle servers passed authenticated HTTP/MCP checks; the MCP bundle server also passed the image-only Codex challenge. These checks do not claim a ChatGPT web connector installation.
 
 ## 0.2.2 patch checks
 

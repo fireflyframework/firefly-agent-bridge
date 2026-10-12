@@ -102,11 +102,14 @@ try {
   const payload = (await status.json()) as {
     protocolVersion: number;
     version: string;
+    access: { owner: boolean; scopes: string[] };
   };
   if (
     !status.ok ||
     payload.protocolVersion !== 2 ||
-    payload.version !== version
+    payload.version !== version ||
+    !payload.access.owner ||
+    !payload.access.scopes.includes("submit")
   )
     throw new Error("Packaged API failed");
   const remote = new Client({ name: "package-http-smoke", version: "1" });
@@ -151,6 +154,17 @@ try {
   ])
     if (!(await fetch(address + path)).ok)
       throw new Error("Native embedded asset missing: " + path);
+  for (const [path, marker] of [
+    ["/navigation.js", "createMobileNavigation"],
+    ["/job-wizard.js", "createJobWizard"],
+    ["/image-input.js", "createImageInput"],
+    ["/bridge-emblem-dark.svg", "<svg"],
+    ["/bridge-emblem-light.svg", "<svg"],
+  ]) {
+    const response = await fetch(address + path);
+    if (!response.ok || !(await response.text()).includes(marker!))
+      throw new Error("Native console module missing: " + path);
+  }
   const auditModule = await fetch(address + "/audit.js");
   if (
     !auditModule.ok ||

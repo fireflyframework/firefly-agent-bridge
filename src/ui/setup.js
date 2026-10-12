@@ -25,7 +25,7 @@ export function createProviderSetup(refresh, showAccess, openJob, notice) {
     status;
   const profile = element("setup-profile");
   const client = element("setup-client");
-  const mobileDiagnostics = matchMedia("(max-width: 760px)");
+  const mobileDiagnostics = matchMedia("(max-width: 900px)");
   let diagnosticSection = "service";
   function selectDiagnostics(section, focus = false) {
     diagnosticSection = section;
@@ -84,20 +84,27 @@ export function createProviderSetup(refresh, showAccess, openJob, notice) {
       card.hidden =
         card.dataset.profile !== name && card.dataset.profile !== undefined;
     const app = client.value;
-    element("provider-url").textContent =
-      location.origin +
-      (app === "openai" ? "/v1" : app === "chatgpt" ? "/mcp" : "/v1/bridge");
+    const local = app === "codex" || app === "claude";
+    const remoteChat = app === "chatgpt";
+    element("provider-url").textContent = local
+      ? "firefly-bridge mcp"
+      : remoteChat
+        ? "Approved HTTPS gateway + /mcp"
+        : location.origin + "/v1";
+    element("setup-copy-url").disabled = remoteChat;
+    element("setup-client-access").hidden = local || !status?.access?.owner;
+    element("setup-copy-url").textContent = local ? "Copy command" : "Copy URL";
     element("setup-client-instructions").textContent = {
       codex:
-        "Install the private Codex plugin and use its stdio MCP adapter. The plugin includes bridge operation skills.",
+        "Install the private Codex plugin on this machine. Its stdio MCP adapter uses the same bridge data directory; the plugin includes bridge operation skills. The shown command uses the default data directory; add --data-dir for a custom instance. See the installation guide for configuration.",
       claude:
-        "Use the Claude Code plugin or the Claude Desktop bundle. Both include the stdio MCP adapter.",
+        "Install the Claude Code plugin or the Claude Desktop bundle on this machine. Both use the stdio MCP adapter and the same bridge data directory. The shown command uses the default data directory; add --data-dir for a custom instance. See the installation guide for configuration.",
       chatgpt:
-        "ChatGPT needs an approved HTTPS endpoint it can reach. Connect /mcp with your scoped application token; a loopback address is for local clients.",
+        "ChatGPT requires a reachable HTTPS gateway with authentication supported by your workspace. The bridge exposes /mcp with bearer authentication; it does not provide OAuth or connect a local machine automatically. Follow the ChatGPT gateway guide before adding the connector.",
       openai:
         "Set this base URL, use your scoped application token as the API key, and choose bridge/" +
         name +
-        " as the model.",
+        " as the model. A hosted application must reach an explicitly configured HTTPS gateway; this loopback address reaches only its own machine.",
     }[app];
   }
   function show(next, focus = true) {
@@ -121,6 +128,7 @@ export function createProviderSetup(refresh, showAccess, openJob, notice) {
         .querySelector('[data-setup-panel="' + step + '"] h2')
         .focus({ preventScroll: true });
     document.querySelector(".setup-body").scrollTop = 0;
+    document.getElementById("content").scrollTop = 0;
   }
   function subscription() {
     const provider = guide === "claude" ? "Claude Code" : "Codex";
@@ -136,10 +144,11 @@ export function createProviderSetup(refresh, showAccess, openJob, notice) {
     element("setup-provider-route-command").textContent =
       "$ " + (guide === "claude" ? "claude auth login" : "codex login");
     element("setup-provider-detail-running").textContent = worker;
-    element("setup-provider-detail-readiness").textContent = status?.readiness
-      .ready
-      ? "Ready on this machine"
-      : "Needs attention";
+    element("setup-provider-detail-readiness").textContent = !current
+      ? "Not checked for this provider"
+      : status?.readiness.ready
+        ? "Ready on this machine"
+        : "Needs attention";
     element("setup-provider-detail-instruction").textContent = current
       ? ""
       : "This guide does not change your worker. Stop the bridge, update its worker and executable, then restart before checking this login.";
