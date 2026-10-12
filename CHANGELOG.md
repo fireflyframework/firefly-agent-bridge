@@ -2,6 +2,13 @@
 
 # Changelog
 
+## 0.2.3 — 2026-10-12
+
+- Inference accepts up to five PNG/JPEG/WebP data-URL attachments, with aggregate decoded-byte, pixel, and expansion limits. Other API routes retain their existing body limit.
+- Codex receives exclusive private image files; Claude supports stream-JSON image blocks. Native inference tools remain disabled, and image jobs require a new explicit request after a pause or uncertain outcome.
+- Model discovery reports image-input proof tied to the actual worker configuration. An owner-only, idempotent pixel challenge verifies that the selected model read an image.
+- Temporary Codex attachments are removed after success, failure, cancellation, and interrupted-job recovery.
+
 ## 0.2.2 — 2026-10-12
 
 - Browser tests create a fresh owner principal for each default login. Repeated visual checks no longer share the service owner's request budget; production rate limits are unchanged.

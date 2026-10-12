@@ -385,3 +385,99 @@ it("preserves nonterminal provider diagnostics without treating them as native a
     ]),
   );
 });
+
+function imageInference(caption = "inspect"): Execution {
+  const execution = input(caption);
+  const prepared = prepareCompletion({
+    model: "bridge/default",
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: caption },
+          {
+            type: "image_url",
+            image_url: {
+              url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC",
+            },
+          },
+        ],
+      },
+    ],
+  });
+  execution.job.prompt = prepared.prompt;
+  execution.job.completion = prepared.request;
+  return execution;
+}
+it("passes owned image attachments to Codex and removes them after success or cancellation", async () => {
+  const result = await (
+    await worker()
+  ).run(imageInference(), () => {}, new AbortController().signal);
+  expect(result.status).toBe("succeeded");
+  const content = JSON.parse(JSON.parse(result.result!).content);
+  expect(content.args).toContain("--image");
+  expect(content.images[0].bytes).toBeGreaterThan(0);
+  if (process.platform !== "win32") expect(content.images[0].mode).toBe(0o600);
+  expect(existsSync(join(dir, "completion-image-1.png"))).toBe(false);
+  const controller = new AbortController(),
+    running = (await worker()).run(
+      imageInference("fixture:image-hang"),
+      () => {},
+      controller.signal,
+    );
+  for (
+    let i = 0;
+    i < 100 && !existsSync(join(dir, "completion-image-1.png"));
+    i++
+  )
+    await new Promise((r) => setTimeout(r, 10));
+  expect(existsSync(join(dir, "completion-image-1.png"))).toBe(true);
+  controller.abort();
+  expect((await running).status).toBe("canceled");
+  expect(existsSync(join(dir, "completion-image-1.png"))).toBe(false);
+});
+it("cleans images when schema creation fails and refuses image session replay", async () => {
+  const execution = imageInference();
+  execution.job.sessionId = "11111111-1111-4111-8111-111111111111";
+  expect(
+    (
+      await (
+        await worker()
+      ).run(execution, () => {}, new AbortController().signal)
+    ).error,
+  ).toContain("image_replay_unsupported");
+  const { mkdirSync } = await import("node:fs");
+  mkdirSync(join(dir, "completion-schema.json"));
+  await expect(
+    (await worker()).run(
+      imageInference(),
+      () => {},
+      new AbortController().signal,
+    ),
+  ).rejects.toThrow();
+  expect(existsSync(join(dir, "completion-image-1.png"))).toBe(false);
+});
+it("encodes Claude images through stream-json without enabling native tools", async () => {
+  const worker = new ClaudeWorker({
+    path: process.execPath,
+    args: [resolve("tests/fixtures/claude-process.mjs")],
+    env: { PATH: process.env.PATH },
+    tools: ["Read"],
+    timeoutMs: 2000,
+    maxOutputBytes: 20000,
+  });
+  const result = await worker.run(
+    imageInference(),
+    () => {},
+    new AbortController().signal,
+  );
+  expect(result.status).toBe("succeeded");
+  const content = JSON.parse(JSON.parse(result.result!).content);
+  expect(content.args).toContain("--input-format");
+  expect(content.input.message.content[1]).toMatchObject({
+    type: "image",
+    source: { type: "base64", media_type: "image/png" },
+  });
+  expect(content.input.message.content[0].text).not.toContain("iVBORw0");
+  expect(content.args[content.args.indexOf("--tools") + 1]).toBe("");
+});

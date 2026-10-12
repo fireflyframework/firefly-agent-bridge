@@ -17,6 +17,7 @@
  * limitations under the License.
  */
 
+import { prepareCompletion } from "./completion-protocol.js";
 import { DatabaseSync } from "node:sqlite";
 import { createHash, randomUUID } from "node:crypto";
 import { AuditLog, type AuditQuery, type ToolsQuery } from "./audit.js";
@@ -331,6 +332,12 @@ export class QueueStore {
   resume(id: string, p: Principal): Job {
     return this.atomic(() => {
       const job = this.get(id, p);
+      if (job.completion && prepareCompletion(job.completion).images.length)
+        throw new BridgeError(
+          "image_replay_unsupported",
+          "Image jobs require a new explicit completion request; inspect the prior outcome first",
+          409,
+        );
       if (job.status !== "paused")
         throw new BridgeError(
           "invalid_resume",
@@ -443,6 +450,12 @@ export class QueueStore {
   retry(id: string, p: Principal): Job {
     return this.atomic(() => {
       const job = this.get(id, p);
+      if (job.completion && prepareCompletion(job.completion).images.length)
+        throw new BridgeError(
+          "image_replay_unsupported",
+          "Image jobs require a new explicit completion request; inspect the prior outcome first",
+          409,
+        );
       if (
         !["failed", "interrupted", "timed_out", "canceled"].includes(job.status)
       )

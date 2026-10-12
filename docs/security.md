@@ -28,13 +28,13 @@ HTTP callers cannot supply executable paths, environment overrides, CLI argument
 
 ## Inference and application functions
 
-Inference disables native command, filesystem mutation, browser, app, media, and delegation actions. Codex additionally uses a read-only sandbox and rejects unexpected native action items. Claude inference has no native tools. Both workers must return a validated completion envelope.
+Inference disables native command, filesystem mutation, browser, app, media, and delegation actions. Codex additionally uses a read-only sandbox and rejects unexpected native action items. Claude inference has no native tools. Both workers must return a validated completion envelope. Bounded image attachments are model inputs; native image tools remain disabled. Attachments accept data URLs only, so the service never fetches arbitrary image URLs or opens caller-selected host paths. Codex staging uses exclusive owner-only files and removes them after execution or interrupted-job recovery. Image jobs freeze worker/profile configuration in private database metadata. These snapshots may include owner-configured environment values; they are never included in public job records. A verified-revision request header binds admission to the model capability that the caller inspected.
 
 The application declares its functions and executes returned calls. The bridge validates names and arguments but does not execute function code. Grant application tools only the authority they need. Treat prompt and tool output as untrusted input to that application.
 
 ## Data and audit
 
-The database can contain prompts, complete file contents, commands, tool outputs, and remote responses. Audit export preserves these payloads. Protect the data directory, exports, logs, backups, and job workspaces as developer data. Local audit history is an operational record; the operating-system user can modify the database.
+The database can contain prompts, original image attachments, complete file contents, commands, tool outputs, and remote responses. Audit export preserves these payloads. Protect the data directory, exports, logs, backups, and job workspaces as developer data. Local audit history is an operational record; the operating-system user can modify the database.
 
 Back up a stopped service and its SQLite sidecars. The bridge retains jobs and audit until the operator deliberately archives them. Monitor disk usage and restrict backup access.
 

@@ -16,6 +16,17 @@ Errors use `{"error":{"code":"...","message":"...","type":"invalid_request_error
 
 Traffic is limited to 240 requests per minute per principal **per admission class**: ordinary requests, execution controls, and host leases. Read polling cannot exhaust the lease or stop/cancel bucket. SSE permits four connections per principal and 100 per service.
 
+## Image capability verification
+
+`GET /v1/models` includes `image_input.status`, `config_revision`, `mime_types`, `max_images`, `max_decoded_bytes`, and `detail` for each permitted profile. A successful owner probe adds `verified_at` and `probe_job_id`.
+
+| Method and path                          | Purpose                                                                                                                                            |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /v1/bridge/image-input/probes`     | Owner only; `{profile, request_id: UUID}` creates or reuses one pixel challenge; returns 202 with `job_id`, job status, and configuration revision |
+| `GET /v1/bridge/image-input/probes/{id}` | Owner only; returns proof status (`pending`, `verified`, `failed`), job status, and current image capability; never returns the expected code      |
+
+See [image limits and subscription verification](openai-compatible.md#image-input). Probe IDs are durable across service restarts; a changed configuration with the same request ID returns 409.
+
 ## Jobs and conversation turns
 
 | Method and path                                         | Purpose                                                                                |

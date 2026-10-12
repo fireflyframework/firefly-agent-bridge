@@ -1,6 +1,6 @@
 {
   "name": "firefly-agent-bridge",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Private Firefly developer execution bridge for Claude Code and Codex subscriptions",
   "type": "module",
   "license": "Apache-2.0",
@@ -43,6 +43,7 @@
     "docs:build": "tsx scripts/docs-build.ts",
     "docs:editorial": "tsx scripts/docs-editorial.ts",
     "generate:diagrams": "tsx scripts/diagram-assets.ts",
+    "test:live:codex:images": "tsx scripts/live-codex-images.ts",
     "test:live:codex:mcp": "tsx scripts/live-codex-mcp.ts"
   },
   "dependencies": {

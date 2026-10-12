@@ -39,7 +39,7 @@ The bridge starts Codex with user configuration ignored while preserving its off
 | HTTP 429           | Rate, capacity, or subscription limit                                         | Respect `Retry-After` when present and inspect durable job state.                               |
 | HTTP 503           | Dispatch or configuration unavailable                                         | Resolve the status reason, then reattach using the same request body and idempotency key.       |
 
-`max_tokens` and `max_completion_tokens` are rejected. The bridge bounds execution through profiles, not generation-token request fields. In Pydantic AI, use `OpenAIChatModel` and an OpenAI model profile that omits unsupported token settings when your application has a global token cap. Responses and multimodal requests are outside this API.
+`max_tokens` and `max_completion_tokens` are rejected. The bridge bounds execution through profiles, not generation-token request fields. In Pydantic AI, use `OpenAIChatModel` and an OpenAI model profile that omits unsupported token settings when your application has a global token cap. Responses is outside this API. Image input is limited to the [documented inference attachment contract](openai-compatible.md#image-input).
 
 ## Jobs and workflow steps
 
@@ -56,3 +56,9 @@ The theme preference survives reload; authentication does not. Reconnect using t
 SSE reconnects with the last event ID. An expired cursor returns `event_cursor_expired`; refresh current state and start from `eventCursorFloor`. Through a tunnel, preserve Authorization and Last-Event-ID and disable proxy response buffering.
 
 An unknown tool outcome means no terminal tool result was observed. A successful process exit does not fill in a missing result. See [audit coverage](audit.md) and [crash recovery](operations.md#crashes-and-external-effects).
+
+## Image requests
+
+`invalid_image` indicates a media signature, canonical encoding, pixel, expansion, or attachment limit failure. Check that the data URL media type matches the actual file. Use `detail: "auto"`; the CLI adapter cannot select other detail levels. `image_replay_unsupported` requires a new completion request after you inspect the previous job. Reusing the original idempotency key still reads the original outcome and does not execute a second model call.
+
+If a profile remains `unverified`, inspect its owner-only probe job and official subscription readiness. A failed probe never establishes image capability. Changing the executable or execution profile requires a fresh probe request ID.

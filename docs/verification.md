@@ -18,6 +18,16 @@ Install `docs/requirements.txt` into the Python environment selected by `BRIDGE_
 
 The prose check catches a small set of editorial regressions outside code and links. It does not automate the Humanizer's contextual judgment. Manual review preserves technical claims, API labels, commands, and limitations while removing repetitive or promotional wording.
 
+## 0.2.3 image checks
+
+The attachment tests cover canonical data URLs, real PNG/JPEG/WebP frames, aggregate decoded limits, invalid checksums, pixel bounds, PNG expansion bombs, role restrictions, and the Chat Completions body limit. Worker checks inspect exclusive image files and verify cleanup on success, cancellation, and setup failure. Recovery checks remove interrupted image files and reject in-place resume or retry even when no native session ID was observed.
+
+The capability checks cover owner authorization, durable probe replay, failed recognition, successful proof recording, and configuration invalidation. Deterministic workers exercise protocol and persistence; they do not establish provider vision support.
+
+A separate real Codex ChatGPT-subscription check returned eight random digits that existed only as PNG pixels. The expected code was absent from the text prompt, schema, and filename. The same probe request reused its durable job, and staged files were absent after completion. Claude image subscription acceptance remains unverified. Run `npm run test:live:codex:images` to repeat this bounded check on an authenticated host; its private evidence stays under ignored `work/`.
+
+The complete local gate and all three native CI targets must pass before 0.2.3 is published. Downloaded release assets and their checksums are checked separately; these source tests do not claim a ChatGPT web connector installation.
+
 ## 0.2.2 patch checks
 
 The 0.2.1 release attempt stopped when repeated browser logins exhausted a shared test principal's request budget. That tag remains unpublished. Version 0.2.2 creates a separate owner principal for each default test login, with a regression proving distinct identities; production limits are unchanged.

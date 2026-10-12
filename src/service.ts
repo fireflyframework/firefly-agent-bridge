@@ -28,6 +28,13 @@ import {
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import lockfile from "proper-lockfile";
+import {
+  imageExecutionRevision,
+  loadImageExecution,
+  type ImageExecution,
+} from "./image-execution.js";
+import { prepareCompletion } from "./completion-protocol.js";
+import { cleanupRecoveredImages } from "./images.js";
 import { QueueStore } from "./store.js";
 import { Tokens } from "./auth.js";
 import { Workflows } from "./workflows.js";
@@ -45,7 +52,10 @@ export function privateWrite(path: string, value: string): void {
 }
 export async function startService(
   config: BridgeConfig,
-  options: { managed?: boolean; worker?: (job: Job) => Worker } = {},
+  options: {
+    managed?: boolean;
+    worker?: (job: Job, imageExecution?: ImageExecution) => Worker;
+  } = {},
 ) {
   mkdirSync(config.dataDir, { recursive: true, mode: 0o700 });
   chmodSync(config.dataDir, 0o700);
@@ -85,15 +95,38 @@ export async function startService(
     }
     chmodSync(ownerPath, 0o600);
     chmodSync(join(config.dataDir, "queue.sqlite"), 0o600);
-    const workerFor =
-      options.worker ??
-      ((job) =>
-        new (config.worker === "codex" ? CodexWorker : ClaudeWorker)({
-          path: (config.worker === "codex"
-            ? config.codexPath
-            : config.claudePath)!,
-          ...config.profiles[job.profile]!,
-        }));
+    const workerFor = (job: Job): Worker => {
+      const snapshot = loadImageExecution(store, job.id);
+      const selected = snapshot?.worker ?? config.worker;
+      const worker =
+        options.worker?.(job, snapshot) ??
+        new (selected === "codex" ? CodexWorker : ClaudeWorker)({
+          path:
+            snapshot?.path ??
+            (selected === "codex" ? config.codexPath : config.claudePath)!,
+          ...(snapshot?.options ?? config.profiles[job.profile]!),
+        });
+      if (!job.completion || !prepareCompletion(job.completion).images.length)
+        return worker;
+      return {
+        ready: () =>
+          snapshot && imageExecutionRevision(snapshot) === snapshot.revision
+            ? worker.ready()
+            : Promise.resolve({ ready: true }),
+        run: (input, emit, signal) => {
+          if (
+            !snapshot ||
+            imageExecutionRevision(snapshot) !== snapshot.revision
+          )
+            return Promise.resolve({
+              status: "failed",
+              error:
+                "image_configuration_changed: executable or image execution snapshot is unavailable; start a new explicit request",
+            });
+          return worker.run(input, emit, signal);
+        },
+      };
+    };
     const scheduler = new Scheduler(
       store,
       flows,
@@ -167,7 +200,17 @@ export async function startService(
     try {
       address = await app.listen({ host: config.host, port: config.port });
       // A port collision must not mark another instance's work as interrupted.
+      const recovering = store.db
+        .prepare(
+          "SELECT data FROM jobs WHERE status IN ('running','cancel_requested','pause_requested')",
+        )
+        .all() as { data: string }[];
       store.recover();
+      for (const row of recovering) {
+        const job = JSON.parse(row.data) as Job;
+        if (job.completion)
+          cleanupRecoveredImages(join(config.workspace, job.id));
+      }
       scheduler.start();
       privateWrite(
         join(config.dataDir, "service.json"),
