@@ -31,8 +31,22 @@ mkdirSync("dist", { recursive: true });
 const uiAssets = {
   html: readFileSync("src/ui/index.html", "utf8"),
   css: readFileSync("src/ui/app.css", "utf8"),
+  themeJs: readFileSync("src/ui/theme.js", "utf8"),
   auditJs: readFileSync("src/ui/audit.js", "utf8"),
   js: readFileSync("src/ui/app.js", "utf8"),
+  brandDark: readFileSync("assets/brand/bridge-lockup-dark.svg").toString(
+    "base64",
+  ),
+  brandLight: readFileSync("assets/brand/bridge-lockup-light.svg").toString(
+    "base64",
+  ),
+  mark: readFileSync("assets/brand/bridge-mark.svg").toString("base64"),
+  markLight: readFileSync("assets/brand/bridge-mark-mono-light.svg").toString(
+    "base64",
+  ),
+  font: readFileSync(
+    "assets/fonts/manrope/manrope-latin-wght-normal.woff2",
+  ).toString("base64"),
   brand: readFileSync("assets/logo.png").toString("base64"),
 };
 const assets = {
@@ -96,6 +110,11 @@ notices +=
   "=".repeat(72) +
   "\nNode.js runtime 26.3.0 and its bundled dependencies\n\n" +
   readFileSync("vendor-licenses/node.txt", "utf8");
+notices +=
+  "\n\nManrope font\n" +
+  readFileSync("assets/fonts/manrope/OFL.txt", "utf8") +
+  "\n\n" +
+  readFileSync("assets/brand/NOTICE", "utf8");
 writeFileSync("dist/THIRD_PARTY_NOTICES.txt", notices);
 chmodSync("dist/cli.cjs", 0o755);
 writeFileSync(

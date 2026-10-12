@@ -1,0 +1,135 @@
+{
+  "version": 2,
+  "source": "firefly-oss/brand-kit",
+  "revision": "3fc4834068fc531dad6fcff4719af2bb5b6d5c9e",
+  "identity": "Architectural span: amber deck, two piers, open arch and terminal nodes",
+  "generator": "External public Forge scripts/brand-assets.mjs",
+  "files": [
+    {
+      "path": "assets/brand/bridge-lockup-dark.svg",
+      "owner": "Firefly Software Solutions Inc. and Firefly Software Foundation",
+      "license": "Proprietary artwork; product redistribution only",
+      "sha256": "b6a965d293581743da85250b28f1e79aecc6dbd518bc03f15ee83f25bcee321c"
+    },
+    {
+      "path": "assets/brand/bridge-mark-dark.svg",
+      "owner": "Firefly Software Foundation",
+      "license": "Apache-2.0; trademark reserved",
+      "sha256": "49cb12adc0be2d58e6557a3fde85cf4eae55fdadf7dda12de336bce4ab3ce178"
+    },
+    {
+      "path": "assets/brand/bridge-mark-mono-dark.svg",
+      "owner": "Firefly Software Foundation",
+      "license": "Apache-2.0; trademark reserved",
+      "sha256": "5ce3014a55faf752e01e6fbb6a9abb1f862bc05f0b86c9d632a06e8b226c1c39"
+    },
+    {
+      "path": "assets/brand/bridge-favicon-dark.svg",
+      "owner": "Firefly Software Foundation",
+      "license": "Apache-2.0; trademark reserved",
+      "sha256": "bcca4e2da4f398758e996273bc8933ff9ea5e209145731ed5b92792c32845b3e"
+    },
+    {
+      "path": "assets/banner-dark.svg",
+      "owner": "Firefly Software Solutions Inc. and Firefly Software Foundation",
+      "license": "Proprietary artwork; product redistribution only",
+      "sha256": "fe55324615e4613301bbc9c75416c2fe7a6f7d3bcba5826fd2d4cca18cda2669"
+    },
+    {
+      "path": "assets/brand/bridge-lockup-dark.png",
+      "owner": "Firefly Software Solutions Inc. and Firefly Software Foundation",
+      "license": "Proprietary artwork; product redistribution only",
+      "sha256": "1c258efc530d47794e4dea31a2adb003ea97427639486e31677f7a982d32df09"
+    },
+    {
+      "path": "assets/banner-dark.png",
+      "owner": "Firefly Software Solutions Inc. and Firefly Software Foundation",
+      "license": "Proprietary artwork; product redistribution only",
+      "sha256": "2c1f4023a4ff94e49aa6da371c99a15a89c4a581ff2a3debb8a3a12b0b844130"
+    },
+    {
+      "path": "assets/brand/bridge-lockup-light.svg",
+      "owner": "Firefly Software Solutions Inc. and Firefly Software Foundation",
+      "license": "Proprietary artwork; product redistribution only",
+      "sha256": "057298cf2e7177157e6d566c2cc6ee2ac738b4b1cca279bebe5cba79e561e9bc"
+    },
+    {
+      "path": "assets/brand/bridge-mark-light.svg",
+      "owner": "Firefly Software Foundation",
+      "license": "Apache-2.0; trademark reserved",
+      "sha256": "33380b1e6efad6372370e406bef0f1bebfb0f7dcff838163f91d7ac9c0c1aa9b"
+    },
+    {
+      "path": "assets/brand/bridge-mark-mono-light.svg",
+      "owner": "Firefly Software Foundation",
+      "license": "Apache-2.0; trademark reserved",
+      "sha256": "b0c5e5f288971e190bfeb3c0288ad35fbc53cf32eebf70f644b6ac540922e87d"
+    },
+    {
+      "path": "assets/brand/bridge-favicon-light.svg",
+      "owner": "Firefly Software Foundation",
+      "license": "Apache-2.0; trademark reserved",
+      "sha256": "49049e96986a7f23710153ea444be40a179b3bc112af1ed53adf406a3b038440"
+    },
+    {
+      "path": "assets/banner-light.svg",
+      "owner": "Firefly Software Solutions Inc. and Firefly Software Foundation",
+      "license": "Proprietary artwork; product redistribution only",
+      "sha256": "2b4137f1fcf716c6d3373220761717e03571a7f42034258049f595029e5e3da6"
+    },
+    {
+      "path": "assets/brand/bridge-lockup-light.png",
+      "owner": "Firefly Software Solutions Inc. and Firefly Software Foundation",
+      "license": "Proprietary artwork; product redistribution only",
+      "sha256": "1d067b585fdd33b4305d7192b9090ca6568ad17ed3f35ca690463f703570200a"
+    },
+    {
+      "path": "assets/banner-light.png",
+      "owner": "Firefly Software Solutions Inc. and Firefly Software Foundation",
+      "license": "Proprietary artwork; product redistribution only",
+      "sha256": "0f311cb399df1e0024feee8d870e6103df355af253573469ff1a02b038046103"
+    },
+    {
+      "path": "assets/banner.png",
+      "owner": "Firefly Software Solutions Inc. and Firefly Software Foundation",
+      "license": "Proprietary artwork; product redistribution only",
+      "sha256": "2c1f4023a4ff94e49aa6da371c99a15a89c4a581ff2a3debb8a3a12b0b844130"
+    },
+    {
+      "path": "assets/banner.svg",
+      "owner": "Firefly Software Solutions Inc. and Firefly Software Foundation",
+      "license": "Proprietary artwork; product redistribution only",
+      "sha256": "fe55324615e4613301bbc9c75416c2fe7a6f7d3bcba5826fd2d4cca18cda2669"
+    },
+    {
+      "path": "assets/logo.png",
+      "owner": "Firefly Software Foundation",
+      "license": "Apache-2.0; trademark reserved",
+      "sha256": "73ab7a835df28b670a32850b9f3ebfeca3cd3858265faec7adcda308c54e3f2c"
+    },
+    {
+      "path": "assets/brand/bridge-mark.svg",
+      "owner": "Firefly Software Foundation",
+      "license": "Apache-2.0; trademark reserved",
+      "sha256": "5ce3014a55faf752e01e6fbb6a9abb1f862bc05f0b86c9d632a06e8b226c1c39"
+    },
+    {
+      "path": "assets/brand/NOTICE",
+      "owner": "Firefly Software Solutions Inc. and Firefly Software Foundation",
+      "license": "Notice; marks reserved",
+      "sha256": "5fdf6fd161de0a364d7c564cd2b8c4fcab2e4b87cf306b26dfb8dd30c5341d7a"
+    },
+    {
+      "path": "assets/fonts/manrope/manrope-latin-wght-normal.woff2",
+      "owner": "The Manrope Project Authors",
+      "license": "OFL-1.1",
+      "sha256": "a30ddcd349703aff7464c34bef3fffdff405ee50c113440d7c8693c02d210972"
+    },
+    {
+      "path": "assets/fonts/manrope/OFL.txt",
+      "owner": "The Manrope Project Authors",
+      "license": "OFL-1.1",
+      "sha256": "d826ab6583b12c26807d8716a545bdbbb672df04f48608a364ba9efdbe501c30"
+    }
+  ]
+}

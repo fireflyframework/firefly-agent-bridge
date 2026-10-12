@@ -2,6 +2,17 @@
 
 # Changelog
 
+## 0.2.0 — 2026-10-12
+
+- A distinct bridge mark and a shared Firefly grid, typography and light/dark/system appearances.
+- Separate header, navigation, content and footer rows, with usable mobile navigation and no fixed footer covering forms.
+- Native Codex plugin, marketplace and operation skill alongside the Claude Code integrations.
+- Scoped Streamable HTTP MCP for authorized clients, preserving token scopes and revocation.
+- Task-based MkDocs guides for installation, providers, integrations, diagnostics, recovery and security.
+- Real Codex subscription file edits, session follow-ups and native plugin/MCP acceptance recorded separately from deterministic tests.
+
+ChatGPT web connections require an organization-owned HTTPS/OAuth gateway and account-specific setup. Local Codex acceptance does not establish a completed ChatGPT web connection.
+
 ## 0.1.0 — 2026-10-11
 
 Initial private developer release of Firefly Agent Bridge.

@@ -85,6 +85,31 @@ const background = (prompt = "hello", profile = "default") => ({
   bridge: { execution: "agent", background: true },
 });
 const headers = () => ({ authorization: "Bearer " + token });
+it("shows accurate owner configuration without exposing executable paths or agent instructions to scoped clients", async () => {
+  const own = auth.create({
+    id: "operator",
+    owner: true,
+    profiles: ["default"],
+  }).token;
+  const status = (
+    await app.inject({
+      url: "/v1/bridge/status",
+      headers: { authorization: "Bearer " + own },
+    })
+  ).json();
+  expect(status.configuration.worker).toBe("claude");
+  expect(status.configuration.profiles.default).toMatchObject({
+    permissionMode: "default",
+    model: null,
+    agents: [],
+  });
+  expect(status.configuration.capabilities.nativeAgents).toBe(true);
+  expect(status.configuration.capabilities.profileToolAllowlist).toBe(true);
+  expect(status.configuration).not.toHaveProperty("claudePath");
+  expect(
+    (await app.inject({ url: "/v1/bridge/status", headers: headers() })).json(),
+  ).not.toHaveProperty("configuration");
+});
 it("permits explicit browser origins without bypassing authentication on commands", async () => {
   const origin = "https://console.example";
   const preflight = await app.inject({

@@ -1,7 +1,5 @@
 <!-- Copyright (c) 2026 Signature Management Consultants SLU; Author: @ancongui. Modified by Firefly Software Foundation for Firefly Agent Bridge (2026). SPDX-License-Identifier: Apache-2.0. -->
 
-Worker selection: choose official Codex or Claude Code in [configuration](configuration.md). Claude-native agent/tool details in this guide apply to the Claude adapter; Codex uses its own thread protocol and sandbox. Default permissions remain enabled; explicit bypass is owner configuration.
-
 # Execution, recovery, and operations
 
 [README](../README.md) · [Architecture](architecture.md) · [Configuration](configuration.md)
@@ -29,19 +27,19 @@ Worker selection: choose official Codex or Claude Code in [configuration](config
 
 ## Compaction
 
-Claude owns the native transcript and its compacted summary. The bridge persists session IDs and records `job.compaction` events. A compacted conversation continues through Claude's `--resume` mechanism; the bridge does not replay the pre-compaction transcript.
+The selected CLI owns its native session. Claude owns the native transcript and its compacted summary. The bridge persists session IDs and records `job.compaction` events. A compacted conversation continues through Claude's `--resume` mechanism; the bridge does not replay the pre-compaction transcript.
 
 A reported compaction failure pauses the execution for review. If a native session has been removed or is no longer resumable, the CLI reports an error. The bridge does not silently substitute a fresh session.
 
 ## Subscription limits
 
-The worker observes native `rate_limit_event` records and terminal quota errors. A rejection pauses the affected job and latches a persistent global dispatch gate.
+The Claude adapter observes native `rate_limit_event` records; both workers handle recognized terminal quota errors. A rejection pauses the affected job and latches a persistent global dispatch gate.
 
 A valid future `resetsAt` timestamp is honored with a five-second buffer. At that point the bridge can continue a quota-paused job with a saved session, up to three automatic resumptions per job. It never guesses a reset time from prose, purchases usage, changes subscriptions, or switches to API billing.
 
 If a reset timestamp is absent, an operator must decide when to resume dispatch and the paused job. A workflow explicitly paused by an operator is not automatically resumed by the quota timer. Other attempts paused while a quota gate is applied remain visible for operator control.
 
-Usage fields are shown only when reported by Claude. Missing utilization does not mean zero usage.
+Usage fields are shown only when reported by the selected provider. Missing utilization does not mean zero usage.
 
 ## Follow-up turns
 
@@ -69,7 +67,7 @@ Use `stop` for graceful shutdown. Active CLI work is paused and child processes 
 
 ## Data, retention, and backups
 
-The data directory contains `config.json`, `queue.sqlite`, `owner.token`, a discovery file, and service logs. Job workspaces are under the configured workspace directory. Native Claude transcripts remain in Claude's own storage.
+The data directory contains `config.json`, `queue.sqlite`, `owner.token`, a discovery file, and service logs. Job workspaces are under the configured workspace directory. Native transcripts remain in the selected CLI's own storage.
 
 The service retains the latest 10,000 event sequence IDs. Jobs, messages, attempts, workflow snapshots, and full execution audits remain durable. Monitor disk usage and archive data deliberately; this release does not silently delete job history.
 

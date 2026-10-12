@@ -4,7 +4,7 @@
 
 [Quickstart](installation.md) · [API](api.md) · [Advanced workflows](advanced-workflows.md)
 
-A **bridge token** authenticates to your local Firefly Agent Bridge. It starts with `ffb_`. It is separate from your Claude subscription login. Claude Code manages that login; you never need to obtain a Claude OAuth token or API key for this project.
+A **bridge token** authenticates to your local Firefly Agent Bridge. It starts with `ffb_`. It is separate from your provider subscription login. Official Codex or Claude Code manages that login; provider credentials stay with that client.
 
 ![Owner and application token flow](../assets/diagrams/tokens.svg)
 
@@ -16,7 +16,7 @@ Install and enable the Code plugin or Desktop extension, then restart the host. 
 
 The listener creates `owner.token` on its first successful start. The `init` command only creates configuration; it does not start the service or create this token.
 
-With the portable download, run `./firefly-agent-bridge serve` (Windows: `.\firefly-agent-bridge.exe serve`) and keep that terminal open. The default console address is `http://127.0.0.1:8766`; `bridge_panel` returns the actual address if the configured port differs.
+With the portable download, run `./firefly-bridge serve` (Windows: `.\firefly-bridge.exe serve`) and keep that terminal open. The default console address is `http://127.0.0.1:8766`; `bridge_panel` returns the actual address if the configured port differs.
 
 ## 2. Get the owner token for the console
 
@@ -62,7 +62,7 @@ The console creates a client with `read`, `submit`, `control`, and `workflows` s
 The portable CLI can create the same token without copying the owner token into a shell:
 
 ```sh
-./firefly-agent-bridge token --id build-helper --profiles default --scopes read,submit,control,workflows
+./firefly-bridge token --id build-helper --profiles default --scopes read,submit,control,workflows
 ```
 
 Its JSON output contains `token`. Store that value privately as `BRIDGE_TOKEN` in your application. The plugin's cached executable is not automatically added to PATH; use the downloaded portable executable for these commands.
@@ -105,7 +105,7 @@ curl --fail-with-body "$BRIDGE_URL/v1/bridge/admin/tokens" \
 Click **Revoke** next to the client in Diagnostics, or run:
 
 ```sh
-./firefly-agent-bridge revoke --id build-helper
+./firefly-bridge revoke --id build-helper
 ```
 
 Revocation invalidates all tokens for that client name and disconnects its SSE streams. Create a replacement token and update the application's private configuration. Revocation ends active synchronous completion waiters and cancels their work when no waiter remains. Background jobs remain admitted; cancel those explicitly if needed.

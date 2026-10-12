@@ -23,10 +23,14 @@ import { randomUUID } from "node:crypto";
 import { request, type Connection } from "./lifecycle.js";
 import type { Job } from "./contracts.js";
 import { templateSchema } from "./config.js";
-export function createAdapter(connection: Connection, channel = false) {
+export function createAdapter(
+  connection: Connection,
+  channel = false,
+  lease = true,
+) {
   const hostId = randomUUID();
   const server = new McpServer(
-    { name: "firefly-agent-bridge", version: "0.1.0" },
+    { name: "firefly-agent-bridge", version: "0.2.0" },
     {
       capabilities: channel ? { experimental: { "claude/channel": {} } } : {},
       instructions:
@@ -73,7 +77,7 @@ export function createAdapter(connection: Connection, channel = false) {
   );
   register(
     "bridge_submit",
-    "Queue work in the user's official Claude Code subscription session. Runs with native bypass permissions in an isolated job directory.",
+    "Queue work through the configured official Codex or Claude Code subscription login. Uses the selected profile's permission policy and a dedicated job directory.",
     {
       prompt: z.string().min(1).max(100000),
       profile: z.string().default("default"),
@@ -174,40 +178,45 @@ export function createAdapter(connection: Connection, channel = false) {
     async () => ({
       url: connection.address + "/",
       authentication:
-        "Open the local dashboard and paste owner.token from the bridge data directory. Run firefly-agent-bridge panel to locate it.",
+        "Open the local dashboard and paste owner.token from the bridge data directory. Run firefly-bridge panel to locate it.",
     }),
   );
-  register(
-    "bridge_channel_pending",
-    "Inspect jobs explicitly routed to the current host conversation; no job is claimed by this call.",
-    {},
-    () => request(connection, "/v1/bridge/channel/pending"),
-  );
-  register(
-    "bridge_channel_claim",
-    "Claim exclusive responsibility before executing a channel job. Save the returned attempt ID and fence for subsequent updates.",
-    { jobId: z.string().uuid() },
-    (a) => request(connection, "/v1/bridge/channel/claim", { ...a, hostId }),
-  );
-  const receipt = { attemptId: z.string().uuid(), fence: z.string().uuid() };
-  register(
-    "bridge_channel_progress",
-    "Record progress and check for pause_requested or cancel_requested. Stop your work when requested, then acknowledge the stop.",
-    { ...receipt, text: z.string().max(16000) },
-    (a) => request(connection, "/v1/bridge/channel/progress", { ...a, hostId }),
-  );
-  register(
-    "bridge_channel_complete",
-    "Complete a claimed job only after its work has finished and no stop is pending.",
-    { ...receipt, result: z.string().max(100000) },
-    (a) => request(connection, "/v1/bridge/channel/complete", { ...a, hostId }),
-  );
-  register(
-    "bridge_channel_stopped",
-    "Acknowledge a requested pause or cancellation only after all work for this channel job has stopped.",
-    receipt,
-    (a) => request(connection, "/v1/bridge/channel/stopped", { ...a, hostId }),
-  );
+  if (lease) {
+    register(
+      "bridge_channel_pending",
+      "Inspect jobs explicitly routed to the current host conversation; no job is claimed by this call.",
+      {},
+      () => request(connection, "/v1/bridge/channel/pending"),
+    );
+    register(
+      "bridge_channel_claim",
+      "Claim exclusive responsibility before executing a channel job. Save the returned attempt ID and fence for subsequent updates.",
+      { jobId: z.string().uuid() },
+      (a) => request(connection, "/v1/bridge/channel/claim", { ...a, hostId }),
+    );
+    const receipt = { attemptId: z.string().uuid(), fence: z.string().uuid() };
+    register(
+      "bridge_channel_progress",
+      "Record progress and check for pause_requested or cancel_requested. Stop your work when requested, then acknowledge the stop.",
+      { ...receipt, text: z.string().max(16000) },
+      (a) =>
+        request(connection, "/v1/bridge/channel/progress", { ...a, hostId }),
+    );
+    register(
+      "bridge_channel_complete",
+      "Complete a claimed job only after its work has finished and no stop is pending.",
+      { ...receipt, result: z.string().max(100000) },
+      (a) =>
+        request(connection, "/v1/bridge/channel/complete", { ...a, hostId }),
+    );
+    register(
+      "bridge_channel_stopped",
+      "Acknowledge a requested pause or cancellation only after all work for this channel job has stopped.",
+      receipt,
+      (a) =>
+        request(connection, "/v1/bridge/channel/stopped", { ...a, hostId }),
+    );
+  }
   let busy = false,
     closed = false,
     lastNotify = 0;
@@ -240,17 +249,18 @@ export function createAdapter(connection: Connection, channel = false) {
       busy = false;
     }
   }
-  const timer = setInterval(() => void heartbeat(), 2000);
-  timer.unref();
+  const timer = lease ? setInterval(() => void heartbeat(), 2000) : undefined;
+  timer?.unref();
   server.server.oninitialized = () => {
-    void heartbeat();
+    if (lease) void heartbeat();
   };
   server.server.onclose = () => {
     closed = true;
-    clearInterval(timer);
-    void request(connection, "/v1/bridge/hosts/disconnect", {
-      id: hostId,
-    }).catch(() => {});
+    if (timer) clearInterval(timer);
+    if (lease)
+      void request(connection, "/v1/bridge/hosts/disconnect", {
+        id: hostId,
+      }).catch(() => {});
   };
   return server;
 }

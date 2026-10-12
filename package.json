@@ -1,6 +1,6 @@
 {
   "name": "firefly-agent-bridge",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Private Firefly developer execution bridge for Claude Code and Codex subscriptions",
   "type": "module",
   "license": "Apache-2.0",
@@ -32,14 +32,18 @@
     "format": "prettier --write .",
     "verify": "tsx scripts/verify.ts",
     "package": "tsx scripts/package.ts",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run test:clients && npm run test:browser && npm run build && npm run verify && npm run package && npm run test:package",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run test:clients && npm run test:browser && npm run build && npm run verify && npm run docs:editorial && npm run docs:build && npm run package && npm run test:package",
     "test:browser": "playwright test",
     "test:live": "tsx scripts/live-smoke.ts",
     "test:package": "tsx scripts/package-smoke.ts",
     "render:diagrams": "tsx scripts/render-diagrams.ts",
     "generate:api": "tsx scripts/openapi.ts",
     "test:clients": "tsx scripts/clients-smoke.ts",
-    "test:live:codex": "tsx scripts/live-codex-smoke.ts"
+    "test:live:codex": "tsx scripts/live-codex-smoke.ts",
+    "docs:build": "tsx scripts/docs-build.ts",
+    "docs:editorial": "tsx scripts/docs-editorial.ts",
+    "generate:diagrams": "tsx scripts/diagram-assets.ts",
+    "test:live:codex:mcp": "tsx scripts/live-codex-mcp.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",

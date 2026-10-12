@@ -1,7 +1,7 @@
 {
   "name": "firefly-agent-bridge",
-  "version": "0.1.0",
-  "description": "OpenAI-compatible local jobs, workflows, and a management console powered by your own Claude subscription.",
+  "version": "0.2.0",
+  "description": "Private local jobs and workflows through your configured official Codex or Claude Code subscription.",
   "author": {
     "name": "@ancongui",
     "url": "https://github.com/ancongui"

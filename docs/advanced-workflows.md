@@ -1,7 +1,5 @@
 <!-- Copyright (c) 2026 Signature Management Consultants SLU; Author: @ancongui. Modified by Firefly Software Foundation for Firefly Agent Bridge (2026). SPDX-License-Identifier: Apache-2.0. -->
 
-Worker selection: choose official Codex or Claude Code in [configuration](configuration.md). Claude-native agent/tool details in this guide apply to the Claude adapter; Codex uses its own thread protocol and sandbox. Default permissions remain enabled; explicit bypass is owner configuration.
-
 # Advanced Claude Code workflows
 
 [Tokens](tokens.md) · [Template reference](workflows.md) · [Subagents](subagents.md)
@@ -97,4 +95,4 @@ This bridge uses structured jobs, profiles, and template steps. It does not inte
 
 For host-native planning, reviews, or agent teams, use the commands supported by your installed Claude Code version in that host. Anthropic currently documents plan mode for planning and `/code-review ultra` (with `/ultrareview` as an alias) for cloud review. Those cloud workflows have their own availability and usage rules; the bridge does not schedule or resume them as local child jobs. See the [official command reference](https://code.claude.com/docs/en/commands).
 
-The example here is an advanced local Claude Code workflow, not an integration with a separate product named UltraCode. It runs sequential stages; native subagents may do delegated work inside a stage. Arbitrary DAGs and independent agent-team orchestration are not part of this release.
+This local workflow runs sequential stages. Claude native subagents can work inside a stage; arbitrary DAGs and independent agent teams are outside the bridge scheduler.

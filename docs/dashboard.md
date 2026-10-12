@@ -14,7 +14,7 @@ Select a row to inspect messages, attempts, session continuity, and reported chi
 
 ![Job queue and conversation on desktop](../assets/screenshots/dashboard-desktop.png)
 
-**New job** opens a focused dialog. Choose a configured profile and an configured local coding-agent worker, a Chat Completion, or the current host conversation.
+**New job** opens a focused dialog. Choose a configured profile and native coding-agent execution, a Chat Completion, or the current host conversation.
 
 ![New-job dialog](../assets/screenshots/new-job-desktop.png)
 
@@ -66,7 +66,7 @@ Create a separate token for each trusted application. New tokens are displayed o
 
 ## Responsive navigation
 
-The sidebar becomes a compact navigation row on narrow screens. Queue and conversation panels stack, controls remain accessible, and long diagnostics wrap rather than widening the page. The copyright footer stays at the bottom of the viewport; content reserves space so controls remain reachable.
+The sidebar becomes a compact navigation row on narrow screens. Queue and conversation panels stack, controls remain accessible, and long diagnostics wrap rather than widening the page. The content area scrolls independently of the shell. The copyright footer occupies its own row, clear of job and connection controls. On desktop its 64-pixel row aligns with the sidebar connection and disconnect rows.
 
 | Mobile jobs                                                | Mobile workflows                                                |
 | ---------------------------------------------------------- | --------------------------------------------------------------- |
@@ -77,3 +77,13 @@ The sidebar becomes a compact navigation row on narrow screens. Queue and conver
 ## Live activity
 
 The activity stream receives authenticated SSE events and reconnects with the last event ID. When retention has removed older events, it refreshes current job state before reconnecting. Tokens stay in tab memory and are never placed in a URL or browser local storage.
+
+## Appearance and provider setup
+
+Appearance follows the system by default. Choose Light or Dark to save an explicit preference on this browser. The console stores only that preference; reloading clears authentication. The fixed 76-pixel header, 248-pixel desktop rail, Manrope typography, and amber controls match the Firefly developer suite. Mobile navigation preserves access to every view.
+
+Providers & setup shows the selected official worker, subscription readiness, supported native capabilities, effective profiles, configured models, permissions, deadlines, and output bounds. Owner authentication is required for profile details. Claude tools and agents are labeled as Claude capabilities; the view does not imply that they restrict Codex.
+
+![Provider setup and profiles](../assets/screenshots/providers-light-desktop.png)
+
+Change worker and profile configuration in the saved file while stopped, restart, then check the effective settings here. The console does not accept provider credentials or rewrite executable paths.

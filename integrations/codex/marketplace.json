@@ -1,0 +1,20 @@
+{
+  "name": "firefly-internal",
+  "interface": {
+    "displayName": "Firefly internal"
+  },
+  "plugins": [
+    {
+      "name": "firefly-agent-bridge",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

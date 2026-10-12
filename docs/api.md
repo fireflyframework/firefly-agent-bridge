@@ -23,7 +23,7 @@ Traffic is limited to 240 requests per minute per principal **per admission clas
 | `GET /v1/bridge/status`                                 | Version, readiness, dispatch gate, profiles, available templates                       |
 | `GET /v1/models`                                        | Discover authorized `bridge/<profile>` models                                          |
 | `POST /v1/chat/completions`                             | Submit messages; returns completion JSON/SSE, or 202 Job with `bridge.background:true` |
-| `GET /v1/bridge/jobs?limit=100&after=UUID&order=asc`    | Principal-scoped page; limit 1–200, asc or desc                                        |
+| `GET /v1/bridge/jobs?limit=100&after=UUID&order=asc`    | Principal-scoped page; limit 1 to 200, asc or desc                                     |
 | `GET /v1/bridge/jobs/{id}`                              | Current job, messages, status, session, reported child tasks                           |
 | `GET /v1/bridge/jobs/{id}/result`                       | 202 while nonterminal; 200 with terminal status/result/error                           |
 | `GET /v1/bridge/jobs/{id}/attempts`                     | Attempt history without private claim fences                                           |
@@ -55,7 +55,7 @@ Inference histories belong to the calling SDK: submit full history as a new chat
 | `GET /v1/bridge/jobs/{id}/tools`        | Current native tool metadata; `filesOnly=true` filters reported file targets.                  |
 | `GET /v1/bridge/jobs/{id}/tools/{tool}` | Full input/output, command/content, result, and correlation for one numeric tool record.       |
 
-All three require `read` and job ownership (or owner access). Lists accept numeric `after` and `limit` 1–200. Follow `nextCursor` until null; audit pages have a byte budget and may return fewer than the requested limit. See the [audit guide](audit.md) for complete fields, provenance, retention, and large JSON exports.
+All three require `read` and job ownership (or owner access). Lists accept numeric `after` and `limit` 1 to 200. Follow `nextCursor` until null; audit pages have a byte budget and may return fewer than the requested limit. See the [audit guide](audit.md) for complete fields, provenance, retention, and large JSON exports.
 
 ## Orchestration event stream
 
@@ -107,3 +107,13 @@ Adapters renew `POST /v1/bridge/hosts/heartbeat` with `{id}` and close through `
 For host-conversation execution: list `GET /v1/bridge/channel/pending`, then `POST /v1/bridge/channel/claim` with `{hostId, jobId}`. The response contains the job and a private attempt receipt. One host may hold one outstanding claim. Progress, completion, and stopped acknowledgments must supply the same `hostId`, `attemptId`, and `fence`. Add `text` to progress or `result` to completion. A notification alone grants no execution authority.
 
 A lost lease interrupts the attempt and rejects late completion. The operator must reconcile external actions before retrying.
+
+## Streamable HTTP MCP
+
+`/mcp` accepts the official Streamable HTTP protocol with a bridge bearer token. It uses stateless JSON responses and the job, workflow, dispatch, and configuration tools shared with stdio. A connection requires `read`; each tool retains its caller's scopes and resource ownership. Admin operations still require owner authentication. Revocation applies to the next request.
+
+The transport does not maintain MCP sessions or a server-initiated GET stream. Durable orchestration notifications remain at `/v1/bridge/events`. Remote ChatGPT setup needs a reachable HTTPS gateway and the host's supported authentication; see [host integrations](integrations.md#chatgpt-remote-mcp).
+
+Owner-authenticated status includes `configuration` with selected worker, concurrency, queue capacity, capability flags, and effective profile models, permission modes, tools, limits, and native agent names. It excludes executable paths and agent prompt contents. Scoped clients receive authorized profile IDs and normal readiness without this owner configuration object.
+
+Stateless remote MCP does not expose lease-bound `bridge_channel_*` tools. Host-conversation claims and acknowledgments remain on the local stdio adapter; a remote caller can still submit work for that local host to claim.
