@@ -37,6 +37,9 @@ theme:
         icon: material/weather-sunny
         name: Switch to light appearance
   features:
+    - navigation.tabs
+    - navigation.footer
+    - toc.follow
     - navigation.sections
     - navigation.indexes
     - navigation.top
@@ -44,8 +47,8 @@ theme:
     - search.highlight
     - search.suggest
 nav:
-  - Overview: index.md
-  - Set up:
+  - Home: index.md
+  - Setup:
       - Installation: installation.md
       - Host integrations: integrations.md
       - Provider configuration: configuration.md
@@ -72,6 +75,10 @@ plugins:
   - search
 markdown_extensions:
   - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+      toc_depth: 3
   - admonition
   - pymdownx.details
   - pymdownx.superfences

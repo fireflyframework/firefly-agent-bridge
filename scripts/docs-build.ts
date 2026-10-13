@@ -23,6 +23,7 @@ import {
   readFileSync,
   writeFileSync,
   mkdtempSync,
+  existsSync,
 } from "node:fs";
 import { resolve, join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -37,13 +38,14 @@ for (const file of ["LICENSE", "NOTICE", "SECURITY.md"])
     file,
     join(staging, file === "SECURITY.md" ? "security-policy.md" : file),
   );
-cpSync("README.md", join(staging, "index.md"));
+const readmeLanding = !existsSync(join(staging, "index.md"));
+if (readmeLanding) cpSync("README.md", join(staging, "index.md"));
 const { readdirSync } = await import("node:fs");
 for (const file of readdirSync(staging).filter((name) =>
   name.endsWith(".md"),
 )) {
   let body = readFileSync(join(staging, file), "utf8");
-  if (file === "index.md")
+  if (file === "index.md" && readmeLanding)
     body = body
       .replaceAll("docs/", "")
       .replace(
