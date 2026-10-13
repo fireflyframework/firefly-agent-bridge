@@ -51,7 +51,6 @@ export function createProviderSetup(refresh, showAccess, openJob, notice) {
       for (const item of continuations) {
         const target = item.target();
         item.control.hidden =
-          !mobileDiagnostics.matches ||
           !item.view.getClientRects().length ||
           !target ||
           target.disabled ||
@@ -81,6 +80,12 @@ export function createProviderSetup(refresh, showAccess, openJob, notice) {
     attributeFilter: ["hidden"],
   });
   mobileDiagnostics.addEventListener("change", updateContinuations);
+  const activityToggle = element("diagnostic-activity-toggle");
+  activityToggle.onclick = () => {
+    const expanded = activityToggle.getAttribute("aria-expanded") !== "true";
+    activityToggle.setAttribute("aria-expanded", String(expanded));
+    activityToggle.textContent = expanded ? "Hide activity" : "View activity";
+  };
   let diagnosticSection = "service";
   function selectDiagnostics(section, focus = false) {
     diagnosticSection = section;

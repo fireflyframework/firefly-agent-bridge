@@ -438,6 +438,9 @@ test("activity and files expose full tool payloads, diffs, audit export, and res
   await expect(
     page.getByRole("tab", { name: "Files", exact: false }),
   ).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#file-coverage")).toContainText(
+    "targets reported by the coding agent",
+  );
   await page
     .locator("#file-list .tool-card")
     .filter({ hasText: "Edit" })
@@ -1840,5 +1843,154 @@ test("short phones show a continuation shortcut when setup and workflow actions 
       .boundingBox();
     expect(start!.y + start!.height).toBeLessThanOrEqual(footer!.y);
     await expect(page.locator("#workflow-scroll-control")).toBeHidden();
+  }
+});
+
+test("short desktops expose off-screen setup actions without advancing the guide", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 600 });
+  await login(page);
+  for (const theme of ["light", "dark"]) {
+    await page.locator("#appearance").selectOption(theme);
+    await navigate(page, "providers");
+    await page.locator('[data-setup-step="0"]').click();
+    await page.locator("#setup-next").click();
+    await page.locator("#setup-next").click();
+    await expect(page.locator("#setup-scroll-control")).toBeVisible();
+    await page.locator("#setup-scroll-control").click();
+    await expect(page.locator("#setup-next")).toBeFocused();
+    await expect(page.locator("#setup-step-count")).toHaveText("Step 3 of 4");
+    const next = await page.locator("#setup-next").boundingBox();
+    const footer = await page.locator("main>footer").boundingBox();
+    expect(next!.y + next!.height).toBeLessThanOrEqual(footer!.y);
+    await expect(page.locator("#setup-scroll-control")).toBeHidden();
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.locator('[data-setup-step="0"]').click();
+    await expect(page.locator("#setup-scroll-control")).toBeHidden();
+    await page.setViewportSize({ width: 1440, height: 600 });
+  }
+});
+
+test("short-window conversations scroll with the page to the latest response and reply", async ({
+  page,
+}) => {
+  const job = service.store.submit(
+    {
+      prompt:
+        "Long conversation layout\n" +
+        Array.from(
+          { length: 160 },
+          (_, i) => `Conversation line ${i + 1}`,
+        ).join("\n"),
+    },
+    owner,
+  );
+  const attempt = service.store.claim("fixture", "cli", job.id)!;
+  const latest = "Latest response reachable by page scrolling.";
+  service.store.finish(attempt, {
+    status: "succeeded",
+    result: latest,
+    sessionId: randomUUID(),
+  });
+  await login(page);
+  for (const [width, height] of [
+    [320, 568],
+    [1440, 600],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    await navigate(page, "jobs");
+    await page
+      .getByRole("button", { name: /^Long conversation layout/ })
+      .click();
+    await page.locator("#messages").scrollIntoViewIfNeeded();
+    const content = page.locator("#content");
+    const before = await content.evaluate((node) => node.scrollTop);
+    const messages = await page.locator("#messages").boundingBox();
+    const frame = await content.boundingBox();
+    await page.mouse.move(
+      messages!.x + 24,
+      Math.max(
+        frame!.y + 24,
+        Math.min(messages!.y + 80, frame!.y + frame!.height - 24),
+      ),
+    );
+    await page.mouse.wheel(0, 500);
+    await expect
+      .poll(() => content.evaluate((node) => node.scrollTop))
+      .toBeGreaterThan(before);
+    await expect
+      .poll(() => page.locator("#messages").evaluate((node) => node.scrollTop))
+      .toBe(0);
+    await page.getByText(latest, { exact: true }).scrollIntoViewIfNeeded();
+    await expect(page.getByText(latest, { exact: true })).toBeInViewport();
+    await page
+      .getByLabel("Continue this conversation")
+      .scrollIntoViewIfNeeded();
+    await page.getByLabel("Continue this conversation").focus();
+    await expect(page.getByLabel("Continue this conversation")).toBeFocused();
+    await expect(
+      page.getByLabel("Continue this conversation"),
+    ).toBeInViewport();
+  }
+});
+
+test("diagnostic activity expands recorded events with keyboard control and retains compact state", async ({
+  page,
+}) => {
+  const job = service.store.submit(
+    { prompt: "Diagnostics history layout" },
+    owner,
+  );
+  const attempt = service.store.claim("fixture", "cli", job.id)!;
+  for (let i = 0; i < 8; i++)
+    service.store.observe(attempt, {
+      kind: "output",
+      text: `Recorded layout event ${i + 1}`,
+    });
+  service.store.finish(attempt, {
+    status: "succeeded",
+    result: "Recorded events available.",
+  });
+  await login(page);
+  for (const [width, height] of [
+    [1920, 1080],
+    [1440, 600],
+    [320, 568],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    await navigate(page, "diagnostics");
+    const toggle = page.getByRole("button", {
+      name: "View activity",
+      exact: true,
+    });
+    await toggle.scrollIntoViewIfNeeded();
+    await toggle.focus();
+    await page.keyboard.press("Enter");
+    await expect(
+      page.getByRole("button", { name: "Hide activity", exact: true }),
+    ).toHaveAttribute("aria-expanded", "true");
+    await page.locator("#events").scrollIntoViewIfNeeded();
+    await expect
+      .poll(() =>
+        page.locator("#events").evaluate((node) => {
+          const bounds = node.getBoundingClientRect();
+          return Array.from(node.children).filter((child) => {
+            const row = child.getBoundingClientRect();
+            return row.top >= bounds.top && row.bottom <= bounds.bottom;
+          }).length;
+        }),
+      )
+      .toBeGreaterThanOrEqual(3);
+    await expect(page.locator("#events")).toContainText(
+      "Recorded layout event",
+    );
+    await page
+      .getByRole("button", { name: "Hide activity", exact: true })
+      .focus();
+    await page.keyboard.press("Space");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await navigate(page, "jobs");
+    await expect(toggle).toBeHidden();
   }
 });

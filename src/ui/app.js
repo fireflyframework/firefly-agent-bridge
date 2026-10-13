@@ -920,6 +920,8 @@ function showView(name, { history = true } = {}) {
   document.querySelector(".toolbar").hidden =
     !connected || !["jobs", "workflows"].includes(name);
   document.querySelector(".activity").hidden = name === "providers";
+  el("diagnostic-activity-toggle").hidden =
+    !connected || name !== "diagnostics";
   el("new-job").hidden =
     !connected || !can("submit") || !["jobs", "workflows"].includes(name);
   el("mobile-disconnect").hidden = !connected;

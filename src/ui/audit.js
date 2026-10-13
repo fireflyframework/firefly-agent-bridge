@@ -348,7 +348,7 @@ export function createAuditPanel(api, notice) {
           : "Complete tool payloads as emitted by Claude. Outcomes are provider-reported; shell and external tool side effects may not identify files.";
     el("audit-coverage").textContent = coverage;
     el("file-coverage").textContent =
-      "Read, Write, Edit, and NotebookEdit targets reported by Claude. Expand an action to inspect content and available diffs. A successful command alone does not verify a file change.";
+      "Read, Write, Edit, and NotebookEdit targets reported by the coding agent. Expand an action to inspect content and available diffs. A successful command alone does not verify a file change.";
     const view = tab,
       stamp =
         first.through + ":" + toolPages + ":" + filePages + ":" + eventPages;
