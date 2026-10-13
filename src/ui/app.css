@@ -3429,3 +3429,17 @@ body[data-connection="connected"]
   width: auto;
   margin: 0;
 }
+
+@media (max-width: 900px) {
+  .shell-header:has(.continuation-control:not([hidden])),
+  .shell-tools:has(.continuation-control:not([hidden])) {
+    gap: 8px;
+  }
+  .continuation-control {
+    min-height: 40px;
+    padding: 8px;
+    font-size: 12px;
+    white-space: nowrap;
+    color: var(--accent-ink);
+  }
+}

@@ -1336,6 +1336,12 @@ test("read-only application access exposes inspection without job, token, or ima
   await expect(page.locator("#image-owner-help")).toContainText(
     "Ask the bridge owner",
   );
+  await page.locator("#setup-next").click();
+  await expect(page.locator("#setup-start-job")).toBeHidden();
+  await expect(page.locator("#setup-submit-help")).toContainText(
+    "Ask the bridge owner",
+  );
+  await expect(page.locator("#setup-back")).toBeEnabled();
   await navigate(page, "diagnostics");
   await expect(page.locator("#token-form")).toBeHidden();
   expect(service.store.get(job.id).status).toBe("succeeded");
@@ -1773,5 +1779,66 @@ test("changing profile discards a late image-check admission from the previous p
     release();
     await isolated.close();
     rmSync(data, { recursive: true, force: true });
+  }
+});
+
+test("paused image guidance leads to the actual Jobs resume control", async ({
+  page,
+}) => {
+  await login(page);
+  try {
+    await page.locator("#pause-all").click();
+    await navigate(page, "providers");
+    await page.locator("#setup-next").click();
+    await page.locator("#setup-next").click();
+    await expect(page.locator("#verify-image")).toBeDisabled();
+    await expect(page.locator("#image-owner-help")).toContainText(
+      "Resume dispatch in Jobs",
+    );
+    await navigate(page, "jobs");
+    await page.locator("#resume-all").click();
+    await navigate(page, "providers");
+    await expect(page.locator("#verify-image")).toBeEnabled();
+  } finally {
+    await fetch(service.address + "/v1/bridge/admin/resume", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + service.ownerToken,
+        "Content-Type": "application/json",
+      },
+      body: "{}",
+    });
+  }
+});
+
+test("short phones show a continuation shortcut when setup and workflow actions are below the fold", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await login(page);
+  for (const theme of ["light", "dark"]) {
+    await page.locator("#appearance").selectOption(theme);
+    await navigate(page, "providers");
+    await page.locator('[data-setup-step="0"]').click();
+    await page.locator("#setup-next").click();
+    await expect(page.locator("#setup-scroll-control")).toBeVisible();
+    await page.locator("#setup-scroll-control").click();
+    await expect(page.locator("#setup-next")).toBeFocused();
+    await expect(page.locator("#setup-step-count")).toHaveText("Step 2 of 4");
+    const next = await page.locator("#setup-next").boundingBox();
+    const footer = await page.locator("main>footer").boundingBox();
+    expect(next!.y + next!.height).toBeLessThanOrEqual(footer!.y);
+    await expect(page.locator("#setup-scroll-control")).toBeHidden();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#setup-step-count")).toHaveText("Step 3 of 4");
+    await navigate(page, "workflows");
+    await expect(page.locator("#workflow-scroll-control")).toBeVisible();
+    await page.locator("#workflow-scroll-control").click();
+    await expect(page.locator("#workflow-form button.primary")).toBeFocused();
+    const start = await page
+      .locator("#workflow-form button.primary")
+      .boundingBox();
+    expect(start!.y + start!.height).toBeLessThanOrEqual(footer!.y);
+    await expect(page.locator("#workflow-scroll-control")).toBeHidden();
   }
 });

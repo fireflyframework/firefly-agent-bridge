@@ -26,7 +26,7 @@ An isolated official-Codex preview is reviewed directly in light and dark at 128
 
 A fresh console journey used the authenticated official Codex worker to create a small file inside its job workspace and continue the same native session. The first image challenge misread one digit and remained unverified; a second explicit owner check passed. Both outcomes are retained, with no automatic probe retry.
 
-Version 0.2.4 still requires the complete native matrix and downloaded asset checks before release. A source screenshot or local build does not establish Windows/Linux acceptance or a ChatGPT web connection.
+Version 0.2.4 passed 123 unit/integration tests, seven Python SDK cases, 36 browser journeys, and the complete Linux, macOS and Windows native matrix. All five product downloads matched SHA256SUMS; all six downloaded files matched GitHub asset digests. Downloaded macOS portable and MCP bundle servers passed authenticated stdio/HTTP MCP, console-module and font checks. The MCP bundle also passed a direct browser review and official Codex readiness check without another model call. See the [private release](https://github.com/fireflyframework/firefly-agent-bridge/releases/tag/v0.2.4). These checks do not establish a Claude subscription session or ChatGPT web connection.
 
 ## 0.2.3 image checks
 

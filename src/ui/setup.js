@@ -22,10 +22,65 @@ export function createProviderSetup(refresh, showAccess, openJob, notice) {
     reached = 0,
     guide = null,
     worker = "Codex",
-    status;
+    status,
+    canSubmit = false;
   const profile = element("setup-profile");
   const client = element("setup-client");
   const mobileDiagnostics = matchMedia("(max-width: 900px)");
+  const content = element("content");
+  const continuations = [
+    {
+      control: element("setup-scroll-control"),
+      view: element("providers-view"),
+      target: () =>
+        ["setup-next", "setup-start-job", "setup-back"]
+          .map(element)
+          .find((button) => !button.hidden && !button.disabled),
+    },
+    {
+      control: element("workflow-scroll-control"),
+      view: element("workflows-view"),
+      target: () => element("workflow-form").querySelector("button.primary"),
+    },
+  ];
+  let continuationFrame;
+  function updateContinuations() {
+    cancelAnimationFrame(continuationFrame);
+    continuationFrame = requestAnimationFrame(() => {
+      const bottom = content.getBoundingClientRect().bottom;
+      for (const item of continuations) {
+        const target = item.target();
+        item.control.hidden =
+          !mobileDiagnostics.matches ||
+          !item.view.getClientRects().length ||
+          !target ||
+          target.disabled ||
+          target.getBoundingClientRect().bottom <= bottom;
+      }
+    });
+  }
+  for (const item of continuations)
+    item.control.onclick = () => {
+      const target = item.target();
+      if (!target || target.disabled) return;
+      target.scrollIntoView({ block: "end", behavior: "auto" });
+      target.focus({ preventScroll: true });
+      updateContinuations();
+    };
+  content.addEventListener("scroll", updateContinuations, { passive: true });
+  const continuationResize = new ResizeObserver(updateContinuations);
+  for (const node of [
+    content,
+    document.querySelector(".provider-setup"),
+    element("workflow-form"),
+  ])
+    continuationResize.observe(node);
+  new MutationObserver(updateContinuations).observe(element("workspace"), {
+    attributes: true,
+    subtree: true,
+    attributeFilter: ["hidden"],
+  });
+  mobileDiagnostics.addEventListener("change", updateContinuations);
   let diagnosticSection = "service";
   function selectDiagnostics(section, focus = false) {
     diagnosticSection = section;
@@ -120,7 +175,7 @@ export function createProviderSetup(refresh, showAccess, openJob, notice) {
     }
     element("setup-back").hidden = step === 0;
     element("setup-next").hidden = step === 3;
-    element("setup-start-job").hidden = step !== 3;
+    element("setup-start-job").hidden = step !== 3 || !canSubmit;
     element("setup-step-count").textContent = "Step " + (step + 1) + " of 4";
     details();
     if (focus)
@@ -129,6 +184,7 @@ export function createProviderSetup(refresh, showAccess, openJob, notice) {
         .focus({ preventScroll: true });
     document.querySelector(".setup-body").scrollTop = 0;
     document.getElementById("content").scrollTop = 0;
+    updateContinuations();
   }
   function subscription() {
     const provider = guide === "claude" ? "Claude Code" : "Codex";
@@ -203,6 +259,11 @@ export function createProviderSetup(refresh, showAccess, openJob, notice) {
   return {
     render(value, currentWorker) {
       status = value;
+      canSubmit =
+        Boolean(value.access?.owner ?? value.configuration) ||
+        Boolean(value.access?.scopes?.includes("submit"));
+      element("setup-start-job").hidden = step !== 3 || !canSubmit;
+      element("setup-submit-help").hidden = canSubmit;
       worker = currentWorker;
       guide ??= value.worker;
       const selected = profile.value;

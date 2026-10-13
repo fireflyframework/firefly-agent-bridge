@@ -48,10 +48,10 @@ export function createImageInput(api, openJob) {
       : "Verify image input";
     el("image-owner-help").textContent = !owner
       ? "Ask the bridge owner to verify image input. Text jobs remain available."
-      : !status?.readiness.ready
-        ? "Sign in through the running worker's official CLI before checking. Text requests can still enter the queue."
-        : status.scheduler.paused
-          ? "Resume dispatch in Diagnostics before checking image input."
+      : status?.scheduler.paused
+        ? "Resume dispatch in Jobs before checking image input."
+        : !status?.readiness.ready
+          ? "Sign in through the running worker's official CLI before checking. Text requests can still enter the queue."
           : "Runs one image-only check through this profile. Text jobs do not require it.";
   }
   el("verify-image").onclick = async () => {

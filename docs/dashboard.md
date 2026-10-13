@@ -70,7 +70,7 @@ Use **New template** to define inputs, ordered steps, instructions, and executio
 
 ## Diagnostics and application access
 
-Service health explains login readiness, dispatch state, active jobs, connected hosts, profiles, OpenAI base URL, model aliases, and the workspace. Expand **Connection and execution details** for the full status payload. Readiness reflects the current official CLI login; it does not establish that every configured model can complete a job.
+Service health explains login readiness, dispatch state, active jobs, connected hosts, profiles, OpenAI base URL, model aliases, and the workspace. Expand **Connection and execution details** for the full status payload. Readiness combines official CLI login checks and the dispatch gate. A paused bridge can require attention while the provider remains signed in. Readiness does not establish that every configured model can complete a job.
 
 Create a separate token for each trusted application. Choose Jobs and conversations, Read-only inspection, or Jobs and workflows. New tokens start masked; Show and Copy token are explicit actions. Revocation immediately invalidates requests and active event streams. Read-only access hides submission, continuation, administration and image-probe actions.
 
@@ -82,7 +82,11 @@ Create a separate token for each trusted application. Choose Jobs and conversati
 
 Phones use a 60-pixel brand row and a 60-pixel context row. **Menu** opens a native modal with full navigation rows. Escape returns focus to Menu; selecting a destination closes it and focuses the heading. Resizing to desktop restores the sidebar and closes the dialog.
 
-At narrower widths, select a job to open its details. **Back to jobs** returns to the queue and stays there during polling. Provider setup and Diagnostics use the page scroller, so short screens retain complete fields and readable status. Their action rows follow the content and never cover it. Diagnostics uses Service and Application access tabs on phones. Scroll to the end of a card for its actions; the global footer remains in its own row. Desktop uses an aligned 64-pixel status and legal footer; the phone footer occupies a separate 44-pixel row with safe-area padding.
+At narrower widths, select a job to open its details. **Back to jobs** returns to the queue and stays there during polling. Provider setup and Diagnostics use the page scroller, so short screens retain complete fields and readable status. Their action rows follow the content and never cover it. Diagnostics uses Service and Application access tabs on phones. On phones, **Actions ↓** appears in the context bar when setup or workflow controls are below the visible content. It scrolls to those controls and focuses them without advancing or submitting. Scroll normally to inspect the intervening fields; the global footer remains in its own row. Desktop uses an aligned 64-pixel status and legal footer; the phone footer occupies a separate 44-pixel row with safe-area padding.
+
+![Phone setup continuation](../assets/screenshots/guidance-setup-mobile-light.png)
+
+![Phone workflow continuation](../assets/screenshots/guidance-workflows-mobile-light.png)
 
 | Mobile jobs                                                | Mobile workflows                                                |
 | ---------------------------------------------------------- | --------------------------------------------------------------- |
