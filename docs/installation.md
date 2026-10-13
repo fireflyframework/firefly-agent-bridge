@@ -16,7 +16,7 @@ Get the source or native packages from the [Firefly Agent Bridge repository](htt
 | Desktop extension | Claude Desktop management tools                                          | Matching macOS or Windows `.mcpb`; Desktop extension consent |
 | Source            | Development, debugging, or custom packaging                              | Node.js 24+, npm, Git, official coding-agent CLI             |
 
-Native release verification covers macOS arm64, Linux x64, and Windows x64. Download an archive for your machine's architecture. Desktop extensions are built for macOS and Windows.
+Native release targets are macOS arm64, Linux x64, and Windows x64. Download an archive for your machine's architecture. Desktop extensions are built for macOS and Windows.
 
 ## Sign in to the provider
 
@@ -38,27 +38,27 @@ The bridge uses that CLI's existing login. Do not copy its credentials into the 
 
 ## Install a native archive
 
-Download the platform archive and its checksum list over HTTPS. This macOS example selects release 0.2.7:
+Download the platform archive and its checksum list over HTTPS. These examples select version 0.2.8; confirm it is available on the [release page](https://github.com/fireflyframework/firefly-agent-bridge/releases) before downloading:
 
 ```sh
 curl --fail --location --remote-name \
-  https://github.com/fireflyframework/firefly-agent-bridge/releases/download/v0.2.7/firefly-agent-bridge-0.2.7-darwin-arm64.tar.gz
+  https://github.com/fireflyframework/firefly-agent-bridge/releases/download/v0.2.8/firefly-agent-bridge-0.2.8-darwin-arm64.tar.gz
 curl --fail --location --remote-name \
-  https://github.com/fireflyframework/firefly-agent-bridge/releases/download/v0.2.7/SHA256SUMS
-shasum -a 256 firefly-agent-bridge-0.2.7-darwin-arm64.tar.gz
+  https://github.com/fireflyframework/firefly-agent-bridge/releases/download/v0.2.8/SHA256SUMS
+shasum -a 256 firefly-agent-bridge-0.2.8-darwin-arm64.tar.gz
 ```
 
 Compare the digest with that archive's entry in `SHA256SUMS` before extracting. On Linux, choose the `linux-x64` archive and use `sha256sum`. On Windows, choose `win32-x64` and use PowerShell:
 
 ```powershell
-Get-FileHash .\firefly-agent-bridge-0.2.7-win32-x64.tar.gz -Algorithm SHA256
+Get-FileHash .\firefly-agent-bridge-0.2.8-win32-x64.tar.gz -Algorithm SHA256
 ```
 
 Extract the complete archive into a new directory. Keep all included license and runtime files together. For macOS or Linux:
 
 ```sh
 mkdir firefly-bridge-local
-tar -xzf firefly-agent-bridge-0.2.7-darwin-arm64.tar.gz -C firefly-bridge-local
+tar -xzf firefly-agent-bridge-0.2.8-darwin-arm64.tar.gz -C firefly-bridge-local
 cd firefly-bridge-local
 ./firefly-bridge init --worker codex
 ./firefly-bridge serve
@@ -68,7 +68,7 @@ On Windows, run the matching executable:
 
 ```powershell
 New-Item -ItemType Directory firefly-bridge-local
-tar -xzf .\firefly-agent-bridge-0.2.7-win32-x64.tar.gz -C firefly-bridge-local
+tar -xzf .\firefly-agent-bridge-0.2.8-win32-x64.tar.gz -C firefly-bridge-local
 Set-Location firefly-bridge-local
 .\firefly-bridge.exe init --worker codex
 .\firefly-bridge.exe serve
@@ -105,4 +105,4 @@ The default job workspace is the data directory's `jobs` folder. A custom instan
 
 Open Providers & setup and confirm the selected worker, subscription readiness, profile model, and permission mode. Create a job that writes a disposable file in its own job directory, then inspect its result and audit. A successful setup check alone does not verify a particular coding task.
 
-Create a scoped application token under Diagnostics before connecting an SDK or Firefly Forge. Follow [host integrations](integrations.md), [tokens](tokens.md), or [troubleshooting](troubleshooting.md) for the next step.
+Create a scoped application token under Diagnostics before connecting an SDK or firefly forge. Follow [host integrations](integrations.md), [tokens](tokens.md), or [troubleshooting](troubleshooting.md) for the next step.

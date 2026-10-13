@@ -2,6 +2,12 @@
 
 # Changelog
 
+## 0.2.8 - 2026-10-13
+
+- Task-based local setup guides, a shared light/dark documentation theme, and a synchronized 3D message illustration with pause and reduced-motion controls.
+- Readable command, tool, file, and message evidence in the console, with bounded previews and the original audit record available for inspection.
+- Claude Code bootstrap downloads checksum-verified native archives over HTTPS without requiring a GitHub login. CLI, HTTP, MCP, UI, integration manifests, and installation examples identify the same version.
+
 ## 0.2.7 — 2026-10-12
 
 - Off-screen setup and workflow actions have a scroll-and-focus shortcut on desktop as well as phones.

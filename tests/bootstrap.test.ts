@@ -11,13 +11,15 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { delimiter, join, resolve } from "node:path";
 
 let directory: string;
 let archive: string;
 let checksums: string;
 const bootstrap = resolve("integrations/claude-code/scripts/bootstrap.sh");
-const asset = "firefly-agent-bridge-0.2.7-linux-x64.tar.gz";
+const version = JSON.parse(readFileSync("package.json", "utf8"))
+  .version as string;
+const asset = `firefly-agent-bridge-${version}-linux-x64.tar.gz`;
 beforeEach(() => {
   directory = mkdtempSync(join(tmpdir(), "bridge-bootstrap-test-"));
   const commands = join(directory, "bin");
@@ -72,7 +74,7 @@ while [ "$#" -gt 0 ]; do
 done
 case "$url" in
   */SHA256SUMS) cp "$FIXTURE_CHECKSUMS" "$destination";;
-  */firefly-agent-bridge-0.2.7-linux-x64.tar.gz) cp "$FIXTURE_ARCHIVE" "$destination";;
+  */${asset}) cp "$FIXTURE_ARCHIVE" "$destination";;
   *) exit 8;;
 esac
 `,
@@ -85,7 +87,7 @@ function run() {
     encoding: "utf8",
     env: {
       ...process.env,
-      PATH: join(directory, "bin") + ":" + process.env.PATH,
+      PATH: join(directory, "bin") + delimiter + process.env.PATH,
       XDG_CACHE_HOME: join(directory, "cache"),
       FIXTURE_ARCHIVE: archive,
       FIXTURE_CHECKSUMS: checksums,
@@ -99,8 +101,7 @@ it("installs a checksum-verified public asset without a GitHub login", () => {
   expect(result.stdout).toBe("fixture-ready:status\n");
   const downloads = readFileSync(join(directory, "curl.log"), "utf8");
   expect(downloads).toContain(
-    "https://github.com/fireflyframework/firefly-agent-bridge/releases/download/v0.2.7/" +
-      asset,
+    `https://github.com/fireflyframework/firefly-agent-bridge/releases/download/v${version}/${asset}`,
   );
   expect(downloads).toContain("--proto");
   expect(downloads).toContain("=https");
