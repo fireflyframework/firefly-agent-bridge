@@ -66,6 +66,23 @@ for (const file of readdirSync(staging).filter((name) =>
       const themed = /-light(?=-|\.)/.test(path)
         ? path.replace(/-light(?=-|\.)/, "-dark")
         : path.replace(/\.(svg|png)$/, "-dark.$1");
+      if (path.startsWith("assets/screenshots/")) {
+        const escape = (value: string) =>
+          value
+            .replaceAll("&", "&amp;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;");
+        const link = (image: string, theme: string) => {
+          const png = readFileSync(join(staging, image));
+          const width = png.readUInt32BE(16);
+          const height = png.readUInt32BE(20);
+          const url = file === "index.md" ? image : "../" + image;
+          return `<a class="bridge-shot__link ${theme}" href="${escape(url)}" aria-label="Open full screenshot: ${escape(alt)}"><img src="${escape(url)}" alt="${escape(alt)}" width="${width}" height="${height}" loading="lazy"></a>`;
+        };
+        // Keep theme pairs inline so image expansion cannot split table rows.
+        return link(path, "theme-light") + link(themed, "theme-dark");
+      }
       return (
         original +
         "{ .theme-light }\n\n![" +

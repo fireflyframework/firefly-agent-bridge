@@ -571,3 +571,75 @@
   --md-footer-bg-color: #151612;
   --md-footer-bg-color--dark: #151612;
 }
+
+/* Actual viewport screenshots keep their aspect ratio and native pixel bounds. */
+.md-typeset .bridge-shot {
+  margin: 24px 0 32px;
+  text-align: left;
+}
+.md-typeset .bridge-shot__link {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+}
+.md-typeset .bridge-shot__link img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0;
+}
+.md-typeset .bridge-shot--phone .bridge-shot__link {
+  max-width: min(100%, 320px);
+}
+[data-md-color-scheme="default"] .bridge-shot__link.theme-dark,
+[data-md-color-scheme="slate"] .bridge-shot__link.theme-light {
+  display: none;
+}
+.md-typeset .bridge-shot > p {
+  margin: 0;
+}
+.md-typeset .bridge-shot figcaption {
+  max-width: 70ch;
+  margin: 12px 0 0;
+  color: var(--bridge-muted);
+  font-size: 14px;
+  line-height: 1.65;
+  font-style: normal;
+  text-align: left;
+}
+.md-typeset .bridge-gallery {
+  margin: 24px 0 32px;
+  border: 1px solid var(--bridge-line);
+}
+.md-typeset .bridge-gallery > summary {
+  padding-inline-start: 16px;
+  background: var(--bridge-paper);
+  color: var(--bridge-ink);
+  cursor: pointer;
+}
+.md-typeset .bridge-gallery > summary::before {
+  display: none;
+}
+.md-typeset .bridge-gallery > summary::after {
+  background-color: var(--bridge-muted);
+}
+.bridge-shot-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 24px;
+}
+.md-typeset .bridge-shot-grid .bridge-shot:not(.bridge-shot--phone) {
+  grid-column: 1 / -1;
+}
+.md-typeset .bridge-shot-grid .bridge-shot {
+  min-width: 0;
+  margin-block: 16px;
+}
+@media (max-width: 600px) {
+  .bridge-shot-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+}

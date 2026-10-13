@@ -28,7 +28,12 @@ Templates checkpoint each stage's progress. Model output can vary, and a tool's 
 
 The editor validates the definition before saving. It persists to the bridge's `config.json` and becomes available immediately. Existing runs keep the template snapshot they started with.
 
-![Template editor](../assets/screenshots/template-editor-desktop.png)
+<figure class="bridge-shot" markdown="1">
+
+![Template editor before saving](../assets/screenshots/template-editor-desktop.png)
+
+<figcaption>Fixture editor before saving. Declare the inputs and ordered steps, check their profiles, then select Save template. Existing runs keep their original definition.</figcaption>
+</figure>
 
 [Mobile editor](../assets/screenshots/template-editor-mobile.png)
 

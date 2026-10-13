@@ -16,11 +16,21 @@ The selected official CLI supplies observations for native jobs. A job can expos
 
 If Claude groups several tool results in one message, the outer structured result is labeled **Shared message result**, not attributed to each tool. It is stored on the first result as `output.sharedMessageResult`, with the participating `toolIds`; the others use `output.sharedMessageResultToolId` to reference that tool within the same job and attempt. Inspectors resolve that reference on demand. Audit exports preserve the shared payload and references without multiplying storage for each result.
 
-![Tool activity with a shell command and output](../assets/screenshots/activity-desktop.png)
+<figure class="bridge-shot" markdown="1">
+
+![Expanded Bash command and output](../assets/screenshots/activity-desktop.png)
+
+<figcaption>Fixture Activity detail scrolled to a Bash observation. Read the command and reported output before deciding on recovery. Copy retains the full recorded text; Advanced record exposes correlation fields.</figcaption>
+</figure>
 
 **Files** lists individual Read, Write, Edit, and NotebookEdit actions with a reported target. Read exposes returned content; Write exposes submitted content. Edit displays the exact before/after replacement fragments. Structured patches and an original file are also displayed when Claude emits them. A fragment comparison is labeled **Replacement diff**: it is not presented as a complete repository diff. The same path can appear several times as a job reads and edits it.
 
-![File activity and a replacement diff](../assets/screenshots/files-desktop.png)
+<figure class="bridge-shot" markdown="1">
+
+![TypeScript fragments and provider-reported patch](../assets/screenshots/files-code-desktop-light.png)
+
+<figcaption>Fixture Files detail scrolled to an Edit observation. Fragment gutters start at 1; reported patch columns use the supplied old and new offsets. These observations cannot establish the current workspace contents.</figcaption>
+</figure>
 
 The counters count distinct reported path strings, native tool calls, distinct paths with a successful Write/Edit result, and persisted observations. Paths are kept as emitted, so relative and absolute spellings of one file can count separately. Times measure observation receipt at the bridge, not exact operating-system execution time. Out-of-order observations may have no duration.
 

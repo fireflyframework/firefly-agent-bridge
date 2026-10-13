@@ -57,6 +57,10 @@ site_dir: work/docs-site
 theme:
   name: material
   font: false
+markdown_extensions:
+  - tables
+  - attr_list
+  - md_in_html
 nav:
   - Home: index.md
   - Install: installation.md
@@ -141,4 +145,44 @@ it("changes CSS URLs when source contents change while preserving relative links
     "utf8",
   );
   expect(nested).toContain("../assets/docs.css?v=" + after.match(css)?.[1]);
+});
+
+it("keeps themed screenshots inside table cells and preserves native phone dimensions", () => {
+  mkdirSync(join(directory, "assets/screenshots"), { recursive: true });
+  const png = Buffer.alloc(24);
+  png.writeUInt32BE(390, 16);
+  png.writeUInt32BE(844, 20);
+  for (const name of ["connect-mobile-light.png", "connect-mobile-dark.png"])
+    writeFileSync(join(directory, "assets/screenshots", name), png);
+  writeFileSync(
+    join(directory, "docs/index.md"),
+    `# Phone comparison
+
+| Connect | Next step |
+| --- | --- |
+| ![Connect & inspect](../assets/screenshots/connect-mobile-light.png) | Choose Jobs |
+`,
+  );
+  writeFileSync(
+    join(directory, "docs/installation.md"),
+    "# Install\n\n![Phone](../assets/screenshots/connect-mobile-light.png)\n",
+  );
+  const html = build();
+  const nested = readFileSync(
+    join(directory, "work/docs-site/installation/index.html"),
+    "utf8",
+  );
+  expect(nested).toContain(
+    'href="../assets/screenshots/connect-mobile-light.png"',
+  );
+  expect(nested).toContain(
+    'src="../assets/screenshots/connect-mobile-dark.png"',
+  );
+  expect(html).toMatch(
+    /<td><a class="bridge-shot__link theme-light"[^>]*><img[^>]*><\/a><a class="bridge-shot__link theme-dark"[^>]*><img[^>]*><\/a><\/td>/,
+  );
+  expect(html).toContain('width="390" height="844"');
+  expect(html).toContain('alt="Connect &amp; inspect"');
+  expect(html).toContain("<td>Choose Jobs</td>");
+  expect(html).not.toContain("<p>|");
 });
