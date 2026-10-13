@@ -2,17 +2,21 @@
 
 # Install Firefly Agent Bridge
 
-You need access to the private [Firefly Agent Bridge repository](https://github.com/fireflyframework/firefly-agent-bridge) and an official Codex or Claude Code subscription login on the machine that runs the service. Bridge authentication is separate from provider authentication.
+!!! warning "For local development and testing"
+
+    Firefly Agent Bridge is intended for local development and testing. It uses your signed-in coding CLI subscription rather than a separately billed model API; subscription quotas still apply. We advise against using it for production workloads: provider license and usage restrictions, local security boundaries, and performance limits may make it unsuitable. Check the terms of your plan and provider before connecting an application. See [OpenAI's terms](https://openai.com/policies/terms-of-use/) and [Anthropic's consumer terms](https://www.anthropic.com/legal/consumer-terms).
+
+Get the source or native packages from the [Firefly Agent Bridge repository](https://github.com/fireflyframework/firefly-agent-bridge). The software is licensed under Apache-2.0. You need an official Codex or Claude Code subscription login on the machine that runs the service, plus a separate bridge token for local access.
 
 ## Choose an installation
 
-| Installation      | Use it for                                                               | Prerequisites                                                        |
-| ----------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------- |
-| Native archive    | A local service or stdio MCP server without a separate Node installation | Authenticated GitHub CLI for the download; official coding-agent CLI |
-| Desktop extension | Claude Desktop management tools                                          | Matching macOS or Windows `.mcpb`; Desktop extension consent         |
-| Source            | Development, debugging, or custom internal packaging                     | Node.js 24+, npm, Git, official coding-agent CLI                     |
+| Installation      | Use it for                                                               | Prerequisites                                                |
+| ----------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| Native archive    | A local service or stdio MCP server without a separate Node installation | HTTPS download; official coding-agent CLI                    |
+| Desktop extension | Claude Desktop management tools                                          | Matching macOS or Windows `.mcpb`; Desktop extension consent |
+| Source            | Development, debugging, or custom packaging                              | Node.js 24+, npm, Git, official coding-agent CLI             |
 
-Native release verification covers macOS arm64, Linux x64, and Windows x64. Download an archive for your machine's architecture. Desktop extensions are built for macOS and Windows.
+Native release targets are macOS arm64, Linux x64, and Windows x64. Download an archive for your machine's architecture. Desktop extensions are built for macOS and Windows.
 
 ## Sign in to the provider
 
@@ -34,28 +38,27 @@ The bridge uses that CLI's existing login. Do not copy its credentials into the 
 
 ## Install a native archive
 
-Authenticate GitHub CLI with an account that can read the private repository, then download the platform archive and checksum list. This macOS example selects release 0.2.2:
+Download the platform archive and its checksum list over HTTPS. These examples select version 0.2.8; confirm it is available on the [release page](https://github.com/fireflyframework/firefly-agent-bridge/releases) before downloading:
 
 ```sh
-gh auth login
-gh release download v0.2.2 \
-  --repo fireflyframework/firefly-agent-bridge \
-  --pattern 'firefly-agent-bridge-0.2.2-darwin-arm64.tar.gz' \
-  --pattern SHA256SUMS
-shasum -a 256 firefly-agent-bridge-0.2.2-darwin-arm64.tar.gz
+curl --fail --location --remote-name \
+  https://github.com/fireflyframework/firefly-agent-bridge/releases/download/v0.2.8/firefly-agent-bridge-0.2.8-darwin-arm64.tar.gz
+curl --fail --location --remote-name \
+  https://github.com/fireflyframework/firefly-agent-bridge/releases/download/v0.2.8/SHA256SUMS
+shasum -a 256 firefly-agent-bridge-0.2.8-darwin-arm64.tar.gz
 ```
 
 Compare the digest with that archive's entry in `SHA256SUMS` before extracting. On Linux, choose the `linux-x64` archive and use `sha256sum`. On Windows, choose `win32-x64` and use PowerShell:
 
 ```powershell
-Get-FileHash .\firefly-agent-bridge-0.2.2-win32-x64.tar.gz -Algorithm SHA256
+Get-FileHash .\firefly-agent-bridge-0.2.8-win32-x64.tar.gz -Algorithm SHA256
 ```
 
 Extract the complete archive into a new directory. Keep all included license and runtime files together. For macOS or Linux:
 
 ```sh
 mkdir firefly-bridge-local
-tar -xzf firefly-agent-bridge-0.2.2-darwin-arm64.tar.gz -C firefly-bridge-local
+tar -xzf firefly-agent-bridge-0.2.8-darwin-arm64.tar.gz -C firefly-bridge-local
 cd firefly-bridge-local
 ./firefly-bridge init --worker codex
 ./firefly-bridge serve
@@ -65,7 +68,7 @@ On Windows, run the matching executable:
 
 ```powershell
 New-Item -ItemType Directory firefly-bridge-local
-tar -xzf .\firefly-agent-bridge-0.2.2-win32-x64.tar.gz -C firefly-bridge-local
+tar -xzf .\firefly-agent-bridge-0.2.8-win32-x64.tar.gz -C firefly-bridge-local
 Set-Location firefly-bridge-local
 .\firefly-bridge.exe init --worker codex
 .\firefly-bridge.exe serve
@@ -78,7 +81,7 @@ If macOS or Windows prompts for installation approval, follow your organization'
 ## Install from source
 
 ```sh
-gh repo clone fireflyframework/firefly-agent-bridge
+git clone https://github.com/fireflyframework/firefly-agent-bridge.git
 cd firefly-agent-bridge
 npm ci
 npm run build
@@ -102,4 +105,4 @@ The default job workspace is the data directory's `jobs` folder. A custom instan
 
 Open Providers & setup and confirm the selected worker, subscription readiness, profile model, and permission mode. Create a job that writes a disposable file in its own job directory, then inspect its result and audit. A successful setup check alone does not verify a particular coding task.
 
-Create a scoped application token under Diagnostics before connecting an SDK or Firefly Forge. Follow [host integrations](integrations.md), [tokens](tokens.md), or [troubleshooting](troubleshooting.md) for the next step.
+Create a scoped application token under Diagnostics before connecting an SDK or firefly forge. Follow [host integrations](integrations.md), [tokens](tokens.md), or [troubleshooting](troubleshooting.md) for the next step.

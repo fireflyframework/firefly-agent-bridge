@@ -12,17 +12,27 @@ The selected official CLI supplies observations for native jobs. A job can expos
 
 ## Inspect what happened
 
-**Activity** lists native tools in observation order. Expand a card to read its command, output, supplied content, and result. Bash cards show the command and stdout/stderr when Claude supplies those fields. **Raw input, result, and correlation** exposes the complete captured payload, native tool ID, bridge attempt ID, session ID, parent tool ID, timestamps, and observed duration.
+**Activity** lists native tools in observation order. Expand a card to read its command, output, supplied content, and result. Bash cards show the command and stdout/stderr when Claude supplies those fields. **Advanced record** exposes the complete captured payload, native tool ID, bridge attempt ID, session ID, parent tool ID, timestamps, and observed duration.
 
 If Claude groups several tool results in one message, the outer structured result is labeled **Shared message result**, not attributed to each tool. It is stored on the first result as `output.sharedMessageResult`, with the participating `toolIds`; the others use `output.sharedMessageResultToolId` to reference that tool within the same job and attempt. Inspectors resolve that reference on demand. Audit exports preserve the shared payload and references without multiplying storage for each result.
 
-![Tool activity with a shell command and output](../assets/screenshots/activity-desktop.png)
+<figure class="bridge-shot" markdown="1">
+
+![Expanded Bash command and output](../assets/screenshots/activity-desktop.png)
+
+<figcaption>Fixture Activity detail scrolled to a Bash observation. Read the command and reported output before deciding on recovery. Copy retains the full recorded text; Advanced record exposes correlation fields.</figcaption>
+</figure>
 
 **Files** lists individual Read, Write, Edit, and NotebookEdit actions with a reported target. Read exposes returned content; Write exposes submitted content. Edit displays the exact before/after replacement fragments. Structured patches and an original file are also displayed when Claude emits them. A fragment comparison is labeled **Replacement diff**: it is not presented as a complete repository diff. The same path can appear several times as a job reads and edits it.
 
-![File activity and a replacement diff](../assets/screenshots/files-desktop.png)
+<figure class="bridge-shot" markdown="1">
 
-The counters mean **distinct reported path strings**, native tool calls, distinct paths with a successful Write/Edit result, and persisted observations. Paths are kept as emitted, so relative and absolute spellings of one file can count separately. Times measure observation receipt at the bridge, not exact operating-system execution time. Out-of-order observations may have no duration.
+![TypeScript fragments and provider-reported patch](../assets/screenshots/files-code-desktop-light.png)
+
+<figcaption>Fixture Files detail scrolled to an Edit observation. Fragment gutters start at 1; reported patch columns use the supplied old and new offsets. These observations cannot establish the current workspace contents.</figcaption>
+</figure>
+
+The counters count distinct reported path strings, native tool calls, distinct paths with a successful Write/Edit result, and persisted observations. Paths are kept as emitted, so relative and absolute spellings of one file can count separately. Times measure observation receipt at the bridge, not exact operating-system execution time. Out-of-order observations may have no duration.
 
 | Outcome          | What the bridge observed                                                  |
 | ---------------- | ------------------------------------------------------------------------- |
@@ -35,9 +45,9 @@ A failed or unknown action may already have produced effects. Pausing, cancellat
 
 ## Execution ownership and coverage
 
-- **Native agent jobs:** emitted Codex or Claude tool observations are captured. Claude's streamed tool requests/results include its native tool identifiers. Known built-in file tools provide target paths. Bash, network tools, and external commands have complete emitted payloads, but their indirect file effects are not inferred from command text.
-- **OpenAI inference:** the application executes functions. Generated requests are recorded as `client.tool_requested`. Function requests and results supplied on a subsequent request are recorded as `client.tool_request_reported` and `client.tool_result_reported` in that new job. These are client reports, not bridge-verified execution. Use the stable tool-call ID to correlate turns.
-- **Host conversation jobs:** the host reports progress and completion through MCP. The bridge cannot observe that conversation's internal tools or filesystem effects.
+- Native agent jobs capture emitted Codex or Claude tool observations. Claude's streamed tool requests/results include its native tool identifiers. Known built-in file tools provide target paths. Bash, network tools, and external commands have complete emitted payloads, but their indirect file effects are not inferred from command text.
+- In OpenAI inference, the application executes functions. Generated requests are recorded as `client.tool_requested`. Function requests and results supplied on a subsequent request are recorded as `client.tool_request_reported` and `client.tool_result_reported` in that new job. These are client reports, not bridge-verified execution. Use the stable tool-call ID to correlate turns.
+- Host conversation jobs receive progress and completion reports through MCP. The bridge cannot observe that conversation's internal tools or filesystem effects.
 
 Only information emitted to the owned CLI process is available. Claude may shorten large tool outputs, omit subprocess internals, or report only part of a file. The bridge preserves the input/result payloads it receives without an additional audit preview truncation. The profile's `maxOutputBytes` still bounds the entire native stdout stream; exceeding it fails the attempt and leaves unfinished tools unknown. The audit does not scan arbitrary files, read private host transcripts, or infer missing content.
 
@@ -45,7 +55,7 @@ Only information emitted to the owned CLI process is available. Claude may short
 
 SQLite retains an append-only observation history and a current tool projection, written in the same transaction as queue state. The audit includes job lifecycle, session, compaction, rate-limit, and child-task observations. Tool payloads are committed before a metadata-only `job.tool` SSE notification is published. Other existing progress events can contain assistant text.
 
-SSE retains approximately 10,000 recent events; pruning that notification window does **not** delete the audit. Tool observations and payloads remain until the local database is deliberately archived or removed. There is no automatic audit cleanup or retroactive reconstruction of information the bridge did not observe. Monitor disk usage and follow the [backup procedure](operations.md#data-retention-and-backups).
+SSE retains approximately 10,000 recent events; pruning that notification window does not delete the audit. Tool observations and payloads remain until the local database is deliberately archived or removed. There is no automatic audit cleanup or retroactive reconstruction of information the bridge did not observe. Monitor disk usage and follow the [backup procedure](operations.md#data-retention-and-backups).
 
 Complete payloads may include source code, credentials printed by a command, and private file contents. The audit deliberately preserves them. The same job ownership and `read` scope protect metadata, payloads, and exports; an owner can read all jobs. No token appears in a download URL. List responses and tool SSE notifications omit raw payloads; expanded inspectors load them through authenticated requests. Treat exports and backups with the same care as the workspace.
 
@@ -82,3 +92,15 @@ curl --fail-with-body "$BRIDGE_URL/v1/bridge/jobs/$JOB_ID/audit?limit=100&includ
 [Mobile tool inspector](../assets/screenshots/activity-mobile.png) · [Mobile file diff](../assets/screenshots/files-mobile.png)
 
 The protocol interpretation follows Anthropic's [programmatic CLI](https://code.claude.com/docs/en/headless) and [subagent message correlation](https://code.claude.com/docs/en/agent-sdk/subagents#detect-subagent-invocation) documentation.
+
+## Investigate an interrupted action
+
+Start with the affected job ID and a token with `read` for its owning principal. The local owner can inspect jobs from every principal. Keep an audit export private before attempting recovery when its contents are needed for investigation.
+
+1. Read the job and its attempts to identify the execution mode, failed attempt, native session and terminal error. Workflow runs link to the job that performed each step.
+2. Read tool metadata and expand the affected record. Correlate its attempt ID and native tool ID with the command, file path and emitted result. In the API, use the numeric bridge record ID from the tools list to retrieve its full payload.
+3. Inspect the actual workspace or external service when a result is missing. A submitted Write payload and an Edit replacement fragment describe requested content; they cannot establish the current contents of a file after later actions.
+4. Choose the next action from the observed state. Resume preserves an available native session; retry starts a new session and can repeat earlier effects. Image jobs require a new explicit completion request after interruption. [Recovery](operations.md#crashes-and-external-effects) and [troubleshooting](troubleshooting.md) describe these controls.
+5. Keep the old attempt and export with the new outcome. Audit pagination uses a fixed `through` boundary, while tool projections and summaries describe current state.
+
+For API-only inspection, read `GET /v1/bridge/jobs/{id}`, `/attempts`, `/tools` and `/tools/{tool}` before exporting `/audit`. These calls do not run a tool or change the job. A 404 can mean the job belongs to another principal; a 403 requires the correct scope or profile assignment. Correct access through the [token guide](tokens.md), then continue with the same job ID.

@@ -50,19 +50,317 @@ const state = (value) =>
     failed: "Reported failure",
     unknown: "Outcome unknown",
   })[value] ?? value;
-function payload(container, label, value, className = "") {
-  if (value === undefined) return;
-  const section = node("section", undefined, "payload-section " + className);
-  section.append(
-    node("h4", label),
-    node("pre", value === "" ? "(empty)" : pretty(value)),
+export function previewText(value, characters = 10000, lines = 120) {
+  const text = value
+    .slice(0, characters)
+    .split("\n")
+    .slice(0, lines)
+    .join("\n");
+  return { text, omitted: value.length - text.length };
+}
+export function codeTokens(value, path = "") {
+  if (
+    !/\.(?:[cm]?[jt]sx?|py|java|php|css|json|ya?ml|sh|sql|rs|go)$/i.test(
+      path,
+    ) ||
+    value.length > 4000
+  )
+    return [{ text: value, kind: "plain" }];
+  const comments = /\.(?:py|ya?ml|sh)$/i.test(path);
+  const pattern = comments
+    ? /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|#[^\n]*|\b\d+(?:\.\d+)?\b|\b[A-Za-z_$][\w$]*\b)/g
+    : /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\/\/[^\n]*|\/\*.*?\*\/|\b\d+(?:\.\d+)?\b|\b[A-Za-z_$][\w$]*\b)/g;
+  const keywords = new Set(
+    "const let var function return import export from class def async await if else elif for while try catch except finally throw raise new public private static void interface type extends implements null undefined true false True False None self this as in with package fn use select where create table".split(
+      " ",
+    ),
   );
+  const tokens = [];
+  let position = 0;
+  for (const match of value.matchAll(pattern)) {
+    if (match.index > position)
+      tokens.push({ text: value.slice(position, match.index), kind: "plain" });
+    const text = match[0],
+      kind = /^["'`]/.test(text)
+        ? "string"
+        : /^(?:#|\/\/|\/\*)/.test(text)
+          ? "comment"
+          : /^\d/.test(text)
+            ? "number"
+            : keywords.has(text)
+              ? "keyword"
+              : "plain";
+    tokens.push({ text, kind });
+    position = match.index + text.length;
+  }
+  if (position < value.length)
+    tokens.push({ text: value.slice(position), kind: "plain" });
+  return tokens;
+}
+export function reportedPatch(value) {
+  if (
+    !Array.isArray(value) ||
+    !value.length ||
+    !value.every(
+      (hunk) =>
+        hunk &&
+        Number.isInteger(hunk.oldStart) &&
+        Number.isInteger(hunk.newStart) &&
+        hunk.oldStart >= 0 &&
+        hunk.newStart >= 0 &&
+        Array.isArray(hunk.lines) &&
+        hunk.lines.every((line) => typeof line === "string"),
+    )
+  )
+    return undefined;
+  const rows = [];
+  for (const hunk of value) {
+    let oldLine = hunk.oldStart,
+      newLine = hunk.newStart;
+    for (const line of hunk.lines) {
+      if (line.startsWith("+"))
+        rows.push({
+          text: line.slice(1),
+          kind: "addition",
+          newLine: newLine++,
+        });
+      else if (line.startsWith("-"))
+        rows.push({
+          text: line.slice(1),
+          kind: "deletion",
+          oldLine: oldLine++,
+        });
+      else if (line.startsWith(" "))
+        rows.push({
+          text: line.slice(1),
+          kind: "context",
+          oldLine: oldLine++,
+          newLine: newLine++,
+        });
+      else rows.push({ text: line, kind: "metadata" });
+    }
+  }
+  return rows;
+}
+const fieldLabel = (value) => {
+  const words = value.replaceAll("_", " ").replace(/([a-z])([A-Z])/g, "$1 $2");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+function copyButton(value, label = "Copy full output") {
+  const wrapper = node("span", undefined, "audit-copy"),
+    button = node("button", label),
+    status = node("span", "");
+  button.type = "button";
+  status.setAttribute("role", "status");
+  button.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      status.textContent = "Copied";
+    } catch {
+      status.textContent = "Copy unavailable. Select the text to copy.";
+    }
+  };
+  wrapper.append(button, status);
+  return wrapper;
+}
+function compact(value, limit = 350) {
+  const text = String(value ?? ""),
+    preview = previewText(text, limit, 4),
+    result = node("span", preview.text, "audit-compact");
+  if (preview.omitted)
+    result.append(
+      node("small", `… (${preview.omitted.toLocaleString()} more characters)`),
+      copyButton(text, "Copy full text"),
+    );
+  return result;
+}
+function codeLine(value, path) {
+  const code = node("code");
+  for (const token of codeTokens(value, path))
+    code.append(node("span", token.text, "audit-token-" + token.kind));
+  return code;
+}
+function outputView(value, path) {
+  const view = node("div", undefined, "audit-output"),
+    pre = node("pre"),
+    controls = node("div", undefined, "audit-output-controls"),
+    more = node("button", "Show more"),
+    limit = node("span");
+  pre.tabIndex = 0;
+  more.type = "button";
+  let expanded = false;
+  function render() {
+    const preview = previewText(
+      value,
+      expanded ? 100000 : 10000,
+      expanded ? 1000 : 120,
+    );
+    pre.replaceChildren();
+    if (path)
+      for (const [index, text] of preview.text.split("\n").entries()) {
+        const row = node("span", undefined, "audit-code-line"),
+          number = node("span", String(index + 1), "audit-line-number");
+        number.setAttribute("aria-hidden", "true");
+        row.append(number, codeLine(text, path));
+        pre.append(row);
+      }
+    else pre.textContent = preview.text || "(empty)";
+    limit.textContent = preview.omitted
+      ? `${preview.omitted.toLocaleString()} characters outside this preview. Copy includes the full recorded text.`
+      : "";
+    more.hidden = !previewText(value).omitted;
+    more.textContent = expanded ? "Show less" : "Show more";
+  }
+  more.onclick = () => {
+    expanded = !expanded;
+    render();
+  };
+  controls.append(copyButton(value), limit, more);
+  view.append(pre, controls);
+  render();
+  return view;
+}
+function structuredValue(value, depth = 0, path, budget = { remaining: 200 }) {
+  if (budget.remaining-- <= 0)
+    return node(
+      "span",
+      "Additional fields are retained in the advanced record.",
+      "hint",
+    );
+  if (typeof value === "string")
+    return value.length > 350 || value.includes("\n") || path
+      ? outputView(value, path)
+      : compact(value);
+  if (value === null || typeof value !== "object")
+    return node("code", String(value));
+  if (depth >= 3) return advancedRecord(value);
+  if (Array.isArray(value)) {
+    const list = node("div", undefined, "audit-value-list");
+    for (const item of value.slice(0, 20)) {
+      if (budget.remaining <= 0) break;
+      list.append(structuredValue(item, depth + 1, path, budget));
+    }
+    const shown = list.childNodes.length;
+    if (value.length > shown)
+      list.append(
+        node(
+          "p",
+          `Showing ${shown} of ${value.length} items. The advanced record retains all items.`,
+          "hint",
+        ),
+      );
+    if (!value.length) list.append(node("span", "No items recorded.", "hint"));
+    return list;
+  }
+  const fields = node("dl", undefined, "audit-fields"),
+    entries = Object.entries(value),
+    file = typeof value.file_path === "string" ? value.file_path : path;
+  for (const [key, item] of entries.slice(0, 40)) {
+    if (budget.remaining <= 0) break;
+    const row = node("div"),
+      label = node("dt"),
+      body = node("dd");
+    label.append(compact(fieldLabel(key), 120));
+    body.append(
+      structuredValue(
+        item,
+        depth + 1,
+        ["content", "code", "originalFile"].includes(key) ? file : undefined,
+        budget,
+      ),
+    );
+    row.append(label, body);
+    fields.append(row);
+  }
+  if (entries.length > fields.childNodes.length)
+    fields.append(
+      node(
+        "p",
+        "Additional fields are retained in the advanced record.",
+        "hint",
+      ),
+    );
+  return fields;
+}
+function advancedRecord(value) {
+  const details = node("details", undefined, "raw-payload");
+  details.append(
+    node("summary", "Advanced record"),
+    outputView(pretty(value) ?? String(value)),
+  );
+  return details;
+}
+function payload(container, label, value, className = "", path) {
+  if (value === undefined) return;
+  const section = node("section", undefined, "payload-section " + className),
+    heading = node("h4");
+  heading.append(compact(label));
+  section.append(heading, structuredValue(value, 0, path));
+  container.append(section);
+}
+function patchView(container, value, path) {
+  const rows = reportedPatch(value);
+  if (!rows) {
+    payload(container, "Patch reported by Claude", value);
+    return;
+  }
+  const section = node("section", undefined, "payload-section audit-patch"),
+    scroll = node("div", undefined, "audit-patch-scroll"),
+    table = node("table"),
+    head = node("thead"),
+    heading = node("tr"),
+    body = node("tbody");
+  section.append(
+    node("h4", "Patch reported by Claude"),
+    copyButton(pretty(value), "Copy full patch record"),
+  );
+  for (const label of ["Old line", "New line", "Change", "Code"]) {
+    const cell = node("th", label);
+    cell.scope = "col";
+    heading.append(cell);
+  }
+  head.append(heading);
+  let characters = 0;
+  for (const row of rows.slice(0, 1000)) {
+    if (characters >= 100000) break;
+    const item = node("tr", undefined, "audit-patch-" + row.kind),
+      text = previewText(row.text, Math.min(4000, 100000 - characters), 1);
+    characters += text.text.length;
+    item.append(
+      node("td", row.oldLine ?? ""),
+      node("td", row.newLine ?? ""),
+      node(
+        "td",
+        row.kind === "addition" ? "+" : row.kind === "deletion" ? "−" : "",
+      ),
+    );
+    const code = node("td");
+    code.append(codeLine(text.text, path));
+    if (text.omitted) code.append(node("small", "… preview truncated"));
+    item.append(code);
+    body.append(item);
+  }
+  if (body.childNodes.length < rows.length)
+    section.append(
+      node(
+        "p",
+        "Patch preview limited. Copy and the advanced record retain the complete patch.",
+        "hint",
+      ),
+    );
+  table.append(head, body);
+  scroll.append(table);
+  scroll.tabIndex = 0;
+  scroll.setAttribute("role", "region");
+  scroll.setAttribute("aria-label", "Reported code changes");
+  section.append(scroll);
   container.append(section);
 }
 function inspector(container, tool) {
   const input = tool.input ?? {},
     output = tool.output ?? {},
-    result = output.result ?? {};
+    result = output.result ?? {},
+    path = tool.file?.path ?? input.file_path;
   const info = node(
     "p",
     `${tool.name ?? "Tool"} · ${state(tool.status)} · ${tool.parentToolUseId ? "Subagent" : "Main session"}`,
@@ -73,12 +371,28 @@ function inspector(container, tool) {
     payload(container, "Command", input.command, "command-output");
     payload(container, "Standard output", result.stdout);
     payload(container, "Standard error", result.stderr);
+    const metadata = Object.fromEntries(
+      Object.entries(result).filter(
+        ([key]) =>
+          ![
+            "stdout",
+            "stderr",
+            "structuredPatch",
+            "originalFile",
+            "file",
+          ].includes(key),
+      ),
+    );
+    if (Object.keys(metadata).length)
+      payload(container, "Recorded command result", metadata);
   }
   if (tool.name === "Write")
     payload(
       container,
       tool.status === "succeeded" ? "Written content" : "Requested content",
       input.content,
+      "",
+      path,
     );
   if (
     tool.name === "Edit" &&
@@ -96,16 +410,35 @@ function inspector(container, tool) {
       ),
     );
     const diff = node("div", undefined, "diff-grid");
-    payload(diff, "− Before", input.old_string, "diff-before");
-    payload(diff, "+ After", input.new_string, "diff-after");
+    payload(diff, "− Before", input.old_string, "diff-before", path);
+    payload(diff, "+ After", input.new_string, "diff-after", path);
+    container.append(
+      node(
+        "p",
+        "Line numbers in these fragments start at 1. File positions were not reported.",
+        "hint",
+      ),
+    );
     container.append(diff);
   }
   if (result.structuredPatch)
-    payload(container, "Patch reported by Claude", result.structuredPatch);
+    patchView(container, result.structuredPatch, path);
   if (result.originalFile !== undefined)
-    payload(container, "Original file reported by Claude", result.originalFile);
+    payload(
+      container,
+      "Original file reported by Claude",
+      result.originalFile,
+      "",
+      path,
+    );
   if (result.file?.content !== undefined)
-    payload(container, "File content reported by Claude", result.file.content);
+    payload(
+      container,
+      "File content reported by Claude",
+      result.file.content,
+      "",
+      path,
+    );
   payload(container, "Tool output", output.content);
   if (output.sharedMessageResult) {
     container.append(
@@ -126,13 +459,15 @@ function inspector(container, tool) {
       ),
     );
   const raw = node("details", undefined, "raw-payload");
-  raw.append(node("summary", "Raw input, result, and correlation"));
-  payload(raw, "Input", tool.input);
-  payload(raw, "Result", tool.output);
+  raw.append(node("summary", "Advanced record"));
+  if (tool.input !== undefined)
+    raw.append(node("h4", "Input"), outputView(pretty(tool.input)));
+  if (tool.output !== undefined)
+    raw.append(node("h4", "Result"), outputView(pretty(tool.output)));
   const { input: _input, output: _output, ...metadata } = tool;
   void _input;
   void _output;
-  payload(raw, "Observation", metadata);
+  raw.append(node("h4", "Observation"), outputView(pretty(metadata)));
   container.append(raw);
 }
 export function createAuditPanel(api, notice) {
@@ -306,8 +641,10 @@ export function createAuditPanel(api, notice) {
           const data = await api(
             `/jobs/${id}/audit?after=${entry.id - 1}&through=${entry.id}&limit=1&includePayloads=true`,
           );
-          if (jobId === id)
+          if (jobId === id) {
             payload(row, "Recorded observation", data.entries[0]);
+            row.append(advancedRecord(data.entries[0]));
+          }
         } catch (error) {
           loaded = false;
           notice(error.message);

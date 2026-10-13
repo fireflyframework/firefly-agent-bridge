@@ -252,6 +252,11 @@ async function selectJob(id, loadedJob, openDetail = true) {
   if (revision !== selectionRevision) return;
   el("selection-empty").hidden = true;
   el("job-detail").hidden = false;
+  if (openDetail && matchMedia("(max-width: 1100px)").matches) {
+    document.body.dataset.jobDetail = "open";
+    el("back-to-jobs").hidden = false;
+    el("content").scrollTop = 0;
+  }
   text("detail-state", job.status.replaceAll("_", " "));
   el("detail-state").className = "pill " + job.status;
   text(
@@ -415,11 +420,6 @@ async function selectJob(id, loadedJob, openDetail = true) {
   );
   await auditPanel.select(job);
   renderJobs();
-  if (openDetail && matchMedia("(max-width: 1100px)").matches) {
-    document.body.dataset.jobDetail = "open";
-    el("back-to-jobs").hidden = false;
-    el("content").scrollTop = 0;
-  }
 }
 async function renderWorkflows() {
   const { runs } = await api("/workflow-runs");

@@ -2,7 +2,11 @@
 
 # Security boundaries
 
-Firefly Agent Bridge is an internal developer service on a trusted local machine. An execution-capable token can cause actions with that developer's permissions. Keep the service and its callers inside the access boundary you intend.
+!!! warning "For local development and testing"
+
+    Firefly Agent Bridge is intended for local development and testing. It uses your signed-in coding CLI subscription rather than a separately billed model API; subscription quotas still apply. We advise against using it for production workloads: provider license and usage restrictions, local security boundaries, and performance limits may make it unsuitable. Check the terms of your plan and provider before connecting an application. See [OpenAI's terms](https://openai.com/policies/terms-of-use/) and [Anthropic's consumer terms](https://www.anthropic.com/legal/consumer-terms).
+
+Firefly Agent Bridge runs on a trusted developer machine. An execution-capable token can cause actions with that developer's permissions. Restrict service access to trusted callers, including when you install it from the open-source repository.
 
 ## Authentication
 
@@ -22,7 +26,7 @@ Provider requests leave the local machine according to that CLI's operation. The
 
 Default Codex jobs use `workspace-write` and noninteractive approval. Default Claude jobs use `acceptEdits` with unapproved interactive prompts denied. Claude tool allowlists and native agent definitions apply to Claude profiles. They do not restrict the Codex adapter; Codex uses its own sandbox and thread protocol.
 
-Explicit `permissionMode: "bypass"` removes those default permission controls for that profile. Use it only on a host and workspace you trust. A job directory organizes files; it is not a general isolation guarantee for shell tools or bypass execution.
+Explicit `permissionMode: "bypass"` removes those default permission controls for that profile. Use it only on a host and workspace you trust. A job directory organizes files. Shell tools and bypass execution can reach beyond it under the operating-system user's permissions.
 
 HTTP callers cannot supply executable paths, environment overrides, CLI arguments, or a custom working directory. Those choices are owner configuration. Cancellation stops the owned process tree, but cannot undo files or remote actions already performed.
 
@@ -42,4 +46,4 @@ Back up a stopped service and its SQLite sidecars. The bridge retains jobs and a
 
 The listener stays bound to `127.0.0.1`. A [tunnel](tunnels.md) can provide an HTTPS edge with exact host/origin allowlists and an additional access policy. Bridge bearer authentication still applies. Keep the owner token local and issue a scoped token to each trusted remote client.
 
-Report security problems through the private repository's internal channel described in [SECURITY.md](../SECURITY.md). Do not put private prompts, tokens, or provider login material in a public issue.
+Report security problems privately through the channel in [SECURITY.md](../SECURITY.md). Keep private prompts, tokens and provider login material out of public issues.

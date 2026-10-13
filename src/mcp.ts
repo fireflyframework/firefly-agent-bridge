@@ -30,7 +30,7 @@ export function createAdapter(
 ) {
   const hostId = randomUUID();
   const server = new McpServer(
-    { name: "firefly-agent-bridge", version: "0.2.7" },
+    { name: "firefly-agent-bridge", version: "0.2.8" },
     {
       capabilities: channel ? { experimental: { "claude/channel": {} } } : {},
       instructions:

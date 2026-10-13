@@ -156,7 +156,7 @@ export function createProviderSetup(refresh, showAccess, openJob, notice) {
     element("setup-copy-url").textContent = local ? "Copy command" : "Copy URL";
     element("setup-client-instructions").textContent = {
       codex:
-        "Install the private Codex plugin on this machine. Its stdio MCP adapter uses the same bridge data directory; the plugin includes bridge operation skills. The shown command uses the default data directory; add --data-dir for a custom instance. See the installation guide for configuration.",
+        "Install the Codex plugin on this machine. Its stdio MCP adapter uses the same bridge data directory; the plugin includes bridge operation skills. The shown command uses the default data directory; add --data-dir for a custom instance. See the installation guide for configuration.",
       claude:
         "Install the Claude Code plugin or the Claude Desktop bundle on this machine. Both use the stdio MCP adapter and the same bridge data directory. The shown command uses the default data directory; add --data-dir for a custom instance. See the installation guide for configuration.",
       chatgpt:

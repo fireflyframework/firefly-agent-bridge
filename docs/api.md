@@ -4,7 +4,7 @@
 
 [README](../README.md) · [OpenAPI 3.1](openapi.json) · [Runnable client](../examples/client.mjs) · [Tunnels](tunnels.md)
 
-The bridge exposes one API: OpenAI-compatible `/v1/models` and `/v1/chat/completions`, plus `/v1/bridge/*` orchestration extensions. The console, MCP integration, SDK clients, and workflows share authentication, profiles, one durable queue, and the same execution lifecycle. See the [SDK guide](openai-compatible.md) for the compatibility contract and runnable Python examples.
+Use `/v1/models` and `/v1/chat/completions` for the OpenAI-compatible interface, and `/v1/bridge/*` for orchestration. The console, MCP integration, SDK clients, and workflows share authentication, profiles, one durable queue, and the same execution lifecycle. See the [SDK guide](openai-compatible.md) for the compatibility contract and runnable Python examples.
 
 ## Authentication and errors
 
@@ -14,7 +14,7 @@ Client tokens are scoped to a principal, allowed profiles, and operations. `read
 
 Errors use `{"error":{"code":"...","message":"...","type":"invalid_request_error","param":null,"requestId":"..."}}`; the type reflects the error class, and an admitted completion can also include `job_id`. Common statuses: 400 invalid input, 401 invalid token, 403 unavailable scope/profile/host/origin, 404 inaccessible resource, 409 incompatible state or idempotency conflict, 413 size bound, 429 admission or rate limit, 503 unavailable configuration.
 
-Traffic is limited to 240 requests per minute per principal **per admission class**: ordinary requests, execution controls, and host leases. Read polling cannot exhaust the lease or stop/cancel bucket. SSE permits four connections per principal and 100 per service.
+Traffic is limited to 240 requests per minute per principal per admission class: ordinary requests, execution controls, and host leases. Read polling cannot exhaust the lease or stop/cancel bucket. SSE permits four connections per principal and 100 per service.
 
 ## Image capability verification
 

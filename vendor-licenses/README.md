@@ -7,4 +7,4 @@ These are original upstream notices, not Signature-authored source files.
 
 The build collects the actual bundled npm packages' full license and notice files into `dist/THIRD_PARTY_NOTICES.txt` and appends the Node runtime notices. The native archives and Desktop extensions distribute that file alongside LICENSE and NOTICE.
 
-- `mcpb-manifest-v0.3.schema.json`: unmodified official MCPB 0.3 manifest schema from Anthropic MCPB 2.1.2. Its original license is preserved in `mcpb-schema.txt`. Used only to validate private desktop packaging.
+- `mcpb-manifest-v0.3.schema.json`: unmodified official MCPB 0.3 manifest schema from Anthropic MCPB 2.1.2. Its original license is preserved in `mcpb-schema.txt`. Used only to validate desktop packaging.

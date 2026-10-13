@@ -23,9 +23,11 @@ import {
   readFileSync,
   writeFileSync,
   mkdtempSync,
+  existsSync,
 } from "node:fs";
-import { resolve, join } from "node:path";
+import { resolve, join, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 const root = resolve(".");
 mkdirSync("work", { recursive: true });
 const staging = mkdtempSync(resolve("work/docs-source-"));
@@ -37,13 +39,14 @@ for (const file of ["LICENSE", "NOTICE", "SECURITY.md"])
     file,
     join(staging, file === "SECURITY.md" ? "security-policy.md" : file),
   );
-cpSync("README.md", join(staging, "index.md"));
+const readmeLanding = !existsSync(join(staging, "index.md"));
+if (readmeLanding) cpSync("README.md", join(staging, "index.md"));
 const { readdirSync } = await import("node:fs");
 for (const file of readdirSync(staging).filter((name) =>
   name.endsWith(".md"),
 )) {
   let body = readFileSync(join(staging, file), "utf8");
-  if (file === "index.md")
+  if (file === "index.md" && readmeLanding)
     body = body
       .replaceAll("docs/", "")
       .replace(
@@ -56,13 +59,30 @@ for (const file of readdirSync(staging).filter((name) =>
     .replaceAll("../examples/", "examples/")
     .replaceAll("../tests/", "tests/")
     .replaceAll("../SECURITY.md", "security-policy.md");
-  // Both documents and GitHub keep ordinary Markdown links. Only the private site adds theme variants.
+  // The documentation site adds theme variants to ordinary Markdown images.
   body = body.replace(
     /!\[([^\]]*)\]\((assets\/(diagrams|screenshots)\/[^)]+)\)/g,
     (original, alt, path) => {
       const themed = /-light(?=-|\.)/.test(path)
         ? path.replace(/-light(?=-|\.)/, "-dark")
         : path.replace(/\.(svg|png)$/, "-dark.$1");
+      if (path.startsWith("assets/screenshots/")) {
+        const escape = (value: string) =>
+          value
+            .replaceAll("&", "&amp;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;");
+        const link = (image: string, theme: string) => {
+          const png = readFileSync(join(staging, image));
+          const width = png.readUInt32BE(16);
+          const height = png.readUInt32BE(20);
+          const url = file === "index.md" ? image : "../" + image;
+          return `<a class="bridge-shot__link ${theme}" href="${escape(url)}" aria-label="Open full screenshot: ${escape(alt)}"><img src="${escape(url)}" alt="${escape(alt)}" width="${width}" height="${height}" loading="lazy"></a>`;
+        };
+        // Keep theme pairs inline so image expansion cannot split table rows.
+        return link(path, "theme-light") + link(themed, "theme-dark");
+      }
       return (
         original +
         "{ .theme-light }\n\n![" +
@@ -75,6 +95,10 @@ for (const file of readdirSync(staging).filter((name) =>
   );
   writeFileSync(join(staging, file), body);
 }
+const hook = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "docs_scene_hook.py",
+);
 const yaml = readFileSync("mkdocs.yml", "utf8")
   .replace("docs_dir: docs", "docs_dir: " + JSON.stringify(staging))
   .replace(
@@ -82,7 +106,7 @@ const yaml = readFileSync("mkdocs.yml", "utf8")
     "site_dir: " + JSON.stringify(resolve("work/docs-site")),
   );
 const config = staging + ".yml";
-writeFileSync(config, yaml);
+writeFileSync(config, yaml + "\nhooks:\n  - " + JSON.stringify(hook) + "\n");
 const result = spawnSync(
   process.env.BRIDGE_PYTHON ?? "python3",
   ["-m", "mkdocs", "build", "--strict", "--clean", "-f", config],
@@ -91,6 +115,6 @@ const result = spawnSync(
 if (result.error) throw result.error;
 if (result.status !== 0)
   throw new Error(
-    "Private documentation build failed. Install docs/requirements.txt into BRIDGE_PYTHON.",
+    "Documentation build failed. Install docs/requirements.txt into BRIDGE_PYTHON.",
   );
-console.log("Private documentation: " + resolve("work/docs-site/index.html"));
+console.log("Documentation: " + resolve("work/docs-site/index.html"));

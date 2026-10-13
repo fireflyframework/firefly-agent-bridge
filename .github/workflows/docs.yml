@@ -1,0 +1,64 @@
+# Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
+# https://www.apache.org/licenses/LICENSE-2.0
+name: Bridge documentation
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: bridge-docs-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    name: Verify documentation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "26.3.0"
+          cache: npm
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - run: npm ci
+      - run: python -m pip install --requirement docs/requirements.txt
+      - run: npx playwright install --with-deps chromium
+      - name: Check prose, illustration, strict site and browser journeys
+        env:
+          BRIDGE_PYTHON: python
+        run: |
+          npm run docs:editorial
+          npm run docs:test
+          npm run docs:build
+          python scripts/check_docs_site.py
+          npm run docs:test:browser
+      - name: Configure Pages
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - name: Upload qualified site
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: work/docs-site
+  deploy:
+    name: Publish documentation
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy qualified site
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

@@ -4,7 +4,7 @@
 
 [Tokens](tokens.md) · [Template reference](workflows.md) · [Subagents](subagents.md)
 
-This guide implements a repeatable **plan → implement → review → repair → verify** process. Each stage is a durable bridge job. Claude Code performs the model and tool work, including native delegation; the bridge controls ordering, state, pause/resume, and event delivery.
+The development workflow has five stages: plan, implement, review, repair and verify. Each stage is a durable bridge job. Claude Code performs the model and tool work, including native delegation. The bridge controls stage order, job state, pause/resume and event delivery.
 
 ![Advanced development workflow](../assets/diagrams/advanced-workflow.svg)
 
@@ -85,9 +85,9 @@ Pause the workflow to stop advancement and request a pause of its current attemp
 
 A failed stage requires inspection before retry. Resume a paused workflow before retrying its step. Retry starts a fresh native session and may repeat effects. Cancellation does not undo files or external actions.
 
-Each stage has a separate job directory and Claude session. The example therefore carries the same **absolute project directory** in every prompt. There is no automatic repository checkout or Git worktree. Use a dedicated checkout when concurrent work must be isolated. Do not run overlapping editing workflows against the same checkout.
+Each stage has a separate job directory and Claude session. The example therefore carries the same absolute project directory in every prompt. There is no automatic repository checkout or Git worktree. Use a dedicated checkout when concurrent work must be isolated. Do not run overlapping editing workflows against the same checkout.
 
-A stage's successful Claude result is not proof that every assertion in its prose is correct. The verification prompt asks for observed command results; the operator still reviews the produced diff and evidence.
+Review the produced diff and evidence even when Claude reports success. The verification prompt asks for observed command results; a successful model response alone cannot establish every assertion in that response.
 
 ## Native host commands and boundaries
 

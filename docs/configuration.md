@@ -8,7 +8,7 @@ All data, workspace, and executable paths are absolute. The selected provider pa
 
 ## Use the setup wizard
 
-Open **Providers & setup** after connecting to the console. Follow Provider, Login, Profile and Tools in order. The wizard explains the configuration already running on this host; it does not edit the file below or log in on your behalf.
+Open **Providers & setup** after connecting to the console. Follow Provider, Login, Profile and Tools in order to inspect the running configuration. Edit the saved file separately when you need to change it; run the official login command on the host yourself.
 
 Choose the setup guide matching your intended subscription. If it differs from the current worker, stop the bridge and update its worker and executable path before restarting. Refresh readiness after the official login. Use the profile step to confirm the effective model and limits, then create a separate scoped token for each application from the final step.
 
@@ -35,7 +35,7 @@ See the [console tour](dashboard.md#appearance-and-provider-setup) for the four 
 }
 ```
 
-Sign in using official `codex login`, then check readiness in Providers & setup. Codex runs with personal configuration ignored, preserving its official login. An explicit profile model takes precedence; otherwise the CLI uses its default. Claude tool lists and native agent definitions do not configure this worker.
+Sign in using official `codex login`, then check readiness in Providers & setup. The bridge ignores personal Codex configuration while keeping its official login. An explicit profile model takes precedence; otherwise the CLI uses its default. Claude tool lists and native agent definitions do not configure this worker.
 
 ## Claude subscription configuration
 

@@ -6,7 +6,7 @@ The native executable has a stdio MCP adapter. Its management tools submit work 
 
 ## Claude Desktop
 
-Download the `.mcpb` for your platform from the private release. Verify its checksum, open Claude Desktop's extension settings, and install the bundle. The package includes the native server and local artwork; it does not need a separate Node installation.
+Download the `.mcpb` for your platform from the repository's release page. Verify its checksum, open Claude Desktop's extension settings, and install the bundle. The package includes the native server and local artwork; it does not need a separate Node installation.
 
 Approve the integration according to the host's policy, then restart or reload the extension. Ask the host to call `bridge_status` and `bridge_panel`. The panel response includes the local console URL and authentication instructions. Run the CLI's panel command to locate the token file; neither command displays the token.
 
@@ -14,14 +14,14 @@ An extension can manage a Codex-backed bridge. Its host identity does not choose
 
 ## Claude Code plugin
 
-For a checkout that your GitHub account can access:
+From a local source checkout:
 
 ```sh
 claude plugin marketplace add /absolute/path/to/firefly-agent-bridge
 claude plugin install firefly-agent-bridge@fireflyframework
 ```
 
-The marketplace entry points at `integrations/claude-code`. Its bootstrap downloads the private native release through authenticated GitHub CLI, verifies the archive checksum, and caches the executable. Keep `gh` available to the host environment.
+The marketplace entry points at `integrations/claude-code`. Its bootstrap downloads the pinned native release, verifies the archive checksum, and caches the executable.
 
 The plugin includes [operation and workflow skills](subagents.md#host-skills). Its MCP adapter handles durable jobs, workflow administration, diagnostics, and host claims. Installing a skill does not give a worker extra tools or change the profile's permissions.
 
@@ -35,14 +35,16 @@ claude --plugin-dir /absolute/path/to/firefly-agent-bridge/integrations/claude-c
 
 The native archive includes a Codex plugin manifest, operation skill, MCP configuration, and local artwork beside the executable. Register it in a trusted local marketplace and install it through your supported Codex surface. The manifest uses the documented compatibility layout. See [OpenAI plugin packaging](https://developers.openai.com/plugins/build/plugins) and [local marketplaces](https://learn.chatgpt.com/docs/changelog).
 
-Register the extracted native archive as a local marketplace, then install its plugin:
+Register the extracted native archive as a local marketplace, then install its plugin. The following identifier matches the 0.2.8 package metadata:
 
 ```sh
 codex plugin marketplace add /absolute/path/to/firefly-bridge-local
-codex plugin add firefly-agent-bridge@firefly-internal
+codex plugin add firefly-agent-bridge@fireflyframework
 ```
 
 The archive includes `.agents/plugins/marketplace.json` with a local source at the archive root. Installation keeps its bundled executable, skills, and artwork together. Review and enable the integration through your host's policy before running work. Do not point this marketplace at the source template under `integrations/codex`; use the complete built native archive.
+
+The 0.2.7 archive retains `firefly-agent-bridge@firefly-internal`. Source templates can change before a new native release is published. Use the marketplace name shipped in the downloaded archive; replacing its metadata with files from a newer source checkout does not update its executable or qualify that combination.
 
 For a direct stdio connection, register the installed executable using the official Codex CLI:
 
@@ -70,9 +72,9 @@ Where the host cannot send a fixed bridge bearer token, use an organization-owne
 
 The local SDK handshake and scoped tool authorization are testable without exposing the service. Account eligibility, gateway OAuth, and the final ChatGPT connection require the organization's actual host setup; native stdio verification does not establish those remote acceptance steps.
 
-## Firefly Forge and SDKs
+## firefly forge and SDKs
 
-Give each trusted application its own [scoped token](tokens.md). For Firefly Forge:
+Give each trusted application its own [scoped token](tokens.md). For firefly forge:
 
 ```sh
 export FORGE_BRIDGE_URL=http://127.0.0.1:8766

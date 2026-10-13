@@ -2,6 +2,10 @@
 
 # Execution, recovery, and operations
 
+!!! warning "For local development and testing"
+
+    Firefly Agent Bridge is intended for local development and testing. It uses your signed-in coding CLI subscription rather than a separately billed model API; subscription quotas still apply. We advise against using it for production workloads: provider license and usage restrictions, local security boundaries, and performance limits may make it unsuitable. Check the terms of your plan and provider before connecting an application. See [OpenAI's terms](https://openai.com/policies/terms-of-use/) and [Anthropic's consumer terms](https://www.anthropic.com/legal/consumer-terms).
+
 [README](../README.md) · [Architecture](architecture.md) · [Configuration](configuration.md)
 
 ![Job execution lifecycle](../assets/diagrams/lifecycle.svg)
@@ -51,7 +55,7 @@ Workflow prompts come from the snapshot. They do not accept arbitrary follow-up 
 
 ## Crashes and external effects
 
-A startup recovery marks attempts with lost ownership interrupted; it does not automatically repeat them. Attempt fences reject stale completion messages.
+At startup, recovery marks attempts that lost ownership as interrupted and retains them for inspection. Retrying that work requires an operator's decision. Attempt fences reject stale completion messages.
 
 Database atomicity is not an exactly-once guarantee for external effects. A tool may have written a file, sent a request, or changed a remote system before its result was lost. Review the workspace and external state before retrying.
 
@@ -61,7 +65,7 @@ Inspect the job's **Activity** and **Files** tabs before retrying. Tool results,
 
 MCP adapters renew host leases every two seconds. A channel claim whose host lease expires is interrupted. A notification does not claim work and never completes a job by itself.
 
-The managed service stays available while hosts or queued/active CLI work need it, and uses an idle timeout when they do not. The console also renews an owner host lease while connected. Run the portable CLI's `serve` command without `--managed` for a continuously available local service.
+The managed service stays available while hosts or queued/active CLI work need it. Once that work ends and hosts disconnect, its idle timeout applies. The console also renews an owner host lease while connected. Run the portable CLI's `serve` command without `--managed` for a continuously available local service.
 
 Use `stop` for graceful shutdown. Active CLI work is paused and child processes are reconciled before the database lock is released.
 
@@ -72,6 +76,18 @@ The data directory contains `config.json`, `queue.sqlite`, `owner.token`, a disc
 The service retains the latest 10,000 event sequence IDs. Jobs, messages, attempts, workflow snapshots, and full execution audits remain durable. Monitor disk usage and archive data deliberately; this release does not silently delete job history.
 
 Stop the service before making a filesystem backup of SQLite and its sidecars. Protect backups as user data: prompts, results, full file contents, shell commands/output, and bridge authentication material can be sensitive. To restore, keep the configuration's absolute paths consistent with the restored data directory.
+
+### Make and verify a local backup
+
+Use the same `--data-dir` as the running instance on every CLI command. `status` confirms which service is available; `panel` locates its console and owner-token file without printing the token.
+
+1. Stop managed hosts and close connected consoles so they do not restart or keep the service alive. Request graceful shutdown with `firefly-bridge stop --data-dir /absolute/path/to/state` and wait for that instance to exit.
+2. Copy the stopped data directory and configured job workspace to private backup storage. Include `queue.sqlite` and any remaining `queue.sqlite-wal` and `queue.sqlite-shm` sidecars together. SQLite uses WAL mode; copying only its main file during execution can omit committed observations.
+3. Retain the matching configuration, owner token and workspace paths. Native coding-agent transcripts and subscription login belong to the official CLI's separate storage and need that provider's own recovery procedure.
+4. Restore to a separate local test location while the original instance stays stopped. Review the copied `config.json` so its data and workspace paths identify only the restored test directories. Do not start two services against the same queue or job workspace.
+5. Start the restored service explicitly, then inspect status, jobs, attempts, workflow snapshots and a known audit export. Startup can mark lost attempts interrupted; inspect their effects before retrying. Check the recovered files separately from the database history.
+
+`service.log` records managed-service startup and process diagnostics. The job audit contains emitted execution observations. Neither log replaces a missing native transcript, a command result or a backup of source files. A restored owner token retains its authority; protect it and use the normal token controls when application access must be replaced.
 
 ## Native protocol references
 

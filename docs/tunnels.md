@@ -8,7 +8,9 @@ The bridge remains bound to `127.0.0.1`. A tunnel provides the HTTPS edge; the b
 
 A hosted application cannot reach a developer's bridge through its own `127.0.0.1`: that address refers to the application server. A deliberately configured tunnel or private gateway is required. The bridge has no automatic discovery, device pairing, OAuth server or authenticated outbound relay.
 
-## Configure the public identity
+<a id="configure-the-public-identity"></a>
+
+## Configure the gateway hostname
 
 For a public hostname such as `bridge.example.com`, stop the service and add the exact values to `config.json`:
 
@@ -53,6 +55,6 @@ curl -N "https://bridge.example.com/v1/bridge/events" \
   -H "Authorization: Bearer $BRIDGE_TOKEN"
 ```
 
-A connection without a token must return 401. An unconfigured Host or Origin must return 403. Confirm that events arrive incrementally instead of being buffered until the response ends.
+Check that a connection without a token returns 401 and an unconfigured Host or Origin returns 403. Events should arrive incrementally while the connection is open.
 
 Do not put tokens in URLs. A remote token with an execution-capable profile can cause local actions with the OS user's privileges; provision it only for a trusted application.

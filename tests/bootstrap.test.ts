@@ -1,0 +1,125 @@
+/* Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0 */
+import { afterEach, beforeEach, expect, it } from "vitest";
+import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { delimiter, join, resolve } from "node:path";
+
+let directory: string;
+let archive: string;
+let checksums: string;
+const bootstrap = resolve("integrations/claude-code/scripts/bootstrap.sh");
+const version = JSON.parse(readFileSync("package.json", "utf8"))
+  .version as string;
+const asset = `firefly-agent-bridge-${version}-linux-x64.tar.gz`;
+beforeEach(() => {
+  directory = mkdtempSync(join(tmpdir(), "bridge-bootstrap-test-"));
+  const commands = join(directory, "bin");
+  const source = join(directory, "source");
+  mkdirSync(commands);
+  mkdirSync(source);
+  writeFileSync(
+    join(source, "firefly-bridge"),
+    '#!/usr/bin/env bash\nprintf "fixture-ready:%s\\n" "$1"\n',
+    { mode: 0o755 },
+  );
+  archive = join(directory, asset);
+  checksums = join(directory, "SHA256SUMS");
+  const packed = spawnSync(
+    "tar",
+    ["-czf", asset, "-C", "source", "firefly-bridge"],
+    { cwd: directory },
+  );
+  expect(packed.status, packed.stderr?.toString()).toBe(0);
+  writeFileSync(
+    checksums,
+    createHash("sha256").update(readFileSync(archive)).digest("hex") +
+      "  " +
+      asset +
+      "\n",
+  );
+  writeFileSync(
+    join(commands, "uname"),
+    '#!/usr/bin/env bash\ncase "$1" in -s) printf Linux;; -m) printf x86_64;; esac\n',
+    { mode: 0o755 },
+  );
+  writeFileSync(
+    join(commands, "gh"),
+    '#!/usr/bin/env bash\nprintf "unexpected-gh\\n" >&2\nexit 99\n',
+    { mode: 0o755 },
+  );
+  writeFileSync(
+    join(commands, "curl"),
+    `#!/usr/bin/env bash
+set -eu
+printf '%s\\n' "$@" >> "$FIXTURE_CURL_LOG"
+destination=''
+url=''
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --output|-o) destination="$2"; shift 2;;
+    https://*) url="$1"; shift;;
+    *) shift;;
+  esac
+done
+case "$url" in
+  */SHA256SUMS) cp "$FIXTURE_CHECKSUMS" "$destination";;
+  */${asset}) cp "$FIXTURE_ARCHIVE" "$destination";;
+  *) exit 8;;
+esac
+`,
+    { mode: 0o755 },
+  );
+});
+afterEach(() => rmSync(directory, { recursive: true, force: true }));
+function run(cacheHome = join(directory, "cache")) {
+  return spawnSync("bash", [bootstrap, "status"], {
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      PATH: join(directory, "bin") + delimiter + process.env.PATH,
+      XDG_CACHE_HOME: cacheHome,
+      FIXTURE_ARCHIVE: archive,
+      FIXTURE_CHECKSUMS: checksums,
+      FIXTURE_CURL_LOG: join(directory, "curl.log"),
+    },
+  });
+}
+it("installs a checksum-verified public asset without a GitHub login", () => {
+  const result = run();
+  expect(result.status, result.stderr).toBe(0);
+  expect(result.stdout).toBe("fixture-ready:status\n");
+  const downloads = readFileSync(join(directory, "curl.log"), "utf8");
+  expect(downloads).toContain(
+    `https://github.com/fireflyframework/firefly-agent-bridge/releases/download/v${version}/${asset}`,
+  );
+  expect(downloads).toContain("--proto");
+  expect(downloads).toContain("=https");
+});
+it("verifies archives when cache paths contain backslashes", () => {
+  const result = run(join(directory, "cache\\with\\backslashes"));
+  expect(result.status, result.stderr).toBe(0);
+  expect(result.stdout).toBe("fixture-ready:status\n");
+});
+it("refuses an altered archive before executing or caching it", () => {
+  writeFileSync(archive, "altered archive");
+  const result = run();
+  expect(result.status).not.toBe(0);
+  expect(result.stderr).toContain("Release checksum verification failed");
+  expect(result.stdout).not.toContain("fixture-ready");
+});
+it("refuses a missing platform checksum", () => {
+  writeFileSync(checksums, "");
+  const result = run();
+  expect(result.status).not.toBe(0);
+  expect(result.stderr).toContain("Release checksum is missing");
+  expect(result.stdout).not.toContain("fixture-ready");
+});

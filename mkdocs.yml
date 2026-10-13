@@ -15,7 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 site_name: Firefly Agent Bridge
-site_description: Private developer jobs, subscriptions, workflows, and execution records
+site_url: https://fireflyframework.github.io/firefly-agent-bridge/
+site_description: Local coding jobs, subscriptions, workflows and execution records
 site_author: Firefly Software Foundation
 docs_dir: docs
 site_dir: work/docs-site
@@ -23,29 +24,35 @@ use_directory_urls: true
 theme:
   name: material
   font: false
-  logo: assets/brand/bridge-mark.svg
+  logo: assets/brand/bridge-lockup-light.svg
   favicon: assets/brand/bridge-favicon-light.svg
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-night
         name: Switch to dark appearance
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-sunny
         name: Switch to light appearance
   features:
+    - navigation.tabs
+    - navigation.footer
+    - toc.follow
     - navigation.sections
     - navigation.indexes
-    - navigation.top
     - content.code.copy
     - search.highlight
     - search.suggest
 nav:
-  - Overview: index.md
-  - Set up:
+  - Home: index.md
+  - Setup:
       - Installation: installation.md
       - Host integrations: integrations.md
       - Provider configuration: configuration.md
@@ -72,11 +79,18 @@ plugins:
   - search
 markdown_extensions:
   - attr_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+      toc_depth: 3
   - admonition
   - pymdownx.details
   - pymdownx.superfences
   - pymdownx.highlight:
       anchor_linenums: true
+extra:
+  generator: false
 extra_css:
   - assets/docs.css
-copyright: Private Firefly developer infrastructure · © 2026 Firefly Software Foundation
+copyright: Copyright &copy; 2026 Firefly Software Foundation
