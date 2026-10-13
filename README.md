@@ -4,9 +4,9 @@
 
 # Firefly Agent Bridge
 
-**Private infrastructure for Firefly developers.** One local execution service connects Firefly Forge, application SDKs and coding-agent hosts to the developer's own official Codex or Claude Code subscription.
+Firefly Agent Bridge connects Firefly Forge, application SDKs and coding-agent hosts to your signed-in Codex or Claude Code CLI. It runs on your developer machine and uses your own coding subscription.
 
-The bridge owns durable admission, jobs, attempts, pause/resume, workflow checkpoints and audit. The official coding agent owns its login, model access, native transcript and context. Credentials stay with that official client.
+The bridge admits work to a durable queue. It retains execution attempts, workflow checkpoints and audit records, and handles pause and resume. The official coding agent manages login, model access, native transcripts and context. Provider credentials stay with that client.
 
 ![Developer console](assets/screenshots/dashboard-desktop.png)
 
@@ -58,10 +58,14 @@ Claude profile-defined subagents remain available with `Agent`; Codex does not t
 
 [Installation](docs/installation.md) · [Configuration](docs/configuration.md) · [Architecture](docs/architecture.md) · [API](docs/api.md) · [SDKs](docs/openai-compatible.md) · [Console](docs/dashboard.md) · [Workflows](docs/workflows.md) · [Audit](docs/audit.md) · [Operations](docs/operations.md) · [Verification](docs/verification.md)
 
-## Development and internal packaging
+<a id="development-and-internal-packaging"></a>
 
-Node.js 24+ runs the source; official Node.js 26.3.0 builds native packages. `npm run check` runs types, lint, formatting, the full test suite, Python SDK interoperability, browser interaction, build, documentation/contracts, native packaging and packaged MCP smoke tests. Desktop manifests use the official MCPB 0.3 JSON Schema; the internal builder emits unsigned deterministic ZIP bundles. `npm run test:live:codex:images` verifies a pixel-only challenge through the signed-in official Codex client. `npm run test:live:codex` consumes the signed-in developer's subscription and records private local evidence.
+## Development and packaging
 
-The repository and release assets remain private under `fireflyframework/firefly-agent-bridge`. Native plugin bootstrap uses authenticated GitHub CLI downloads. Public Firefly Forge distributions include only the HTTP client integration, never this bridge's source or assets.
+Source builds require Node.js 24+; native packages use official Node.js 26.3.0. `npm run check` runs type checks, lint, formatting, the full test suite, Python SDK interoperability, browser interactions, builds, documentation and API contract checks, native packaging and packaged MCP smoke tests. Desktop manifests use the official MCPB 0.3 JSON Schema. The builder produces unsigned deterministic ZIP bundles.
 
-Software is Apache-2.0; required attribution is retained in source notices and [NOTICE](NOTICE). [Brand ownership](assets/BRAND-NOTICE.md) is separate. Firefly Agent Bridge is independently operated; provider access follows the official client's capabilities and account permissions.
+`npm run test:live:codex:images` verifies a pixel-only challenge through the signed-in official Codex client. `npm run test:live:codex` consumes your subscription allowance and records evidence locally under ignored `work/`.
+
+Get source and native packages from `fireflyframework/firefly-agent-bridge`. Native plugin bootstrap verifies the release archive's checksum before caching its executable. Firefly Forge distributions include the HTTP client integration; install the bridge separately on the machine with your coding-agent login.
+
+The software is open source under Apache-2.0. Keep the attribution in source notices and [NOTICE](NOTICE). Firefly marks and separately owned artwork retain the rights described in [Brand ownership](assets/BRAND-NOTICE.md). The bridge is independently operated. Provider access follows the official client's capabilities and your account permissions.

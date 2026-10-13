@@ -4,7 +4,7 @@
 
 [Quickstart](installation.md) · [Get a token](tokens.md) · [API reference](api.md) · [Architecture](architecture.md)
 
-Use the OpenAI Python SDK or Pydantic AI against your own selected coding-agent subscription. The bridge implements **Chat Completions**, model discovery, function-call exchanges, and structured output. One authenticated API and one durable queue also serve the console, Claude integrations, and workflow engine.
+Connect the OpenAI Python SDK or Pydantic AI to your selected coding-agent subscription through the bridge. It supports Chat Completions, model discovery, function calls and structured output. The console, Claude integrations and workflow engine use the same authenticated API and durable queue.
 
 ![Application functions and native execution through one API](../assets/diagrams/openai-compatible.svg)
 
@@ -13,9 +13,9 @@ Use the OpenAI Python SDK or Pydantic AI against your own selected coding-agent 
 ## Connect in four steps
 
 1. [Install the Desktop extension or Code plugin](installation.md), sign in through the selected official Codex or Claude Code CLI, and start the host.
-2. [Copy the local owner token](tokens.md#2-get-the-owner-token-for-the-console), open the console, and create an application token under **Diagnostics → Client access**. Chat requests require `read` and `submit`; allow the `default` profile.
+2. [Copy the local owner token](tokens.md#2-get-the-owner-token-for-the-console), open the console, and create an application token under **Diagnostics → Application access**. Chat requests require `read` and `submit`; allow the `default` profile.
 3. Put that application's `ffb_` token in `BRIDGE_TOKEN`. Set `BRIDGE_URL` to `http://127.0.0.1:8766`, or your configured HTTPS tunnel origin.
-4. Set the SDK base URL to **`$BRIDGE_URL/v1`**, the SDK `api_key` to **`BRIDGE_TOKEN`**, and the model to **`bridge/default`**.
+4. Set the SDK base URL to `$BRIDGE_URL/v1`, the SDK `api_key` to `BRIDGE_TOKEN`, and the model to `bridge/default`.
 
 The SDK's `api_key` parameter is the bridge bearer token. You do not need an OpenAI key, a Claude API key, or access to Claude's stored login credentials. The SDK connects only to your configured bridge URL.
 
@@ -54,7 +54,7 @@ with OpenAI(
 
 ## Pydantic AI with local Python functions
 
-Use **`OpenAIChatModel` explicitly**. Pydantic AI also supports a Responses model; `/v1/responses` is outside this bridge's contract.
+Select `OpenAIChatModel` explicitly. Pydantic AI also supports a Responses model; `/v1/responses` is outside this bridge's contract.
 
 ```python
 import asyncio
@@ -85,7 +85,7 @@ async def main():
 asyncio.run(main())
 ```
 
-The inference worker requests `add` through a validated `tool_calls` result. **Pydantic AI executes the Python function in your application**, then submits the full history with its tool result. Each model turn is a separate durable inference job. Function names, JSON arguments, declared schemas, and tool-result IDs are validated. The bridge never runs client function code.
+The inference worker requests `add` through a validated `tool_calls` result. Pydantic AI executes the Python function in your application, then submits the full history with its tool result. Each model turn is a separate durable inference job. Function names, JSON arguments, declared schemas, and tool-result IDs are validated. The bridge never runs client function code.
 
 For typed output, pass a Pydantic class as `Agent(model, output_type=YourModel)`. Pydantic AI's default output-function strategy is supported. `output_type=NativeOutput(YourModel)` uses `response_format.json_schema`. See the [runnable example](../examples/pydantic_agent.py) and [SDK compatibility tests](../tests/clients/openai_clients.py).
 
@@ -151,7 +151,7 @@ Official Codex image input was tested against a signed-in ChatGPT subscription u
 
 ## Streaming behavior
 
-Set `stream=True` in the OpenAI SDK, or use Pydantic AI's `run_stream`. The bridge sends SSE keepalive comments while the selected CLI runs, then sends the **fully validated final output** as standard completion chunks followed by `data: [DONE]`. Function deltas include stable IDs, names, and JSON arguments. `stream_options={"include_usage": True}` adds a final usage chunk when the provider reports counts.
+Set `stream=True` in the OpenAI SDK, or use Pydantic AI's `run_stream`. The bridge sends SSE keepalive comments while the selected CLI runs, then sends the validated final output as standard completion chunks followed by `data: [DONE]`. Function deltas include stable IDs, names, and JSON arguments. `stream_options={"include_usage": True}` adds a final usage chunk when the provider reports counts.
 
 This is buffered streaming: it keeps the connection active but does not expose token-by-token generation. A structured response must pass validation before any answer is released. The console's `/v1/bridge/events` stream carries durable job progress, compaction, workflow, and quota notifications; it is an orchestration extension of the same API, with its own event format and replay cursor.
 
@@ -177,9 +177,9 @@ Usage reflects the provider's reported invocation totals, including cache reads/
 
 ## Timeouts, retries, and quota recovery
 
-- The default completion deadline is **300 seconds including queue wait**. Set the SDK timeout slightly higher, or configure `openai.timeoutMs`. The default service-wide waiting-connection limit is 16; each principal can hold four.
+- The default completion deadline is 300 seconds including queue wait. Set the SDK timeout slightly higher, or configure `openai.timeoutMs`. The default service-wide waiting-connection limit is 16; each principal can hold four.
 - Set SDK `max_retries=0` unless you implement deliberate recovery. New model requests can consume subscription allowance; a repeated external function may also have side effects.
-- Reuse one **`Idempotency-Key` per logical request and exact body** across uncertain retries. Existing jobs and completion IDs are reused; a different body returns 409. Generate a fresh key for each next conversation turn. Multiple connections to the same key do not cancel each other's work.
+- Reuse one `Idempotency-Key` per logical request and exact body across uncertain retries. Existing jobs and completion IDs are reused; a different body returns 409. Generate a fresh key for each next conversation turn. Multiple connections to the same key do not cancel each other's work.
 - `X-Bridge-Job-Id` links an admitted request to the panel. Errors after admission also include `error.job_id`. A quota pause returns 429 and `Retry-After` when the provider supplies a reset. An operator pause returns 503. Those jobs remain durable for recovery.
 - After SSE headers have been sent, a failure arrives as `data: {"error":...}` followed by `[DONE]`; inspect the exception from your SDK and the durable job. HTTP status cannot change midstream.
 - Synchronous disconnects, revoked tokens, and deadlines cancel work when its last waiter leaves. Background jobs survive a disconnected submitter. Service shutdown records unfinished execution for inspection. Cancellation cannot roll back application functions or native tool effects.
@@ -189,4 +189,4 @@ The selected native CLI owns compaction and resumable sessions. For a new infere
 
 ## Sources and verification
 
-The contract follows [OpenAI Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create), [Pydantic AI's OpenAI provider](https://pydantic.dev/docs/ai/models/openai/), and [Claude Code's programmatic interface](https://code.claude.com/docs/en/headless). The [verification record](verification.md) records deterministic client tests, live Codex acceptance, native package checks, and host-specific installation limits. Claude subscription acceptance requires an authenticated developer host.
+The contract follows [OpenAI Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create), [Pydantic AI's OpenAI provider](https://pydantic.dev/docs/ai/models/openai/), and [Claude Code's programmatic interface](https://code.claude.com/docs/en/headless). The [verification record](verification.md) covers deterministic client tests, live Codex acceptance, native package checks and host-specific installation limits. Claude subscription acceptance requires an authenticated developer host.

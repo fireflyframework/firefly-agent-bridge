@@ -12,7 +12,7 @@ A template is a reusable, ordered sequence of prompts. It names the inputs suppl
 
 Use a template when the same process repeats with different material: research then review, draft then critique, extract then summarize, or implement then verify. Use a standalone job for a one-off task or an open-ended conversation.
 
-Templates provide **structure and checkpoints**. They do not make model output deterministic or guarantee that a tool's external side effect can be rolled back.
+Templates checkpoint each stage's progress. Model output can vary, and a tool's external side effects may persist after cancellation or failure.
 
 ![Workflow responsibilities and child-task ownership](../assets/diagrams/workflows.svg)
 

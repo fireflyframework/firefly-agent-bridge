@@ -4,7 +4,7 @@
 
 [Quickstart](installation.md) · [API](api.md) · [Advanced workflows](advanced-workflows.md)
 
-A **bridge token** authenticates to your local Firefly Agent Bridge. It starts with `ffb_`. It is separate from your provider subscription login. Official Codex or Claude Code manages that login; provider credentials stay with that client.
+A bridge token authenticates to your local Firefly Agent Bridge. It starts with `ffb_`. It is separate from your provider subscription login. Official Codex or Claude Code manages that login; provider credentials stay with that client.
 
 ![Owner and application token flow](../assets/diagrams/tokens.svg)
 
@@ -70,7 +70,7 @@ Its JSON output contains `token`. Store that value privately as `BRIDGE_TOKEN` i
 
 ## 4. Make an authenticated request
 
-The examples below assume your process already has `BRIDGE_TOKEN` from its private environment configuration:
+Load `BRIDGE_TOKEN` from your application's private environment configuration before making a request:
 
 ```sh
 export BRIDGE_URL=http://127.0.0.1:8766

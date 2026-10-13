@@ -1,5 +1,5 @@
 ---
-title: Firefly Agent Bridge
+title: Documentation home
 hide:
   - toc
 ---
@@ -17,7 +17,7 @@ hide:
 <span>Developer documentation</span>
 </div>
 
-# Connect your coding subscription to developer tools.
+# Use your coding subscription in your applications.
 
 Firefly Agent Bridge runs on your developer machine. Connect Firefly Forge,
 application SDKs or coding-agent hosts to your signed-in Codex or Claude Code CLI.
@@ -29,7 +29,7 @@ application SDKs or coding-agent hosts to your signed-in Codex or Claude Code CL
 
 </div>
 
-Downloads require access to the private repository.
+The software is licensed under Apache-2.0. Running work requires your provider login and local bridge token.
 {: .bridge-home__note }
 
 </div>
@@ -55,7 +55,7 @@ Downloads require access to the private repository.
 
 <div class="bridge-home__start" markdown="1">
 
-## Get to your first verified job
+## Run your first job
 
 <div class="bridge-home__steps" markdown="1">
 

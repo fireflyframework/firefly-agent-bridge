@@ -6,7 +6,7 @@ The native executable has a stdio MCP adapter. Its management tools submit work 
 
 ## Claude Desktop
 
-Download the `.mcpb` for your platform from the private release. Verify its checksum, open Claude Desktop's extension settings, and install the bundle. The package includes the native server and local artwork; it does not need a separate Node installation.
+Download the `.mcpb` for your platform from the repository's release page. Verify its checksum, open Claude Desktop's extension settings, and install the bundle. The package includes the native server and local artwork; it does not need a separate Node installation.
 
 Approve the integration according to the host's policy, then restart or reload the extension. Ask the host to call `bridge_status` and `bridge_panel`. The panel response includes the local console URL and authentication instructions. Run the CLI's panel command to locate the token file; neither command displays the token.
 
@@ -14,14 +14,14 @@ An extension can manage a Codex-backed bridge. Its host identity does not choose
 
 ## Claude Code plugin
 
-For a checkout that your GitHub account can access:
+From a local source checkout:
 
 ```sh
 claude plugin marketplace add /absolute/path/to/firefly-agent-bridge
 claude plugin install firefly-agent-bridge@fireflyframework
 ```
 
-The marketplace entry points at `integrations/claude-code`. Its bootstrap downloads the private native release through authenticated GitHub CLI, verifies the archive checksum, and caches the executable. Keep `gh` available to the host environment.
+The marketplace entry points at `integrations/claude-code`. Its bootstrap downloads the pinned native release, verifies the archive checksum, and caches the executable.
 
 The plugin includes [operation and workflow skills](subagents.md#host-skills). Its MCP adapter handles durable jobs, workflow administration, diagnostics, and host claims. Installing a skill does not give a worker extra tools or change the profile's permissions.
 

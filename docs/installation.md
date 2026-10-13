@@ -2,15 +2,15 @@
 
 # Install Firefly Agent Bridge
 
-You need access to the private [Firefly Agent Bridge repository](https://github.com/fireflyframework/firefly-agent-bridge) and an official Codex or Claude Code subscription login on the machine that runs the service. Bridge authentication is separate from provider authentication.
+Get the source or native packages from the [Firefly Agent Bridge repository](https://github.com/fireflyframework/firefly-agent-bridge). The software is licensed under Apache-2.0. You need an official Codex or Claude Code subscription login on the machine that runs the service, plus a separate bridge token for local access.
 
 ## Choose an installation
 
-| Installation      | Use it for                                                               | Prerequisites                                                        |
-| ----------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------- |
-| Native archive    | A local service or stdio MCP server without a separate Node installation | Authenticated GitHub CLI for the download; official coding-agent CLI |
-| Desktop extension | Claude Desktop management tools                                          | Matching macOS or Windows `.mcpb`; Desktop extension consent         |
-| Source            | Development, debugging, or custom internal packaging                     | Node.js 24+, npm, Git, official coding-agent CLI                     |
+| Installation      | Use it for                                                               | Prerequisites                                                |
+| ----------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| Native archive    | A local service or stdio MCP server without a separate Node installation | HTTPS download; official coding-agent CLI                    |
+| Desktop extension | Claude Desktop management tools                                          | Matching macOS or Windows `.mcpb`; Desktop extension consent |
+| Source            | Development, debugging, or custom packaging                              | Node.js 24+, npm, Git, official coding-agent CLI             |
 
 Native release verification covers macOS arm64, Linux x64, and Windows x64. Download an archive for your machine's architecture. Desktop extensions are built for macOS and Windows.
 
@@ -34,14 +34,13 @@ The bridge uses that CLI's existing login. Do not copy its credentials into the 
 
 ## Install a native archive
 
-Authenticate GitHub CLI with an account that can read the private repository, then download the platform archive and checksum list. This macOS example selects release 0.2.7:
+Download the platform archive and its checksum list over HTTPS. This macOS example selects release 0.2.7:
 
 ```sh
-gh auth login
-gh release download v0.2.7 \
-  --repo fireflyframework/firefly-agent-bridge \
-  --pattern 'firefly-agent-bridge-0.2.7-darwin-arm64.tar.gz' \
-  --pattern SHA256SUMS
+curl --fail --location --remote-name \
+  https://github.com/fireflyframework/firefly-agent-bridge/releases/download/v0.2.7/firefly-agent-bridge-0.2.7-darwin-arm64.tar.gz
+curl --fail --location --remote-name \
+  https://github.com/fireflyframework/firefly-agent-bridge/releases/download/v0.2.7/SHA256SUMS
 shasum -a 256 firefly-agent-bridge-0.2.7-darwin-arm64.tar.gz
 ```
 
@@ -78,7 +77,7 @@ If macOS or Windows prompts for installation approval, follow your organization'
 ## Install from source
 
 ```sh
-gh repo clone fireflyframework/firefly-agent-bridge
+git clone https://github.com/fireflyframework/firefly-agent-bridge.git
 cd firefly-agent-bridge
 npm ci
 npm run build

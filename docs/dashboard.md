@@ -4,13 +4,13 @@
 
 [README](../README.md) · [Install](installation.md) · [Operations](operations.md)
 
-The console is served by the local bridge. Open the URL returned by `bridge_panel` and authenticate with a bridge token. It submits through `/v1/chat/completions` and uses the same `/v1/bridge` management and notification extensions as other applications.
+Open the local console URL returned by `bridge_panel` and authenticate with a bridge token. It submits through `/v1/chat/completions` and uses the same `/v1/bridge` management and notification extensions as other applications.
 
 The screenshots show the running console. Job, workflow and tool examples use deterministic fixtures. Provider and Diagnostics views use an isolated local bridge with an authenticated official Codex CLI. Screenshots demonstrate the interface; separate execution evidence is described in [verification](verification.md).
 
 ## Connect
 
-The initial heading is **Connect**. Choose a destination from the sidebar or phone menu to see where the console will continue after authentication. Locked destinations explain that access is required; they do not claim to show private job or service state.
+At **Connect**, choose a destination from the sidebar or phone menu. The console opens that destination after authentication. Locked destinations show the access requirement and withhold private job and service state.
 
 Paste an owner or application token into **Bridge token**. It remains in tab memory and is cleared from the form after connection. Reloading or disconnecting clears the session. Expired or revoked access returns to the connection gate and clears loaded private details.
 
@@ -28,7 +28,7 @@ Native coding jobs use the official CLI's configured capabilities. Text completi
 
 ![New-job dialog](../assets/screenshots/new-job-desktop.png)
 
-Pause, resume, cancel, and retry follow the job state and your token scopes. Image jobs require a fresh explicit request after interruption; their view does not offer in-place resume or retry. Retry is explicitly different from resume: it starts a new session and can repeat prior effects.
+Pause, resume, cancel, and retry follow the job state and your token scopes. Image jobs require a fresh explicit request after interruption; their view does not offer in-place resume or retry. Retry starts a new session and can repeat prior effects; resume continues a saved session when available.
 
 ## Tool activity, files, and audit
 

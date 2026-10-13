@@ -51,7 +51,7 @@ Workflow prompts come from the snapshot. They do not accept arbitrary follow-up 
 
 ## Crashes and external effects
 
-A startup recovery marks attempts with lost ownership interrupted; it does not automatically repeat them. Attempt fences reject stale completion messages.
+At startup, recovery marks attempts that lost ownership as interrupted and retains them for inspection. Retrying that work requires an operator's decision. Attempt fences reject stale completion messages.
 
 Database atomicity is not an exactly-once guarantee for external effects. A tool may have written a file, sent a request, or changed a remote system before its result was lost. Review the workspace and external state before retrying.
 
@@ -61,7 +61,7 @@ Inspect the job's **Activity** and **Files** tabs before retrying. Tool results,
 
 MCP adapters renew host leases every two seconds. A channel claim whose host lease expires is interrupted. A notification does not claim work and never completes a job by itself.
 
-The managed service stays available while hosts or queued/active CLI work need it, and uses an idle timeout when they do not. The console also renews an owner host lease while connected. Run the portable CLI's `serve` command without `--managed` for a continuously available local service.
+The managed service stays available while hosts or queued/active CLI work need it. Once that work ends and hosts disconnect, its idle timeout applies. The console also renews an owner host lease while connected. Run the portable CLI's `serve` command without `--managed` for a continuously available local service.
 
 Use `stop` for graceful shutdown. Active CLI work is paused and child processes are reconciled before the database lock is released.
 

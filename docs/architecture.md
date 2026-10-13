@@ -2,7 +2,7 @@
 
 # Architecture
 
-A local service owns the queue, HTTP listener, scheduler, workflows, and audit. Stdio MCP hosts, the console, SDKs, and remote MCP clients use that service. The selected official Codex or Claude Code CLI owns its provider login, native session, model access, and context.
+The local bridge stores the queue, workflows and audit, runs the scheduler, and serves HTTP requests. Stdio MCP hosts, the console, SDKs and remote MCP clients connect to that service. The selected official Codex or Claude Code CLI manages provider login, native sessions, model access and context.
 
 ![Local bridge architecture](../assets/diagrams/architecture.svg)
 
@@ -33,7 +33,7 @@ This lets several hosts share one queue while configuration and history remain o
 | Attempt ID and fence | Authority to finish one exclusive attempt | Ends when the attempt finishes or ownership is lost |
 | Native session ID    | Coding-agent context and continuation     | Managed by the official CLI                         |
 
-SQLite uses WAL, foreign keys, prepared statements, full synchronous commits, and immediate transactions. Job transitions, admission keys, and event records commit together. A fence rejects stale completion of a newer attempt.
+SQLite uses WAL, foreign keys, prepared statements, full synchronous commits, and immediate transactions. Job transitions, admission keys, and event records commit together. A fence rejects completion messages from attempts that have lost ownership.
 
 An idempotency key belongs to a principal, operation, and exact request body. Repeating that request returns its existing resource; changing the body under the same key fails with a conflict. A resume continues an available native session. Retry starts a new session and retains the job's history and workspace; it does not roll back prior effects.
 

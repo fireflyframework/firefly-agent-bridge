@@ -22,7 +22,7 @@ If Claude groups several tool results in one message, the outer structured resul
 
 ![File activity and a replacement diff](../assets/screenshots/files-desktop.png)
 
-The counters mean **distinct reported path strings**, native tool calls, distinct paths with a successful Write/Edit result, and persisted observations. Paths are kept as emitted, so relative and absolute spellings of one file can count separately. Times measure observation receipt at the bridge, not exact operating-system execution time. Out-of-order observations may have no duration.
+The counters count distinct reported path strings, native tool calls, distinct paths with a successful Write/Edit result, and persisted observations. Paths are kept as emitted, so relative and absolute spellings of one file can count separately. Times measure observation receipt at the bridge, not exact operating-system execution time. Out-of-order observations may have no duration.
 
 | Outcome          | What the bridge observed                                                  |
 | ---------------- | ------------------------------------------------------------------------- |
@@ -35,9 +35,9 @@ A failed or unknown action may already have produced effects. Pausing, cancellat
 
 ## Execution ownership and coverage
 
-- **Native agent jobs:** emitted Codex or Claude tool observations are captured. Claude's streamed tool requests/results include its native tool identifiers. Known built-in file tools provide target paths. Bash, network tools, and external commands have complete emitted payloads, but their indirect file effects are not inferred from command text.
-- **OpenAI inference:** the application executes functions. Generated requests are recorded as `client.tool_requested`. Function requests and results supplied on a subsequent request are recorded as `client.tool_request_reported` and `client.tool_result_reported` in that new job. These are client reports, not bridge-verified execution. Use the stable tool-call ID to correlate turns.
-- **Host conversation jobs:** the host reports progress and completion through MCP. The bridge cannot observe that conversation's internal tools or filesystem effects.
+- Native agent jobs capture emitted Codex or Claude tool observations. Claude's streamed tool requests/results include its native tool identifiers. Known built-in file tools provide target paths. Bash, network tools, and external commands have complete emitted payloads, but their indirect file effects are not inferred from command text.
+- In OpenAI inference, the application executes functions. Generated requests are recorded as `client.tool_requested`. Function requests and results supplied on a subsequent request are recorded as `client.tool_request_reported` and `client.tool_result_reported` in that new job. These are client reports, not bridge-verified execution. Use the stable tool-call ID to correlate turns.
+- Host conversation jobs receive progress and completion reports through MCP. The bridge cannot observe that conversation's internal tools or filesystem effects.
 
 Only information emitted to the owned CLI process is available. Claude may shorten large tool outputs, omit subprocess internals, or report only part of a file. The bridge preserves the input/result payloads it receives without an additional audit preview truncation. The profile's `maxOutputBytes` still bounds the entire native stdout stream; exceeding it fails the attempt and leaves unfinished tools unknown. The audit does not scan arbitrary files, read private host transcripts, or infer missing content.
 
@@ -45,7 +45,7 @@ Only information emitted to the owned CLI process is available. Claude may short
 
 SQLite retains an append-only observation history and a current tool projection, written in the same transaction as queue state. The audit includes job lifecycle, session, compaction, rate-limit, and child-task observations. Tool payloads are committed before a metadata-only `job.tool` SSE notification is published. Other existing progress events can contain assistant text.
 
-SSE retains approximately 10,000 recent events; pruning that notification window does **not** delete the audit. Tool observations and payloads remain until the local database is deliberately archived or removed. There is no automatic audit cleanup or retroactive reconstruction of information the bridge did not observe. Monitor disk usage and follow the [backup procedure](operations.md#data-retention-and-backups).
+SSE retains approximately 10,000 recent events; pruning that notification window does not delete the audit. Tool observations and payloads remain until the local database is deliberately archived or removed. There is no automatic audit cleanup or retroactive reconstruction of information the bridge did not observe. Monitor disk usage and follow the [backup procedure](operations.md#data-retention-and-backups).
 
 Complete payloads may include source code, credentials printed by a command, and private file contents. The audit deliberately preserves them. The same job ownership and `read` scope protect metadata, payloads, and exports; an owner can read all jobs. No token appears in a download URL. List responses and tool SSE notifications omit raw payloads; expanded inspectors load them through authenticated requests. Treat exports and backups with the same care as the workspace.
 

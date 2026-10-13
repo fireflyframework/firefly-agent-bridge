@@ -6,14 +6,14 @@ Start with `firefly-bridge status` or the console's Diagnostics view. Inspect th
 
 ## Installation and startup
 
-| Symptom                        | Check                                                                      | Action                                                                                                |
-| ------------------------------ | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Private release download fails | GitHub account access and `gh auth status`                                 | Sign in with an account that can read the private repository; download the matching platform archive. |
-| Executable cannot run          | OS, architecture, intact runtime files, organizational installation policy | Use the matching native archive and keep its files together. Verify its checksum.                     |
-| `owner.token` is missing       | Whether the service started successfully                                   | `init` creates configuration only. Start `serve`, then use the token file in that data directory.     |
-| Connection refused             | Actual console URL and whether the service is running                      | Start `serve` or a host's MCP adapter. Use `panel` with the same `--data-dir`.                        |
-| Port already in use            | Saved port and the other listener's identity                               | Choose a free loopback port in configuration. Do not stop an unrelated service.                       |
-| State is already owned         | Existing bridge process using the same data directory                      | Connect to the existing service or stop it deliberately. Two services must not own one database.      |
+| Symptom                  | Check                                                                      | Action                                                                                            |
+| ------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Release download fails   | Release tag, asset name and HTTPS response                                 | Use the matching platform archive and checksum list from the repository's release page.           |
+| Executable cannot run    | OS, architecture, intact runtime files, organizational installation policy | Use the matching native archive and keep its files together. Verify its checksum.                 |
+| `owner.token` is missing | Whether the service started successfully                                   | `init` creates configuration only. Start `serve`, then use the token file in that data directory. |
+| Connection refused       | Actual console URL and whether the service is running                      | Start `serve` or a host's MCP adapter. Use `panel` with the same `--data-dir`.                    |
+| Port already in use      | Saved port and the other listener's identity                               | Choose a free loopback port in configuration. Do not stop an unrelated service.                   |
+| State is already owned   | Existing bridge process using the same data directory                      | Connect to the existing service or stop it deliberately. Two services must not own one database.  |
 
 ## Subscription readiness
 
@@ -39,7 +39,7 @@ The bridge starts Codex with user configuration ignored while preserving its off
 | HTTP 429           | Rate, capacity, or subscription limit                                         | Respect `Retry-After` when present and inspect durable job state.                               |
 | HTTP 503           | Dispatch or configuration unavailable                                         | Resolve the status reason, then reattach using the same request body and idempotency key.       |
 
-`max_tokens` and `max_completion_tokens` are rejected. The bridge bounds execution through profiles, not generation-token request fields. In Pydantic AI, use `OpenAIChatModel` and an OpenAI model profile that omits unsupported token settings when your application has a global token cap. Responses is outside this API. Image input is limited to the [documented inference attachment contract](openai-compatible.md#image-input).
+`max_tokens` and `max_completion_tokens` are rejected. Set execution bounds in the bridge profile; generation-token request fields are unsupported. In Pydantic AI, use `OpenAIChatModel` and an OpenAI model profile that omits unsupported token settings when your application has a global token cap. Responses is outside this API. Image input is limited to the [documented inference attachment contract](openai-compatible.md#image-input).
 
 ## Jobs and workflow steps
 

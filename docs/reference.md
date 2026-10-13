@@ -24,7 +24,7 @@ The CLI prints a new application token once. Keep that output private. `panel` r
 
 ## MCP tools
 
-The adapter's `tools/list` response describes the complete installed schemas. These operations use the shared service:
+The adapter's `tools/list` response contains the complete installed schemas. These tools use the shared local service:
 
 | Tool                      | Purpose                                                   |
 | ------------------------- | --------------------------------------------------------- |

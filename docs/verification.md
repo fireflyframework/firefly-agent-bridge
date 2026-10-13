@@ -2,7 +2,7 @@
 
 # Verification
 
-`npm run check` is the complete local release gate: TypeScript, ESLint, formatting, unit/integration tests, Python OpenAI/Pydantic AI clients, browser interactions, bundled build, notice/documentation/OpenAPI checks, scoped prose checks, strict private MkDocs build, platform packaging and clean-directory native MCP smoke test.
+`npm run check` runs the complete local release gate: TypeScript, ESLint, formatting, unit/integration tests, Python OpenAI/Pydantic AI clients, browser interactions, bundled build, notice/documentation/OpenAPI checks, scoped prose checks, strict MkDocs build, platform packaging and clean-directory native MCP smoke test.
 
 Deterministic tests cover transactional admission, principal isolation, idempotency, fenced attempts, restart recovery, pause/resume, cancellation, quota gates, workflow checkpoints, channel claims, audit retention and native subprocess bounds. Codex tests specifically cover ChatGPT readiness, alternate-billing rejection, native session continuity, explicit terminal success, audit provenance, default sandbox and unknown quota reset times.
 
@@ -10,11 +10,13 @@ Browser tests verify both theme palettes, system preference changes, theme-only 
 
 The opt-in `npm run test:live:codex` records local evidence for a real official signed-in Codex worker. It creates and reads only a file in its job directory, resumes that same native thread, and verifies a standard Chat Completion. Evidence stays under ignored `work/` and contains no printed bearer credentials.
 
-Provider login, CLI availability, managed policy, rate limits and host extension consent must be checked on the actual developer host. A deterministic test worker is not live provider acceptance. A successful native process exit alone is not job success; a completed validated turn is required. Native external actions still require reconciliation after uncertain outcomes.
+Provider login, CLI availability, managed policy, rate limits and host extension consent must be checked on the actual developer host. Deterministic workers test the protocol. Live provider acceptance requires a signed-in host and a completed, validated turn; process exit alone does not establish job success. Native external actions still require reconciliation after uncertain outcomes.
 
-## Private documentation
+<a id="private-documentation"></a>
 
-Install `docs/requirements.txt` into the Python environment selected by `BRIDGE_PYTHON`, then run `npm run docs:build`. The strict build writes `work/docs-site`; it has no public Pages deployment. Serve that directory on loopback for internal review. The builder stages normal Markdown links, canonical local assets, theme variants, fonts, and example files without publishing private brand-kit source.
+## Build documentation
+
+Install `docs/requirements.txt` into the Python environment selected by `BRIDGE_PYTHON`, then run `npm run docs:build`. The strict build writes `work/docs-site`. Serve that directory on loopback to review it before deployment. The builder includes Markdown pages, local assets, theme variants, fonts and example files; brand-kit source stays outside the site.
 
 The prose check catches a small set of editorial regressions outside code and links. It does not automate the Humanizer's contextual judgment. Manual review preserves technical claims, API labels, commands, and limitations while removing repetitive or promotional wording.
 
@@ -26,7 +28,7 @@ An isolated official-Codex preview is reviewed directly in light and dark at 128
 
 A fresh console journey used the authenticated official Codex worker to create a small file inside its job workspace and continue the same native session. The first image challenge misread one digit and remained unverified; a second explicit owner check passed. Both outcomes are retained, with no automatic probe retry.
 
-Version 0.2.4 passed 123 unit/integration tests, seven Python SDK cases, 36 browser journeys, and the complete Linux, macOS and Windows native matrix. All five product downloads matched SHA256SUMS; all six downloaded files matched GitHub asset digests. Downloaded macOS portable and MCP bundle servers passed authenticated stdio/HTTP MCP, console-module and font checks. The MCP bundle also passed a direct browser review and official Codex readiness check without another model call. See the [private release](https://github.com/fireflyframework/firefly-agent-bridge/releases/tag/v0.2.4). These checks do not establish a Claude subscription session or ChatGPT web connection.
+Version 0.2.4 passed 123 unit/integration tests, seven Python SDK cases, 36 browser journeys, and the complete Linux, macOS and Windows native matrix. All five product downloads matched SHA256SUMS; all six downloaded files matched GitHub asset digests. Downloaded macOS portable and MCP bundle servers passed authenticated stdio/HTTP MCP, console-module and font checks. The MCP bundle also passed a direct browser review and official Codex readiness check without another model call. See the [0.2.4 release](https://github.com/fireflyframework/firefly-agent-bridge/releases/tag/v0.2.4). These checks do not establish a Claude subscription session or ChatGPT web connection.
 
 ## 0.2.3 image checks
 
@@ -50,10 +52,10 @@ Version and packaging checks include the CLI, HTTP, MCP, desktop/plugin manifest
 
 ## 0.2.0 release checks
 
-The local release checks cover 103 unit and integration tests, seven OpenAI/Pydantic AI SDK cases, and 13 browser journeys. Types, lint, formatting, generated API/version contracts, license notices, and the strict private documentation build also run before packaging. Native smoke checks compare CLI, HTTP, MCP, and Codex plugin release versions, then connect two stdio hosts to one authenticated service and inspect its embedded theme assets.
+The local release checks cover 103 unit and integration tests, seven OpenAI/Pydantic AI SDK cases, and 13 browser journeys. Types, lint, formatting, generated API/version contracts, license notices, and the strict documentation build also run before packaging. Native smoke checks compare CLI, HTTP, MCP, and Codex plugin release versions, then connect two stdio hosts to one authenticated service and inspect its embedded theme assets.
 
 Browser screenshots use the running fixture service in light and dark at desktop and mobile widths. The shell keeps content in a scroll row and aligns desktop status and legal footer rows without covering forms. The footer regression compares connected and disconnected states in both themes at 1440, 1280, and 1024 pixels, plus a scaled 960-pixel viewport; borders, heights, and text positions match within one pixel. Fixture screenshots demonstrate console behavior; they do not claim that sample tasks ran against a provider.
 
 Fresh official Codex subscription checks for this change verified file creation and reading inside a job directory, continuation of the same native session, a native packaged MCP submission, and a caller-owned `add(2,5)` function exchange returning `7`. The caller executed the function once, with no native inference actions. Claude subscription acceptance remains dependent on an authenticated developer host. ChatGPT remote MCP still requires the organization's reachable HTTPS gateway and supported authentication; no remote account connection is claimed.
 
-The private release workflow must pass the complete native matrix on macOS arm64, Linux x64, and Windows x64 before publishing those assets. A local macOS package check does not establish the other two platforms.
+The release workflow must pass the complete native matrix on macOS arm64, Linux x64, and Windows x64 before publishing those assets. A local macOS package check does not establish the other two platforms.

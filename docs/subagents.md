@@ -31,7 +31,7 @@ to the reviewer subagent. Summarize its findings with file paths and evidence.
 Return the job ID so I can follow it in the bridge console.
 ```
 
-This explicitly asks the dedicated worker to delegate. It does not ask the current host conversation to perform the review itself.
+The host submits the request to a dedicated worker, which performs the review through its configured subagent.
 
 ## Launch from the console
 
@@ -48,7 +48,7 @@ curl --fail-with-body "$BRIDGE_URL/v1/chat/completions" \
 
 Standard inference requests disable native Agent tools; use `bridge.execution: "agent"` for delegation. Client-side Pydantic AI functions are a separate execution mechanism explained in the [SDK guide](openai-compatible.md).
 
-The client token must include `read` and `submit` and allow `code-workflow`. Add `read` to inspect results/events and `control` for execution controls.
+The client token must include `read` for inspection and `submit` for admission, and allow `code-workflow`. Grant `control` when it also needs execution controls.
 
 ## Observe and control
 
