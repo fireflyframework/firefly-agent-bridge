@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Private bridge verification
+name: Bridge verification
 on:
   push:
     branches: [main]

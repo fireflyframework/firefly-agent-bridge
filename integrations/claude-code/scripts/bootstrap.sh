@@ -44,8 +44,10 @@ if [ ! -x "$target/$executable" ]; then
   staging="$(mktemp -d "$cache/install.XXXXXX")"
   cleanup() { if [ -n "${staging:-}" ] && [ -d "$staging" ]; then find "$staging" -depth -delete; fi; }
   trap cleanup EXIT
-  if ! command -v gh >/dev/null; then echo "The private Firefly release requires GitHub CLI and gh auth login." >&2; exit 1; fi
-  gh release download "v$version" --repo "$repository" --pattern "$asset.tar.gz" --pattern SHA256SUMS --dir "$staging"
+  if ! command -v curl >/dev/null; then echo "Install curl to download the Firefly release." >&2; exit 1; fi
+  release="https://github.com/$repository/releases/download/v$version"
+  curl --fail --location --silent --show-error --proto '=https' --proto-redir '=https' --tlsv1.2 --output "$staging/$asset.tar.gz" "$release/$asset.tar.gz"
+  curl --fail --location --silent --show-error --proto '=https' --proto-redir '=https' --tlsv1.2 --output "$staging/SHA256SUMS" "$release/SHA256SUMS"
   expected="$(awk -v name="$asset.tar.gz" '$2 == name { print $1 }' "$staging/SHA256SUMS")"
   if [ "${#expected}" -ne 64 ]; then echo "Release checksum is missing." >&2; exit 1; fi
   if command -v sha256sum >/dev/null; then actual="$(sha256sum "$staging/$asset.tar.gz" | awk '{print $1}')"

@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Private bridge release
+name: Bridge release
 on:
   push:
     tags: ["v*"]
@@ -38,7 +38,7 @@ jobs:
           pattern: native-*
           path: release-assets
           merge-multiple: true
-      - name: Verify tag, expected platform artifacts and publish private release
+      - name: Verify tag, expected platform artifacts and publish release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}

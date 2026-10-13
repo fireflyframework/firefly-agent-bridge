@@ -1,7 +1,7 @@
 {
   "name": "firefly-agent-bridge",
   "version": "0.2.7",
-  "description": "Private Firefly developer execution bridge for Claude Code and Codex subscriptions",
+  "description": "Local coding jobs and workflows through official Claude Code and Codex subscriptions",
   "type": "module",
   "license": "Apache-2.0",
   "author": "@ancongui",
