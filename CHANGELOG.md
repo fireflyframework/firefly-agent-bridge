@@ -9,6 +9,7 @@
 - Claude Code bootstrap downloads checksum-verified native archives over HTTPS without requiring a GitHub login. CLI, HTTP, MCP, UI, integration manifests, and installation examples identify the same version.
 - Work guides explain each wizard stage with expandable screenshot galleries, light/dark images, bounded phone captures and links to the full screenshots.
 - Checksum validation reads archive bytes directly, so Windows cache paths do not affect the digest. Installer fixtures also use relative archive paths for Git Bash.
+- GitHub Pages builds the MkDocs site from main after documentation checks. Screenshot checks decode the visible theme, and the reading view has no floating control over the figures.
 
 ## 0.2.7 — 2026-10-12
 

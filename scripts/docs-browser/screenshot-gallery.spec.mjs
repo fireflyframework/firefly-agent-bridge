@@ -40,7 +40,7 @@ for (const width of [1440, 390, 375]) {
           await expect(summary.locator("..")).toHaveAttribute("open", "");
         }
         await article
-          .locator(".bridge-shot__link img")
+          .locator(".bridge-shot__link:visible img")
           .evaluateAll(async (images) => {
             await Promise.all(
               images.map(async (image) => {

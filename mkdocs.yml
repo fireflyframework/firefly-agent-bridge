@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 site_name: Firefly Agent Bridge
+site_url: https://fireflyframework.github.io/firefly-agent-bridge/
 site_description: Local coding jobs, subscriptions, workflows and execution records
 site_author: Firefly Software Foundation
 docs_dir: docs
@@ -46,7 +47,6 @@ theme:
     - toc.follow
     - navigation.sections
     - navigation.indexes
-    - navigation.top
     - content.code.copy
     - search.highlight
     - search.suggest
