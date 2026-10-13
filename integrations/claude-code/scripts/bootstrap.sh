@@ -50,8 +50,8 @@ if [ ! -x "$target/$executable" ]; then
   curl --fail --location --silent --show-error --proto '=https' --proto-redir '=https' --tlsv1.2 --output "$staging/SHA256SUMS" "$release/SHA256SUMS"
   expected="$(awk -v name="$asset.tar.gz" '$2 == name { print $1 }' "$staging/SHA256SUMS")"
   if [ "${#expected}" -ne 64 ]; then echo "Release checksum is missing." >&2; exit 1; fi
-  if command -v sha256sum >/dev/null; then actual="$(sha256sum "$staging/$asset.tar.gz" | awk '{print $1}')"
-  else actual="$(shasum -a 256 "$staging/$asset.tar.gz" | awk '{print $1}')"; fi
+  if command -v sha256sum >/dev/null; then actual="$(sha256sum < "$staging/$asset.tar.gz" | awk '{print $1}')"
+  else actual="$(shasum -a 256 < "$staging/$asset.tar.gz" | awk '{print $1}')"; fi
   if [ "$actual" != "$expected" ]; then echo "Release checksum verification failed." >&2; exit 1; fi
   mkdir "$staging/unpacked"
   tar -xzf "$staging/$asset.tar.gz" -C "$staging/unpacked"

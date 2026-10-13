@@ -80,13 +80,13 @@ esac
   );
 });
 afterEach(() => rmSync(directory, { recursive: true, force: true }));
-function run() {
+function run(cacheHome = join(directory, "cache")) {
   return spawnSync("bash", [bootstrap, "status"], {
     encoding: "utf8",
     env: {
       ...process.env,
       PATH: join(directory, "bin") + delimiter + process.env.PATH,
-      XDG_CACHE_HOME: join(directory, "cache"),
+      XDG_CACHE_HOME: cacheHome,
       FIXTURE_ARCHIVE: archive,
       FIXTURE_CHECKSUMS: checksums,
       FIXTURE_CURL_LOG: join(directory, "curl.log"),
@@ -103,6 +103,11 @@ it("installs a checksum-verified public asset without a GitHub login", () => {
   );
   expect(downloads).toContain("--proto");
   expect(downloads).toContain("=https");
+});
+it("verifies archives when cache paths contain backslashes", () => {
+  const result = run(join(directory, "cache\\with\\backslashes"));
+  expect(result.status, result.stderr).toBe(0);
+  expect(result.stdout).toBe("fixture-ready:status\n");
 });
 it("refuses an altered archive before executing or caching it", () => {
   writeFileSync(archive, "altered archive");

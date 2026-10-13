@@ -7,6 +7,8 @@
 - Task-based local setup guides, a shared light/dark documentation theme, and a synchronized 3D message illustration with pause and reduced-motion controls.
 - Readable command, tool, file, and message evidence in the console, with bounded previews and the original audit record available for inspection.
 - Claude Code bootstrap downloads checksum-verified native archives over HTTPS without requiring a GitHub login. CLI, HTTP, MCP, UI, integration manifests, and installation examples identify the same version.
+- Work guides explain each wizard stage with expandable screenshot galleries, light/dark images, bounded phone captures and links to the full screenshots.
+- Checksum validation reads archive bytes directly, so Windows cache paths do not affect the digest. Installer fixtures also use relative archive paths for Git Bash.
 
 ## 0.2.7 — 2026-10-12
 
