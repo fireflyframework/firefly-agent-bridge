@@ -19,6 +19,7 @@
 
 import { afterEach, beforeEach, expect, it } from "vitest";
 import {
+  cpSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -31,6 +32,8 @@ import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 
 let directory: string;
+const described = (body: string, subject: string) =>
+  `---\ndescription: Verify ${subject} with canonical guide links, local brand assets and generated documentation sharing previews.\n---\n\n${body}`;
 beforeEach(() => {
   directory = mkdtempSync(join(tmpdir(), "bridge-docs-build-"));
   for (const name of ["docs", "assets", "examples", "tests/clients"])
@@ -39,19 +42,39 @@ beforeEach(() => {
     writeFileSync(join(directory, name), "Fixture attribution\n");
   writeFileSync(
     join(directory, "README.md"),
-    "# Repository overview\n\n[Install](docs/installation.md)\n",
+    described(
+      "# Repository overview\n\n[Install](docs/installation.md)\n",
+      "repository landing",
+    ),
   );
   writeFileSync(
     join(directory, "docs/installation.md"),
-    "# Install the bridge\n",
+    described("# Install the bridge\n", "service installation"),
   );
   writeFileSync(
     join(directory, "assets/docs.css"),
     ":root { color-scheme: light dark; }\n",
   );
+  for (const name of [
+    "assets/fonts/manrope/manrope-latin-wght-normal.woff2",
+    "assets/fonts/manrope/OFL.txt",
+    "assets/brand/bridge-lockup-light.svg",
+    "assets/brand/NOTICE",
+  ]) {
+    mkdirSync(join(directory, name, ".."), { recursive: true });
+    cpSync(resolve(name), join(directory, name));
+  }
   writeFileSync(
     join(directory, "mkdocs.yml"),
     `site_name: Documentation fixture
+site_url: https://fireflyframework.github.io/firefly-agent-bridge/
+site_author: Firefly Software Foundation
+extra:
+  discovery:
+    font: assets/fonts/manrope/manrope-latin-wght-normal.woff2
+    logo: assets/brand/bridge-lockup-light.svg
+    notice: assets/brand/NOTICE
+    font_notice: assets/fonts/manrope/OFL.txt
 docs_dir: docs
 site_dir: work/docs-site
 theme:
@@ -92,10 +115,33 @@ function build() {
 it("publishes the curated landing page with working guide and asset links", () => {
   writeFileSync(
     join(directory, "docs/index.md"),
-    "# Start with your bridge\n\n[Install the service](installation.md)\n",
+    described(
+      "# Start with your bridge\n\n[Install the service](installation.md)\n",
+      "curated landing",
+    ),
   );
   const html = build();
   expect(html).toMatch(/<h1[^>]*>Start with your bridge/);
+  expect(html).toContain('name="twitter:card" content="summary_large_image"');
+  const image = html.match(/property="og:image" content="([^"]+)"/)?.[1];
+  expect(image).toMatch(
+    /^https:\/\/fireflyframework\.github\.io\/firefly-agent-bridge\/assets\/social\/[a-f0-9]{24}\.png$/,
+  );
+  const preview = readFileSync(
+    join(
+      directory,
+      "work/docs-site",
+      new URL(image!).pathname.replace("/firefly-agent-bridge/", ""),
+    ),
+  );
+  expect(
+    preview
+      .subarray(0, 8)
+      .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])),
+  ).toBe(true);
+  expect([preview.readUInt32BE(16), preview.readUInt32BE(20)]).toEqual([
+    1200, 630,
+  ]);
   expect(html).not.toMatch(/<h1[^>]*>Repository overview/);
   expect(html).toMatch(/href="installation\/">Install the service<\/a>/);
   const digest = createHash("sha256")
@@ -156,16 +202,22 @@ it("keeps themed screenshots inside table cells and preserves native phone dimen
     writeFileSync(join(directory, "assets/screenshots", name), png);
   writeFileSync(
     join(directory, "docs/index.md"),
-    `# Phone comparison
+    described(
+      `# Phone comparison
 
 | Connect | Next step |
 | --- | --- |
 | ![Connect & inspect](../assets/screenshots/connect-mobile-light.png) | Choose Jobs |
 `,
+      "phone comparison",
+    ),
   );
   writeFileSync(
     join(directory, "docs/installation.md"),
-    "# Install\n\n![Phone](../assets/screenshots/connect-mobile-light.png)\n",
+    described(
+      "# Install\n\n![Phone](../assets/screenshots/connect-mobile-light.png)\n",
+      "phone installation",
+    ),
   );
   const html = build();
   const nested = readFileSync(

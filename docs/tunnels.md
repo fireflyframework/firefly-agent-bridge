@@ -1,3 +1,7 @@
+---
+description: Expose a local bridge through an explicitly configured tunnel and understand its access, security and development-only constraints.
+---
+
 <!-- Copyright (c) 2026 Signature Management Consultants SLU; Author: @ancongui. Modified by Firefly Software Foundation for Firefly Agent Bridge (2026). SPDX-License-Identifier: Apache-2.0. -->
 
 # Expose the bridge through a tunnel

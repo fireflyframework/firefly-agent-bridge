@@ -1,3 +1,7 @@
+---
+description: Create and use scoped bridge tokens for local API access, with explicit owner authority and separate coding-provider authentication.
+---
+
 <!-- Copyright (c) 2026 Signature Management Consultants SLU; Author: @ancongui. Modified by Firefly Software Foundation for Firefly Agent Bridge (2026). SPDX-License-Identifier: Apache-2.0. -->
 
 # Get and use your bridge token

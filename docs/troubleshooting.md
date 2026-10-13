@@ -1,3 +1,7 @@
+---
+description: Diagnose bridge installation, provider login, job execution, native packaging and connection failures from actual local evidence.
+---
+
 <!-- Copyright (c) 2026 Signature Management Consultants SLU; Author: @ancongui. Modified by Firefly Software Foundation for Firefly Agent Bridge (2026). SPDX-License-Identifier: Apache-2.0. -->
 
 # Troubleshoot a local bridge
