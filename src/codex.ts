@@ -80,8 +80,8 @@ export class CodexWorker implements Worker {
   ): Promise<Outcome> {
     if (signal.aborted) return { status: "canceled" };
     const ready = await this.ready();
-    if (!ready.ready) return { status: "failed", error: ready.reason };
     if (signal.aborted) return { status: "canceled" };
+    if (!ready.ready) return { status: "failed", error: ready.reason };
     const inference = Boolean(input.job.completion);
     const images = input.job.completion
       ? prepareCompletion(input.job.completion).images

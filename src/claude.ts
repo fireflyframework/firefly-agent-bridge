@@ -123,8 +123,8 @@ export class ClaudeWorker implements Worker {
   ): Promise<Outcome> {
     if (signal.aborted) return { status: "canceled" };
     const readiness = await this.ready();
-    if (!readiness.ready) return { status: "failed", error: readiness.reason };
     if (signal.aborted) return { status: "canceled" };
+    if (!readiness.ready) return { status: "failed", error: readiness.reason };
     const images = input.job.completion
       ? prepareCompletion(input.job.completion).images
       : [];
