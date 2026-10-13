@@ -1,3 +1,7 @@
+---
+description: Configure Codex or Claude Code profiles, worker access, concurrency and local service settings without entering provider logins in the console.
+---
+
 <!-- Copyright (c) 2026 Signature Management Consultants SLU; Author: @ancongui. Modified by Firefly Software Foundation for Firefly Agent Bridge (2026). SPDX-License-Identifier: Apache-2.0. -->
 
 # Configure providers and profiles

@@ -1,3 +1,7 @@
+---
+description: Install the native Firefly Agent Bridge package, configure an official coding CLI and start a scoped local development service.
+---
+
 <!-- Copyright (c) 2026 Signature Management Consultants SLU; Author: @ancongui. Modified by Firefly Software Foundation for Firefly Agent Bridge (2026). SPDX-License-Identifier: Apache-2.0. -->
 
 # Install Firefly Agent Bridge

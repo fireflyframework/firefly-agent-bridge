@@ -46,6 +46,10 @@ for (const file of readdirSync(staging).filter((name) =>
   name.endsWith(".md"),
 )) {
   let body = readFileSync(join(staging, file), "utf8");
+  if (file === "security-policy.md")
+    body =
+      "---\ndescription: Report bridge vulnerabilities privately and follow the published security disclosure process for the project.\n---\n\n" +
+      body;
   if (file === "index.md" && readmeLanding)
     body = body
       .replaceAll("docs/", "")
@@ -95,6 +99,10 @@ for (const file of readdirSync(staging).filter((name) =>
   );
   writeFileSync(join(staging, file), body);
 }
+const discoveryHook = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "docs_discovery_hook.py",
+);
 const hook = join(
   dirname(fileURLToPath(import.meta.url)),
   "docs_scene_hook.py",
@@ -106,7 +114,15 @@ const yaml = readFileSync("mkdocs.yml", "utf8")
     "site_dir: " + JSON.stringify(resolve("work/docs-site")),
   );
 const config = staging + ".yml";
-writeFileSync(config, yaml + "\nhooks:\n  - " + JSON.stringify(hook) + "\n");
+writeFileSync(
+  config,
+  yaml +
+    "\nhooks:\n  - " +
+    JSON.stringify(hook) +
+    "\n  - " +
+    JSON.stringify(discoveryHook) +
+    "\n",
+);
 const result = spawnSync(
   process.env.BRIDGE_PYTHON ?? "python3",
   ["-m", "mkdocs", "build", "--strict", "--clean", "-f", config],
@@ -117,4 +133,16 @@ if (result.status !== 0)
   throw new Error(
     "Documentation build failed. Install docs/requirements.txt into BRIDGE_PYTHON.",
   );
+const discovery = spawnSync(
+  process.env.BRIDGE_PYTHON ?? "python3",
+  [
+    "scripts/check_docs_discovery.py",
+    "work/docs-site",
+    "https://fireflyframework.github.io/firefly-agent-bridge/",
+  ],
+  { cwd: root, stdio: "inherit" },
+);
+if (discovery.error) throw discovery.error;
+if (discovery.status !== 0)
+  throw new Error("Documentation discovery validation failed.");
 console.log("Documentation: " + resolve("work/docs-site/index.html"));
