@@ -12,14 +12,9 @@ hide:
 
 <div class="bridge-home__intro" markdown="1">
 
-<div class="bridge-home__identity">
-<img src="../assets/brand/bridge-mark.svg" alt="" width="48" height="48">
-<span>Developer documentation</span>
-</div>
-
 # Use your coding subscription in your applications.
 
-Firefly Agent Bridge runs on your developer machine.[^local-development] Connect Firefly Forge,
+Firefly Agent Bridge runs on your developer machine.[^local-development] Connect firefly forge,
 application SDKs or coding-agent hosts to your signed-in Codex or Claude Code CLI.
 
 <div class="bridge-home__actions" markdown="1">

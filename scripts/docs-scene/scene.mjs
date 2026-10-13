@@ -294,12 +294,26 @@ async function build(viewport) {
       3.134,
       z,
     );
+  const signals = [-3.65, 0, 3.65].map((x) => {
+    const material = amber.clone();
+    material.emissive.set(0xffb34a);
+    material.emissiveIntensity = 0.04;
+    const lamp = mesh(
+      view.world,
+      new THREE.SphereGeometry(0.075, 16, 10),
+      material,
+      x,
+      3.24,
+      0.45,
+    );
+    return { lamp, material };
+  });
   const packets = [];
   for (const direction of [-1, 1])
     for (let i = 0; i < 3; i++) {
       const packet = new THREE.Group();
       view.world.add(packet);
-      packet.position.set(0, 3.17, direction * 0.24);
+      packet.position.set(0, 3.23, direction * 0.24);
       mesh(packet, new THREE.BoxGeometry(0.44, 0.025, 0.34), amber, 0, 0);
       mesh(packet, new THREE.BoxGeometry(0.39, 0.028, 0.29), warm, 0, 0.027);
       for (let line = 0; line < 3; line++)
@@ -311,6 +325,14 @@ async function build(viewport) {
           0.047,
           -0.075 + line * 0.065,
         );
+      const pointer = mesh(
+        packet,
+        new THREE.ConeGeometry(0.045, 0.1, 3),
+        amber,
+        direction * 0.25,
+        0.02,
+      );
+      pointer.rotation.z = (-direction * Math.PI) / 2;
       packets.push({ packet, direction, phase: i / 3 });
     }
   const floorMaterial = new THREE.MeshStandardMaterial({
@@ -352,13 +374,30 @@ async function build(viewport) {
   return {
     ...view,
     render(time, dark) {
+      const pulses = [0, 0, 0];
       for (const { packet, direction, phase } of packets) {
         const progress = (time / 7 + phase) % 1;
         packet.position.x = direction * (progress * 8.7 - 4.35);
+        const arrival = Math.exp(-Math.pow((progress - 0.96) / 0.075, 2));
+        const departure = Math.exp(-Math.pow((progress - 0.04) / 0.075, 2));
+        const crossing = Math.exp(-Math.pow((progress - 0.5) / 0.07, 2));
+        pulses[direction > 0 ? 2 : 0] = Math.max(
+          pulses[direction > 0 ? 2 : 0],
+          arrival,
+        );
+        pulses[direction > 0 ? 0 : 2] = Math.max(
+          pulses[direction > 0 ? 0 : 2],
+          departure,
+        );
+        pulses[1] = Math.max(pulses[1], crossing);
         packet.scale.setScalar(
           Math.max(0, Math.min(1, progress / 0.06, (1 - progress) / 0.06)),
         );
       }
+      signals.forEach(({ lamp, material }, index) => {
+        lamp.scale.setScalar(1 + 0.15 * pulses[index]);
+        material.emissiveIntensity = 0.04 + 0.18 * pulses[index];
+      });
       if (dark !== lastTheme) {
         lastTheme = dark;
         shell.color.set(dark ? 0xc5c5b6 : 0xb6b8a8);

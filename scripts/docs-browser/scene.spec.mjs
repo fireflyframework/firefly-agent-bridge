@@ -9,6 +9,7 @@ test("local 3D illustration responds to motion, resize, visibility and theme", a
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
   const scene = page.locator("[data-docs-scene]");
+  await expect(page.locator(".bridge-home__identity")).toHaveCount(0);
   await expect(scene).toHaveAttribute("data-renderer", "webgl");
   await expect(scene).toHaveAttribute("data-motion", "running");
   const canvas = scene.locator("canvas");

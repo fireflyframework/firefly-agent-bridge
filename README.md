@@ -4,7 +4,7 @@
 
 # Firefly Agent Bridge
 
-Firefly Agent Bridge connects Firefly Forge, application SDKs and coding-agent hosts to your signed-in Codex or Claude Code CLI. It runs on your developer machine and uses your own coding subscription.
+Firefly Agent Bridge connects firefly forge, application SDKs and coding-agent hosts to your signed-in Codex or Claude Code CLI. It runs on your developer machine and uses your own coding subscription.
 
 The bridge admits work to a durable queue. It retains execution attempts, workflow checkpoints and audit records, and handles pause and resume. The official coding agent manages login, model access, native transcripts and context. Provider credentials stay with that client.
 
@@ -32,9 +32,9 @@ The published executable is `firefly-bridge`; source commands above run the same
 
 Open [the local console](http://127.0.0.1:8766), then enter the owner token. For application callers create a token scoped to their profiles and operations. Never put a bearer token in a URL.
 
-## Connect Firefly Forge
+## Connect firefly forge
 
-Set `FORGE_BRIDGE_URL` to the local service URL and `FORGE_BRIDGE_TOKEN` to a scoped token. Firefly Forge uses `bridge/default` through the OpenAI-compatible Chat Completions API. Its FireflyAgent executes the declared application tools inside the selected factory workspace.
+Set `FORGE_BRIDGE_URL` to the local service URL and `FORGE_BRIDGE_TOKEN` to a scoped token. firefly forge uses `bridge/default` through the OpenAI-compatible Chat Completions API. Its FireflyAgent executes the declared application tools inside the selected factory workspace.
 
 The bridge also accepts native agent work:
 
@@ -70,6 +70,6 @@ Source builds require Node.js 24+; native packages use official Node.js 26.3.0. 
 
 `npm run test:live:codex:images` verifies a pixel-only challenge through the signed-in official Codex client. `npm run test:live:codex` consumes your subscription allowance and records evidence locally under ignored `work/`.
 
-Get source and native packages from `fireflyframework/firefly-agent-bridge`. Native plugin bootstrap verifies the release archive's checksum before caching its executable. Firefly Forge distributions include the HTTP client integration; install the bridge separately on the machine with your coding-agent login.
+Get source and native packages from `fireflyframework/firefly-agent-bridge`. Native plugin bootstrap verifies the release archive's checksum before caching its executable. firefly forge distributions include the HTTP client integration; install the bridge separately on the machine with your coding-agent login.
 
 The software is open source under Apache-2.0. Keep the attribution in source notices and [NOTICE](NOTICE). Firefly marks and separately owned artwork retain the rights described in [Brand ownership](assets/BRAND-NOTICE.md). The bridge is independently operated. Provider access follows the official client's capabilities and your account permissions.
