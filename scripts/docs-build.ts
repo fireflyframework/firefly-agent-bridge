@@ -136,7 +136,7 @@ if (result.status !== 0)
 const discovery = spawnSync(
   process.env.BRIDGE_PYTHON ?? "python3",
   [
-    "scripts/check_docs_discovery.py",
+    join(dirname(fileURLToPath(import.meta.url)), "check_docs_discovery.py"),
     "work/docs-site",
     "https://fireflyframework.github.io/firefly-agent-bridge/",
   ],
