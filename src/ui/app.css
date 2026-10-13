@@ -3470,3 +3470,218 @@ body[data-connection="connected"]
     gap: 8px;
   }
 }
+/* Recorded provider payloads remain text; previews have their own bounded scrollports. */
+.audit-fields {
+  margin: 12px 0;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.audit-fields > div {
+  display: grid;
+  grid-template-columns: minmax(90px, 130px) minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+}
+.audit-fields dt {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.audit-fields dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.audit-fields dd > .audit-fields {
+  margin-top: 0;
+}
+.audit-value-list {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.audit-value-list > * + * {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.audit-compact {
+  overflow-wrap: anywhere;
+}
+.audit-compact > small {
+  margin-left: 4px;
+  color: var(--muted);
+  font:
+    11px Manrope,
+    sans-serif;
+}
+.audit-output {
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  background: var(--bg);
+}
+.payload-section .audit-output > pre,
+.raw-payload .audit-output > pre {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  max-height: 320px;
+  padding: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: auto;
+  background: transparent;
+  color: var(--text);
+  font:
+    12px/1.8 ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
+}
+.audit-output-controls {
+  padding: 8px 10px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.audit-copy {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  max-width: 100%;
+}
+.audit-copy > button,
+.audit-output-controls > button {
+  min-height: 30px;
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.audit-copy > span:empty {
+  display: none;
+}
+.audit-code-line {
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+}
+.audit-code-line > code {
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+}
+.audit-line-number {
+  color: var(--muted);
+  flex: 0 0 3ch;
+  text-align: right;
+  user-select: none;
+}
+.audit-token-keyword {
+  color: var(--accent-ink);
+  font-weight: 650;
+}
+.audit-token-string {
+  color: var(--success-ink);
+}
+.audit-token-comment {
+  color: var(--muted);
+  font-style: italic;
+}
+.audit-token-number {
+  color: var(--danger-ink);
+}
+.audit-patch-scroll {
+  overflow: auto;
+  max-height: 420px;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+.audit-patch table {
+  width: 100%;
+  border-collapse: collapse;
+  font:
+    12px/1.8 ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
+}
+.audit-patch th {
+  padding: 5px 8px;
+  text-align: left;
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+  background: var(--bg);
+}
+.audit-patch td {
+  padding: 0 8px;
+  vertical-align: top;
+}
+.audit-patch td:nth-child(-n + 2) {
+  width: 5ch;
+  color: var(--muted);
+  text-align: right;
+  border-right: 1px solid var(--line);
+  user-select: none;
+}
+.audit-patch td:nth-child(3) {
+  width: 2ch;
+}
+.audit-patch td:last-child {
+  white-space: pre;
+  width: 100%;
+}
+.audit-patch td code {
+  font: inherit;
+}
+.audit-patch-addition {
+  background: var(--success-soft);
+}
+.audit-patch-deletion {
+  background: var(--danger-soft);
+}
+.audit-patch-metadata {
+  color: var(--muted);
+}
+.payload-section .audit-output pre:focus-visible,
+.audit-patch-scroll:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: -3px;
+}
+@media (max-width: 600px) {
+  .audit-fields > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
+  }
+  .diff-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .payload-section .audit-output > pre,
+  .raw-payload .audit-output > pre {
+    max-height: 220px;
+  }
+  .audit-patch-scroll {
+    max-height: 300px;
+  }
+}
+@media (max-height: 650px) {
+  .payload-section .audit-output > pre,
+  .raw-payload .audit-output > pre {
+    max-height: 170px;
+  }
+  .audit-patch-scroll {
+    max-height: 220px;
+  }
+}
