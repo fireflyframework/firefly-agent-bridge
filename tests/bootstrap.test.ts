@@ -33,14 +33,12 @@ beforeEach(() => {
   );
   archive = join(directory, asset);
   checksums = join(directory, "SHA256SUMS");
-  const packed = spawnSync("tar", [
-    "-czf",
-    archive,
-    "-C",
-    source,
-    "firefly-bridge",
-  ]);
-  expect(packed.status).toBe(0);
+  const packed = spawnSync(
+    "tar",
+    ["-czf", asset, "-C", "source", "firefly-bridge"],
+    { cwd: directory },
+  );
+  expect(packed.status, packed.stderr?.toString()).toBe(0);
   writeFileSync(
     checksums,
     createHash("sha256").update(readFileSync(archive)).digest("hex") +
