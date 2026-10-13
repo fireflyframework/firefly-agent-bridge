@@ -119,3 +119,16 @@
     font-size: 13px;
   }
 }
+
+.md-typeset .bridge-home__flow.docs-scene,
+.md-typeset .forge-docs-hero-art.docs-scene {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  justify-self: stretch;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}

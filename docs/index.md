@@ -51,7 +51,7 @@ The software is licensed under Apache-2.0. Running work requires your provider l
 
 <div class="docs-scene__controls">
 <span class="docs-scene__status" data-scene-status aria-live="polite">Illustration · no live activity</span>
-<button type="button" data-scene-toggle aria-pressed="false" disabled>Loading illustration</button>
+<button type="button" data-scene-toggle aria-pressed="false" disabled>Loading…</button>
 </div>
 
 </figure>
