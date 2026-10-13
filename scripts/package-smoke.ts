@@ -20,6 +20,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join, dirname } from "node:path";
@@ -37,6 +38,26 @@ const binary = resolve(
 );
 const pluginRoot = dirname(binary);
 const version = JSON.parse(readFileSync("package.json", "utf8")).version;
+const executable = readFileSync(binary);
+for (const path of new Set([
+  resolve("dist/cli.cjs"),
+  resolve("dist/cli.cjs").replaceAll("\\", "/"),
+]))
+  if (executable.includes(Buffer.from(path)))
+    throw new Error(
+      "Native executable contains its private build-machine filename",
+    );
+const archive = join(
+  "release",
+  `firefly-agent-bridge-${version}-${process.platform}-${process.arch}.tar.gz`,
+).replaceAll("\\", "/");
+const members = execFileSync("tar", ["-tzf", archive], { encoding: "utf8" });
+if (
+  members
+    .split("\n")
+    .some((name) => name.split("/").some((part) => part.startsWith("._")))
+)
+  throw new Error("Native archive contains macOS filesystem metadata");
 const plugin = JSON.parse(
   readFileSync(join(pluginRoot, ".codex-plugin/plugin.json"), "utf8"),
 );

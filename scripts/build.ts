@@ -130,7 +130,7 @@ chmodSync("dist/cli.cjs", 0o755);
 writeFileSync(
   "dist/sea-config.json",
   JSON.stringify({
-    main: resolve("dist/cli.cjs"),
+    main: "dist/cli.cjs",
     output: resolve(
       "dist",
       process.platform === "win32" ? "firefly-bridge.exe" : "firefly-bridge",

@@ -121,7 +121,7 @@ execFileSync(
     portable.replaceAll("\\", "/"),
     ".",
   ],
-  { stdio: "inherit" },
+  { stdio: "inherit", env: { ...process.env, COPYFILE_DISABLE: "1" } },
 );
 if (process.platform !== "linux")
   packDesktopBundle(desktop, resolve("release", stem + ".mcpb"));
