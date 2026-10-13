@@ -2,6 +2,10 @@
 
 # Changelog
 
+## 0.2.6 — 2026-10-12
+
+- Preserve cancellation when readiness subsequently fails in both official-agent workers. Uncanceled readiness failures retain their original errors.
+
 ## 0.2.5 — 2026-10-12
 
 - Paused image checks point to the Jobs resume control instead of requesting a new login.
