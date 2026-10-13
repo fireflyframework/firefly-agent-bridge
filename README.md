@@ -8,7 +8,9 @@ Firefly Agent Bridge connects firefly forge, application SDKs and coding-agent h
 
 The bridge admits work to a durable queue. It retains execution attempts, workflow checkpoints and audit records, and handles pause and resume. The official coding agent manages login, model access, native transcripts and context. Provider credentials stay with that client.
 
-![Developer console](assets/screenshots/dashboard-desktop.png)
+![Bridge 0.2.8 local console with fixture jobs](assets/screenshots/dashboard-desktop.png)
+
+The console image uses deterministic sample jobs. Historical provider sign-in and execution checks are documented in [verification](docs/verification.md).
 
 ## Use it for local development and testing
 

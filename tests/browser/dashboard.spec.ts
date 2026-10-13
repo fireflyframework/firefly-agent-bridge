@@ -18,10 +18,17 @@
  */
 
 import { test, expect } from "@playwright/test";
-import { mkdtempSync, rmSync, mkdirSync } from "node:fs";
+import {
+  mkdtempSync,
+  rmSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  existsSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { startService } from "../../src/service.js";
 import { parseConfig } from "../../src/config.js";
 import { Tokens } from "../../src/auth.js";
@@ -57,6 +64,30 @@ test("provider setup keeps one focused step and preserves profile selection", as
   await expect(
     page.getByLabel("Execution profile", { exact: true }),
   ).toHaveValue("default");
+  if (process.env.UPDATE_SCREENSHOTS === "1") {
+    const original = page.viewportSize()!;
+    for (const [width, height, size] of [
+      [1440, 1050, "desktop"],
+      [390, 844, "mobile"],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+      for (const [step, label] of [
+        "provider",
+        "login",
+        "profile",
+        "tools",
+      ].entries()) {
+        await page.locator(`[data-setup-step="${step}"]`).click();
+        await captureAction(
+          page,
+          `setup-${label}-${size}`,
+          step === 3 ? "#setup-start-job" : "#setup-next",
+        );
+        if (step === 2) await capture(page, `providers-${size}`);
+      }
+    }
+    await page.setViewportSize(original);
+  }
 });
 let service: Awaited<ReturnType<typeof startService>>, directory: string;
 const owner = { id: "owner", owner: true, profiles: ["default"] };
@@ -236,56 +267,126 @@ async function reviewJob(page: import("@playwright/test").Page) {
   await page.locator("#job-next").click();
   await page.locator("#job-next").click();
 }
-async function capture(page: import("@playwright/test").Page, name: string) {
-  if (process.env.UPDATE_SCREENSHOTS === "1") {
-    mkdirSync("assets/screenshots", { recursive: true });
-    const original = page.viewportSize()!;
-    if (!(await page.locator("dialog[open]").count()))
-      await page.setViewportSize({
-        width: original.width,
-        height: Math.max(
-          original.height,
-          await page.evaluate(() => document.documentElement.scrollHeight),
-        ),
-      });
-    if (await page.locator("#template-dialog[open]").count()) {
-      if (original.width > 640) {
-        const contentHeight = await page
-          .locator("#template-dialog")
-          .evaluate((n) => n.scrollHeight);
-        await page.setViewportSize({
-          width: original.width,
-          height: Math.max(
-            original.height,
-            Math.ceil(contentHeight / 0.9) + 80,
-          ),
-        });
-      }
-      await page.locator("#template-dialog").evaluate((n) => {
-        n.scrollTop = 0;
-        (document.activeElement as HTMLElement)?.blur();
-      });
-    }
-    await page.screenshot({
-      animations: "disabled",
-      path: "assets/screenshots/" + name + ".png",
-      fullPage: (await page.locator("dialog[open]").count()) === 0,
+async function captureAction(
+  page: import("@playwright/test").Page,
+  name: string,
+  selector: string,
+) {
+  if (process.env.UPDATE_SCREENSHOTS !== "1") return;
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+  const action = page.locator(selector);
+  const probe = () =>
+    action.evaluate((node) => {
+      const button = node.getBoundingClientRect(),
+        footer = document
+          .querySelector("main > footer")!
+          .getBoundingClientRect();
+      const x = button.x + button.width / 2;
+      return {
+        button: {
+          top: button.top,
+          bottom: button.bottom,
+          left: button.left,
+          right: button.right,
+        },
+        footer: { top: footer.top, bottom: footer.bottom },
+        workspaceScroll: document.getElementById("content")!.scrollTop,
+        hitCenter:
+          document
+            .elementFromPoint(x, button.y + button.height / 2)
+            ?.closest("button") === node,
+        hitBottom:
+          document.elementFromPoint(x, button.bottom - 2)?.closest("button") ===
+          node,
+      };
     });
-    if (!/-(?:light|dark)-/.test(name)) {
-      const preference = await page.locator("#appearance").inputValue();
-      for (const theme of ["light", "dark"]) {
-        await page.locator("#appearance").selectOption(theme);
-        await page.screenshot({
-          animations: "disabled",
-          path: "assets/screenshots/" + name + "-" + theme + ".png",
-          fullPage: (await page.locator("dialog[open]").count()) === 0,
-        });
-      }
-      await page.locator("#appearance").selectOption(preference);
-    }
-    await page.setViewportSize(original);
+  const before = await probe();
+  await action.scrollIntoViewIfNeeded();
+  await page.locator("#content").evaluate((content) => {
+    const heading = document
+      .getElementById("view-title")
+      ?.getBoundingClientRect();
+    const frame = content.getBoundingClientRect();
+    if (heading && heading.top < frame.top && heading.bottom > frame.top)
+      content.scrollTop += heading.bottom - frame.top + 8;
+  });
+  await expect(action).toBeInViewport({ ratio: 0.99 });
+  const after = await probe();
+  expect(after.button.bottom).toBeLessThanOrEqual(after.footer.top);
+  expect(after.hitCenter).toBe(true);
+  expect(after.hitBottom).toBe(true);
+  await capture(page, name);
+  const captured = await probe();
+  expect(captured.button.bottom).toBeLessThanOrEqual(captured.footer.top);
+  expect(captured.hitBottom).toBe(true);
+  if (process.env.SCREENSHOT_METADATA) {
+    const path = process.env.SCREENSHOT_METADATA + ".controls.json";
+    const rows = existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : [];
+    rows.push({
+      name,
+      selector,
+      viewport: page.viewportSize(),
+      before,
+      after,
+      captured,
+    });
+    writeFileSync(path, JSON.stringify(rows, null, 2) + "\n");
   }
 }
+async function capture(page: import("@playwright/test").Page, name: string) {
+  if (process.env.UPDATE_SCREENSHOTS !== "1") return;
+  mkdirSync("assets/screenshots", { recursive: true });
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+  const viewport = page.viewportSize()!;
+  const preference = await page.locator("#appearance").inputValue();
+  const release = JSON.parse(readFileSync("package.json", "utf8")).version;
+  const version = await page.locator(".version").first().textContent();
+  expect(version?.trim()).toBe("v" + release);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  async function save(filename: string) {
+    const path = "assets/screenshots/" + filename + ".png";
+    // The application scrolls its workspace independently of the shell. Keep that real viewport.
+    await page.screenshot({ animations: "disabled", path, fullPage: false });
+    expect(page.viewportSize()).toEqual(viewport);
+    const metadataPath = process.env.SCREENSHOT_METADATA;
+    if (!metadataPath) return;
+    const entries = JSON.parse(readFileSync(metadataPath, "utf8")) as Record<
+      string,
+      unknown
+    >[];
+    entries.push({
+      path,
+      sha256: createHash("sha256").update(readFileSync(path)).digest("hex"),
+      viewport,
+      theme: await page.locator("html").getAttribute("data-theme"),
+      version: version?.trim(),
+      fixture: true,
+      openDialogs: await page.locator("dialog[open]").count(),
+      workspaceScroll: await page
+        .locator("#content")
+        .evaluate((node) => node.scrollTop),
+      capturedAt: new Date().toISOString(),
+    });
+    writeFileSync(metadataPath, JSON.stringify(entries, null, 2) + "\n");
+  }
+  await save(name);
+  if (!/-(?:light|dark)(?:-|$)/.test(name)) {
+    for (const theme of ["light", "dark"]) {
+      await page.locator("#appearance").selectOption(theme);
+      await save(name + "-" + theme);
+    }
+    await page.locator("#appearance").selectOption(preference);
+  }
+}
+
 test("shared shell honors system appearance, preserves only theme, and stays aligned in both palettes", async ({
   page,
 }) => {
@@ -427,6 +528,10 @@ test("activity and files expose full tool payloads, diffs, audit export, and res
     "npm run test:integration",
   );
   await expect(page.locator("#tool-list")).toContainText("12 passed, 12 total");
+  await page
+    .locator("#tool-list .tool-card[open]")
+    .first()
+    .scrollIntoViewIfNeeded();
   await capture(page, "activity-desktop");
   await page.getByRole("button", { name: "Refresh", exact: true }).click();
   await expect(
@@ -453,6 +558,10 @@ test("activity and files expose full tool payloads, diffs, audit export, and res
   await expect(page.locator("#file-list")).toContainText(
     "Launch checklist: ready for review",
   );
+  await page
+    .locator("#file-list .tool-card[open]")
+    .first()
+    .scrollIntoViewIfNeeded();
   await capture(page, "files-desktop");
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export audit", exact: true }).click();
@@ -477,7 +586,17 @@ test("activity and files expose full tool payloads, diffs, audit export, and res
           () => document.documentElement.scrollWidth <= innerWidth,
         ),
       ).toBe(true);
-      if (width === 390) await capture(page, tab.toLowerCase() + "-mobile");
+      if (width === 390) {
+        await page
+          .locator(
+            tab === "Activity"
+              ? "#tool-list .tool-card[open]"
+              : "#file-list .tool-card[open]",
+          )
+          .first()
+          .scrollIntoViewIfNeeded();
+        await capture(page, tab.toLowerCase() + "-mobile");
+      }
     }
   }
 });
@@ -485,6 +604,10 @@ test("mobile has no horizontal overflow and exposes job and workflow controls", 
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  if (process.env.UPDATE_SCREENSHOTS === "1") {
+    await page.goto(service.address);
+    await capture(page, "connect-mobile");
+  }
   await login(page);
   await page
     .getByRole("button", {
@@ -559,7 +682,21 @@ test("all console views render across the layout breakpoints and the new-job dia
     .getByLabel("What should the coding agent work on?")
     .fill("Verify the installation checklist");
   await capture(page, "new-job-desktop");
-  await reviewJob(page);
+  await page.locator("#job-next").click();
+  await capture(page, "new-job-execution-desktop");
+  await page.locator("#job-next").click();
+  await capture(page, "new-job-review-desktop");
+  if (process.env.UPDATE_SCREENSHOTS === "1") {
+    const original = page.viewportSize()!;
+    await page.setViewportSize({ width: 390, height: 844 });
+    await capture(page, "new-job-review-mobile");
+    await page.locator("#job-back").click();
+    await capture(page, "new-job-execution-mobile");
+    await page.locator("#job-back").click();
+    await capture(page, "new-job-mobile");
+    await reviewJob(page);
+    await page.setViewportSize(original);
+  }
   await page.getByRole("button", { name: "Queue job", exact: true }).click();
   await expect(page.getByRole("dialog")).not.toBeVisible();
   await expect(page.locator("#messages")).toContainText(
@@ -637,6 +774,12 @@ test("template editor validates references, saves reusable steps, and runs the n
     .getByLabel("Step instructions", { exact: true })
     .fill("Review {{steps.research}} for accuracy.");
   await capture(page, "template-editor-desktop");
+  if (process.env.UPDATE_SCREENSHOTS === "1") {
+    await second
+      .getByLabel("Step instructions", { exact: true })
+      .scrollIntoViewIfNeeded();
+    await capture(page, "template-editor-steps-desktop");
+  }
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
     await page.evaluate(
@@ -644,6 +787,12 @@ test("template editor validates references, saves reusable steps, and runs the n
     ),
   ).toBe(true);
   await capture(page, "template-editor-mobile");
+  if (process.env.UPDATE_SCREENSHOTS === "1") {
+    await second
+      .getByLabel("Step instructions", { exact: true })
+      .scrollIntoViewIfNeeded();
+    await capture(page, "template-editor-steps-mobile");
+  }
   await page
     .getByRole("button", { name: "Save template", exact: true })
     .click();
@@ -1097,6 +1246,12 @@ test("diagnostic cards keep their borders and actions with the visible form", as
             ? "#diagnostic-status-panel"
             : "#diagnostic-access-panel",
         );
+        if (width === 390 && section === "access")
+          await captureAction(
+            page,
+            `diagnostics-access-mobile-${theme}`,
+            "#diagnostic-access-panel .diagnostic-card-actions button",
+          );
         const action = panel.locator(".diagnostic-card-actions button");
         await action.scrollIntoViewIfNeeded();
         await expect(action).toBeInViewport({ ratio: 0.99 });
@@ -1825,6 +1980,7 @@ test("short phones show a continuation shortcut when setup and workflow actions 
     await page.locator('[data-setup-step="0"]').click();
     await page.locator("#setup-next").click();
     await expect(page.locator("#setup-scroll-control")).toBeVisible();
+    await capture(page, `guidance-setup-mobile-${theme}`);
     await page.locator("#setup-scroll-control").click();
     await expect(page.locator("#setup-next")).toBeFocused();
     await expect(page.locator("#setup-step-count")).toHaveText("Step 2 of 4");
@@ -1836,6 +1992,7 @@ test("short phones show a continuation shortcut when setup and workflow actions 
     await expect(page.locator("#setup-step-count")).toHaveText("Step 3 of 4");
     await navigate(page, "workflows");
     await expect(page.locator("#workflow-scroll-control")).toBeVisible();
+    await capture(page, `guidance-workflows-mobile-${theme}`);
     await page.locator("#workflow-scroll-control").click();
     await expect(page.locator("#workflow-form button.primary")).toBeFocused();
     const start = await page

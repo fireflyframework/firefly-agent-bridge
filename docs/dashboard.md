@@ -6,7 +6,7 @@
 
 Open the local console URL returned by `bridge_panel` and authenticate with a bridge token. It submits through `/v1/chat/completions` and uses the same `/v1/bridge` management and notification extensions as other applications.
 
-The screenshots show the running console. Job, workflow and tool examples use deterministic fixtures. Provider and Diagnostics views use an isolated local bridge with an authenticated official Codex CLI. Screenshots demonstrate the interface; separate execution evidence is described in [verification](verification.md).
+The screenshots show Bridge 0.2.8 running in an isolated local fixture service at the configured desktop and mobile viewport sizes. Jobs, tool observations, workflow results and provider readiness use deterministic fixtures. Historical checks with authenticated official CLIs remain in [verification](verification.md).
 
 ## Connect
 
@@ -26,17 +26,25 @@ Select a row to inspect messages, attempts, session continuity, and reported chi
 
 Native coding jobs use the official CLI's configured capabilities. Text completions disable native actions; application callers execute declared functions. Host conversations wait for a connected host to claim the work. A failed or unknown admission keeps the request key when you queue unchanged content again.
 
-![New-job dialog](../assets/screenshots/new-job-desktop.png)
+![New-job task step](../assets/screenshots/new-job-desktop.png)
+
+[Execution step](../assets/screenshots/new-job-execution-desktop-light.png) · [Review step](../assets/screenshots/new-job-review-desktop-light.png) · [Phone review step](../assets/screenshots/new-job-review-mobile-dark.png)
 
 Pause, resume, cancel, and retry follow the job state and your token scopes. Image jobs require a fresh explicit request after interruption; their view does not offer in-place resume or retry. Retry starts a new session and can repeat prior effects; resume continues a saved session when available.
 
 ## Tool activity, files, and audit
 
-Each job has **Conversation**, **Activity**, and **Files** tabs. Activity exposes complete emitted tool inputs and outputs, including shell commands and stdout/stderr. Files exposes known targets, returned or submitted content, and available before/after edit fragments. Expand **Raw input, result, and correlation** for the underlying observation.
+Each job has **Conversation**, **Activity**, and **Files** tabs. Activity shows recorded commands, labeled result fields and bounded stdout/stderr previews. Copy includes the full recorded output. Files shows known targets, submitted or returned content, and available replacement fragments. Expand **Advanced record** for the original payload and correlation fields.
 
 ![Tool inspector](../assets/screenshots/activity-desktop.png)
 
 ![File targets and a replacement diff](../assets/screenshots/files-desktop.png)
+
+The TypeScript fixture shows syntax colors and line gutters for submitted replacement fragments, followed by a provider-reported patch. Fragment gutters start at 1; they do not imply positions in the file. The patch columns use its supplied old and new line offsets.
+
+![TypeScript replacement fragments and reported patch](../assets/screenshots/files-code-desktop-light.png)
+
+[Mobile code and patch](../assets/screenshots/files-code-mobile-dark.png)
 
 The audit log retains tool and lifecycle observations across service restarts and SSE retention. **Export audit** downloads a consistent JSON snapshot, including full payloads. Failed or interrupted actions remain clearly labeled; the console does not claim to observe every indirect filesystem effect. See [audit coverage, access, and export](audit.md).
 
@@ -66,7 +74,7 @@ Use **New template** to define inputs, ordered steps, instructions, and executio
 
 ![Template editor](../assets/screenshots/template-editor-desktop.png)
 
-[Mobile template editor](../assets/screenshots/template-editor-mobile.png)
+[Mobile template editor](../assets/screenshots/template-editor-mobile.png) · [Later steps on desktop](../assets/screenshots/template-editor-steps-desktop-light.png) · [Later steps on a phone](../assets/screenshots/template-editor-steps-mobile-dark.png)
 
 ## Diagnostics and application access
 
@@ -115,6 +123,10 @@ Providers & setup guides you through four focused steps:
 
 The wizard keeps your selected profile when you move back between steps. Earlier visited steps remain accessible. **Start a job** opens the normal job dialog with that profile; it does not submit work automatically.
 
-![Provider setup and profiles](../assets/screenshots/providers-light-desktop.png)
+![Provider setup and profiles](../assets/screenshots/providers-desktop-light.png)
+
+[Provider](../assets/screenshots/setup-provider-desktop-light.png) · [Login](../assets/screenshots/setup-login-desktop-light.png) · [Profile](../assets/screenshots/setup-profile-desktop-light.png) · [Tools](../assets/screenshots/setup-tools-desktop-light.png)
+
+[Phone provider](../assets/screenshots/setup-provider-mobile-dark.png) · [Phone login](../assets/screenshots/setup-login-mobile-dark.png) · [Phone profile](../assets/screenshots/setup-profile-mobile-dark.png) · [Phone tools](../assets/screenshots/setup-tools-mobile-dark.png)
 
 Change worker and profile configuration in the saved file while stopped, restart, then check the effective settings here. The console does not accept provider credentials or rewrite executable paths. Claude tool and agent definitions apply to Claude execution; they do not imply restrictions on Codex.
