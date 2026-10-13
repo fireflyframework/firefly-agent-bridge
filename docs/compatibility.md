@@ -6,7 +6,7 @@ Firefly Agent Bridge is an open-source local service for trusted developer appli
 
 | Surface                       | Execution                                                           |
 | ----------------------------- | ------------------------------------------------------------------- |
-| Firefly Forge / FireflyAgent  | OpenAI-compatible Chat Completions with caller-owned functions      |
+| firefly forge / FireflyAgent  | OpenAI-compatible Chat Completions with caller-owned functions      |
 | Official Codex CLI            | Native JSONL worker, thread resume, default workspace-write sandbox |
 | Official Claude Code 2.1.260+ | Native stream-json worker, session resume, profile subagents        |
 | Claude Desktop / Code MCP     | Native installation and local management tools                      |

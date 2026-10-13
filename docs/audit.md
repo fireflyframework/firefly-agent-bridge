@@ -12,7 +12,7 @@ The selected official CLI supplies observations for native jobs. A job can expos
 
 ## Inspect what happened
 
-**Activity** lists native tools in observation order. Expand a card to read its command, output, supplied content, and result. Bash cards show the command and stdout/stderr when Claude supplies those fields. **Raw input, result, and correlation** exposes the complete captured payload, native tool ID, bridge attempt ID, session ID, parent tool ID, timestamps, and observed duration.
+**Activity** lists native tools in observation order. Expand a card to read its command, output, supplied content, and result. Bash cards show the command and stdout/stderr when Claude supplies those fields. **Advanced record** exposes the complete captured payload, native tool ID, bridge attempt ID, session ID, parent tool ID, timestamps, and observed duration.
 
 If Claude groups several tool results in one message, the outer structured result is labeled **Shared message result**, not attributed to each tool. It is stored on the first result as `output.sharedMessageResult`, with the participating `toolIds`; the others use `output.sharedMessageResultToolId` to reference that tool within the same job and attempt. Inspectors resolve that reference on demand. Audit exports preserve the shared payload and references without multiplying storage for each result.
 
@@ -82,3 +82,15 @@ curl --fail-with-body "$BRIDGE_URL/v1/bridge/jobs/$JOB_ID/audit?limit=100&includ
 [Mobile tool inspector](../assets/screenshots/activity-mobile.png) · [Mobile file diff](../assets/screenshots/files-mobile.png)
 
 The protocol interpretation follows Anthropic's [programmatic CLI](https://code.claude.com/docs/en/headless) and [subagent message correlation](https://code.claude.com/docs/en/agent-sdk/subagents#detect-subagent-invocation) documentation.
+
+## Investigate an interrupted action
+
+Start with the affected job ID and a token with `read` for its owning principal. The local owner can inspect jobs from every principal. Keep an audit export private before attempting recovery when its contents are needed for investigation.
+
+1. Read the job and its attempts to identify the execution mode, failed attempt, native session and terminal error. Workflow runs link to the job that performed each step.
+2. Read tool metadata and expand the affected record. Correlate its attempt ID and native tool ID with the command, file path and emitted result. In the API, use the numeric bridge record ID from the tools list to retrieve its full payload.
+3. Inspect the actual workspace or external service when a result is missing. A submitted Write payload and an Edit replacement fragment describe requested content; they cannot establish the current contents of a file after later actions.
+4. Choose the next action from the observed state. Resume preserves an available native session; retry starts a new session and can repeat earlier effects. Image jobs require a new explicit completion request after interruption. [Recovery](operations.md#crashes-and-external-effects) and [troubleshooting](troubleshooting.md) describe these controls.
+5. Keep the old attempt and export with the new outcome. Audit pagination uses a fixed `through` boundary, while tool projections and summaries describe current state.
+
+For API-only inspection, read `GET /v1/bridge/jobs/{id}`, `/attempts`, `/tools` and `/tools/{tool}` before exporting `/audit`. These calls do not run a tool or change the job. A 404 can mean the job belongs to another principal; a 403 requires the correct scope or profile assignment. Correct access through the [token guide](tokens.md), then continue with the same job ID.

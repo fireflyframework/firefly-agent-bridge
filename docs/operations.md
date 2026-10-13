@@ -77,6 +77,18 @@ The service retains the latest 10,000 event sequence IDs. Jobs, messages, attemp
 
 Stop the service before making a filesystem backup of SQLite and its sidecars. Protect backups as user data: prompts, results, full file contents, shell commands/output, and bridge authentication material can be sensitive. To restore, keep the configuration's absolute paths consistent with the restored data directory.
 
+### Make and verify a local backup
+
+Use the same `--data-dir` as the running instance on every CLI command. `status` confirms which service is available; `panel` locates its console and owner-token file without printing the token.
+
+1. Stop managed hosts and close connected consoles so they do not restart or keep the service alive. Request graceful shutdown with `firefly-bridge stop --data-dir /absolute/path/to/state` and wait for that instance to exit.
+2. Copy the stopped data directory and configured job workspace to private backup storage. Include `queue.sqlite` and any remaining `queue.sqlite-wal` and `queue.sqlite-shm` sidecars together. SQLite uses WAL mode; copying only its main file during execution can omit committed observations.
+3. Retain the matching configuration, owner token and workspace paths. Native coding-agent transcripts and subscription login belong to the official CLI's separate storage and need that provider's own recovery procedure.
+4. Restore to a separate local test location while the original instance stays stopped. Review the copied `config.json` so its data and workspace paths identify only the restored test directories. Do not start two services against the same queue or job workspace.
+5. Start the restored service explicitly, then inspect status, jobs, attempts, workflow snapshots and a known audit export. Startup can mark lost attempts interrupted; inspect their effects before retrying. Check the recovered files separately from the database history.
+
+`service.log` records managed-service startup and process diagnostics. The job audit contains emitted execution observations. Neither log replaces a missing native transcript, a command result or a backup of source files. A restored owner token retains its authority; protect it and use the normal token controls when application access must be replaced.
+
 ## Native protocol references
 
 The worker follows the official [programmatic CLI documentation](https://code.claude.com/docs/en/headless), [Agent SDK reference](https://platform.claude.com/docs/en/agent-sdk/typescript), and [channel protocol](https://code.claude.com/docs/en/channels-reference). Subscription support is described in [Anthropic's Claude-plan guidance](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan).
