@@ -54,7 +54,10 @@ if [ ! -x "$target/$executable" ]; then
   else actual="$(shasum -a 256 < "$staging/$asset.tar.gz" | awk '{print $1}')"; fi
   if [ "$actual" != "$expected" ]; then echo "Release checksum verification failed." >&2; exit 1; fi
   mkdir "$staging/unpacked"
-  tar -xzf "$staging/$asset.tar.gz" -C "$staging/unpacked"
+  (
+    cd "$staging"
+    tar -xzf "$asset.tar.gz" -C unpacked
+  )
   chmod +x "$staging/unpacked/$executable"
   if [ ! -d "$target" ]; then mv "$staging/unpacked" "$target"; fi
 fi
