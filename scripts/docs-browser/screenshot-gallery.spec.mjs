@@ -9,6 +9,7 @@ for (const width of [1440, 390, 375]) {
     }) => {
       await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
       await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
+      let phoneCaptures = 0;
       for (const guide of [
         "dashboard",
         "workflows",
@@ -54,6 +55,7 @@ for (const width of [1440, 390, 375]) {
           const measure = await image.evaluate((element) => ({
             width: element.getBoundingClientRect().width,
             natural: element.naturalWidth,
+            phone: Boolean(element.closest(".bridge-shot--phone")),
             right: element.getBoundingClientRect().right,
             left: element.getBoundingClientRect().left,
             pairCount: [
@@ -65,7 +67,10 @@ for (const width of [1440, 390, 375]) {
           }));
           expect(measure.natural).toBeGreaterThan(0);
           expect(measure.width).toBeLessThanOrEqual(measure.natural + 1);
-          if (measure.phone) expect(measure.width).toBeLessThanOrEqual(321);
+          if (measure.phone) {
+            phoneCaptures += 1;
+            expect(measure.width).toBeLessThanOrEqual(321);
+          }
           expect(measure.left).toBeGreaterThanOrEqual(0);
           expect(measure.right).toBeLessThanOrEqual(width + 1);
           expect(measure.href).toBe(measure.src);
@@ -78,6 +83,7 @@ for (const width of [1440, 390, 375]) {
           ),
         ).toBe(true);
       }
+      expect(phoneCaptures).toBeGreaterThan(0);
       await page.goto("/dashboard/");
       const imageLink = page
         .locator(".bridge-shot--phone .bridge-shot__link:visible")
