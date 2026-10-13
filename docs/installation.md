@@ -2,6 +2,10 @@
 
 # Install Firefly Agent Bridge
 
+!!! warning "For local development and testing"
+
+    Firefly Agent Bridge is intended for local development and testing. It uses your signed-in coding CLI subscription rather than a separately billed model API; subscription quotas still apply. We advise against using it for production workloads: provider license and usage restrictions, local security boundaries, and performance limits may make it unsuitable. Check the terms of your plan and provider before connecting an application. See [OpenAI's terms](https://openai.com/policies/terms-of-use/) and [Anthropic's consumer terms](https://www.anthropic.com/legal/consumer-terms).
+
 Get the source or native packages from the [Firefly Agent Bridge repository](https://github.com/fireflyframework/firefly-agent-bridge). The software is licensed under Apache-2.0. You need an official Codex or Claude Code subscription login on the machine that runs the service, plus a separate bridge token for local access.
 
 ## Choose an installation

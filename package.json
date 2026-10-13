@@ -32,7 +32,7 @@
     "format": "prettier --write .",
     "verify": "tsx scripts/verify.ts",
     "package": "tsx scripts/package.ts",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run test:clients && npm run test:browser && npm run build && npm run verify && npm run docs:editorial && npm run docs:build && npm run package && npm run test:package",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run test:clients && npm run test:browser && npm run build && npm run verify && npm run docs:editorial && npm run docs:test && npm run docs:build && npm run docs:test:browser && npm run package && npm run test:package",
     "test:browser": "playwright test",
     "test:live": "tsx scripts/live-smoke.ts",
     "test:package": "tsx scripts/package-smoke.ts",
@@ -44,7 +44,9 @@
     "docs:editorial": "tsx scripts/docs-editorial.ts",
     "generate:diagrams": "tsx scripts/diagram-assets.ts",
     "test:live:codex:images": "tsx scripts/live-codex-images.ts",
-    "test:live:codex:mcp": "tsx scripts/live-codex-mcp.ts"
+    "test:live:codex:mcp": "tsx scripts/live-codex-mcp.ts",
+    "docs:test": "node --test scripts/test_docs_scene.mjs",
+    "docs:test:browser": "playwright test --config scripts/docs-playwright.config.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
@@ -62,6 +64,7 @@
     "eslint": "10.11.0",
     "fflate": "0.8.3",
     "prettier": "3.9.9",
+    "three": "0.186.1",
     "tsx": "4.23.15",
     "typescript": "6.0.3",
     "typescript-eslint": "8.70.1",

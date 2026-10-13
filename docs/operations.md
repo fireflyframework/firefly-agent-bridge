@@ -2,6 +2,10 @@
 
 # Execution, recovery, and operations
 
+!!! warning "For local development and testing"
+
+    Firefly Agent Bridge is intended for local development and testing. It uses your signed-in coding CLI subscription rather than a separately billed model API; subscription quotas still apply. We advise against using it for production workloads: provider license and usage restrictions, local security boundaries, and performance limits may make it unsuitable. Check the terms of your plan and provider before connecting an application. See [OpenAI's terms](https://openai.com/policies/terms-of-use/) and [Anthropic's consumer terms](https://www.anthropic.com/legal/consumer-terms).
+
 [README](../README.md) · [Architecture](architecture.md) · [Configuration](configuration.md)
 
 ![Job execution lifecycle](../assets/diagrams/lifecycle.svg)

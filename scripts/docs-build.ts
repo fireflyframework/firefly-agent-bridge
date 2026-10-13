@@ -25,8 +25,9 @@ import {
   mkdtempSync,
   existsSync,
 } from "node:fs";
-import { resolve, join } from "node:path";
+import { resolve, join, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 const root = resolve(".");
 mkdirSync("work", { recursive: true });
 const staging = mkdtempSync(resolve("work/docs-source-"));
@@ -58,7 +59,7 @@ for (const file of readdirSync(staging).filter((name) =>
     .replaceAll("../examples/", "examples/")
     .replaceAll("../tests/", "tests/")
     .replaceAll("../SECURITY.md", "security-policy.md");
-  // Both documents and GitHub keep ordinary Markdown links. Only the private site adds theme variants.
+  // The documentation site adds theme variants to ordinary Markdown images.
   body = body.replace(
     /!\[([^\]]*)\]\((assets\/(diagrams|screenshots)\/[^)]+)\)/g,
     (original, alt, path) => {
@@ -77,6 +78,10 @@ for (const file of readdirSync(staging).filter((name) =>
   );
   writeFileSync(join(staging, file), body);
 }
+const hook = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "docs_scene_hook.py",
+);
 const yaml = readFileSync("mkdocs.yml", "utf8")
   .replace("docs_dir: docs", "docs_dir: " + JSON.stringify(staging))
   .replace(
@@ -84,7 +89,7 @@ const yaml = readFileSync("mkdocs.yml", "utf8")
     "site_dir: " + JSON.stringify(resolve("work/docs-site")),
   );
 const config = staging + ".yml";
-writeFileSync(config, yaml);
+writeFileSync(config, yaml + "\nhooks:\n  - " + JSON.stringify(hook) + "\n");
 const result = spawnSync(
   process.env.BRIDGE_PYTHON ?? "python3",
   ["-m", "mkdocs", "build", "--strict", "--clean", "-f", config],
@@ -93,6 +98,6 @@ const result = spawnSync(
 if (result.error) throw result.error;
 if (result.status !== 0)
   throw new Error(
-    "Private documentation build failed. Install docs/requirements.txt into BRIDGE_PYTHON.",
+    "Documentation build failed. Install docs/requirements.txt into BRIDGE_PYTHON.",
   );
-console.log("Private documentation: " + resolve("work/docs-site/index.html"));
+console.log("Documentation: " + resolve("work/docs-site/index.html"));

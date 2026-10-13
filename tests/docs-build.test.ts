@@ -26,6 +26,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join, resolve } from "node:path";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 
@@ -93,7 +94,21 @@ it("publishes the curated landing page with working guide and asset links", () =
   expect(html).toMatch(/<h1[^>]*>Start with your bridge/);
   expect(html).not.toMatch(/<h1[^>]*>Repository overview/);
   expect(html).toMatch(/href="installation\/">Install the service<\/a>/);
-  expect(html).toContain('href="assets/docs.css"');
+  const digest = createHash("sha256")
+    .update(readFileSync(join(directory, "assets/docs.css")))
+    .digest("hex")
+    .slice(0, 16);
+  expect(html).toContain('href="assets/docs.css?v=' + digest + '"');
+  expect(html).toMatch(/assets\/docs-scene\/scene.js\?v=[a-f0-9]{16}/);
+  expect(
+    readFileSync(
+      join(
+        directory,
+        "work/docs-site/assets/docs-scene/THIRD_PARTY_NOTICES.txt",
+      ),
+      "utf8",
+    ),
+  ).toContain("MIT License");
   expect(
     readFileSync(
       join(directory, "work/docs-site/installation/index.html"),
@@ -109,4 +124,21 @@ it("uses the README when no curated landing exists and resolves its guide links"
   const html = build();
   expect(html).toMatch(/<h1[^>]*>Repository overview/);
   expect(html).toMatch(/href="installation\/">Install<\/a>/);
+});
+
+it("changes CSS URLs when source contents change while preserving relative links", () => {
+  const before = build();
+  writeFileSync(
+    join(directory, "assets/docs.css"),
+    ":root { color-scheme: dark; }\n",
+  );
+  const after = build();
+  const css = /href="assets\/docs.css\?v=([a-f0-9]{16})"/;
+  expect(before.match(css)?.[1]).toBeDefined();
+  expect(after.match(css)?.[1]).not.toBe(before.match(css)?.[1]);
+  const nested = readFileSync(
+    join(directory, "work/docs-site/installation/index.html"),
+    "utf8",
+  );
+  expect(nested).toContain("../assets/docs.css?v=" + after.match(css)?.[1]);
 });

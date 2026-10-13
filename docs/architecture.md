@@ -2,6 +2,10 @@
 
 # Architecture
 
+!!! warning "For local development and testing"
+
+    Firefly Agent Bridge is intended for local development and testing. It uses your signed-in coding CLI subscription rather than a separately billed model API; subscription quotas still apply. We advise against using it for production workloads: provider license and usage restrictions, local security boundaries, and performance limits may make it unsuitable. Check the terms of your plan and provider before connecting an application. See [OpenAI's terms](https://openai.com/policies/terms-of-use/) and [Anthropic's consumer terms](https://www.anthropic.com/legal/consumer-terms).
+
 The local bridge stores the queue, workflows and audit, runs the scheduler, and serves HTTP requests. Stdio MCP hosts, the console, SDKs and remote MCP clients connect to that service. The selected official Codex or Claude Code CLI manages provider login, native sessions, model access and context.
 
 ![Local bridge architecture](../assets/diagrams/architecture.svg)
@@ -72,3 +76,7 @@ Native observations commit complete emitted tool payloads and correlation metada
 A workflow snapshots its template and inputs. A successful current job creates its next sequential step. Failed steps require an explicit retry; an operator pause blocks advancement. Editing a reusable template changes future runs and preserves existing snapshots.
 
 External effects are outside database atomicity. A command can write a file or call a remote service before its result is lost. Crash recovery marks lost attempts interrupted and retains their evidence; the operator reconciles effects before retrying.
+
+## Documentation illustration
+
+The documentation home shows an original Bridge span and two-way packet motion. It is a local Three.js illustration: it does not read queue state, connect to a worker or make model calls. The pause control, reduced-motion preference and static fallback change only that illustration. Provider readiness and job state come from the authenticated console and API described above.

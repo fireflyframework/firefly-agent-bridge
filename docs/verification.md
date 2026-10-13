@@ -18,6 +18,10 @@ Provider login, CLI availability, managed policy, rate limits and host extension
 
 Install `docs/requirements.txt` into the Python environment selected by `BRIDGE_PYTHON`, then run `npm run docs:build`. The strict build writes `work/docs-site`. Serve that directory on loopback to review it before deployment. The builder includes Markdown pages, local assets, theme variants, fonts and example files; brand-kit source stays outside the site.
 
+The home-page illustration is an original Bridge span mesh rendered with pinned Three.js 0.186.1. Moving packets demonstrate two-way requests and responses; they do not connect to a bridge, run jobs or call a model. The strict builder bundles the first-party scene source into ignored staging, includes the Three.js MIT and artwork notices, and versions local CSS and scene script URLs by content. No CDN is needed.
+
+`npm run docs:test` checks the motion gates and generated assets. After building the site, `npm run docs:test:browser` checks real WebGL rendering, play/pause, reduced motion, both themes, phone resizing, viewport suspension, GPU cleanup and the static fallback. The renderer caps motion at 30 frames per second and pauses in background tabs. These checks do not replace direct visual review.
+
 The prose check catches a small set of editorial regressions outside code and links. It does not automate the Humanizer's contextual judgment. Manual review preserves technical claims, API labels, commands, and limitations while removing repetitive or promotional wording.
 
 ## 0.2.4 console checks

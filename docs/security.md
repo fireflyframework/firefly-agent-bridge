@@ -2,6 +2,10 @@
 
 # Security boundaries
 
+!!! warning "For local development and testing"
+
+    Firefly Agent Bridge is intended for local development and testing. It uses your signed-in coding CLI subscription rather than a separately billed model API; subscription quotas still apply. We advise against using it for production workloads: provider license and usage restrictions, local security boundaries, and performance limits may make it unsuitable. Check the terms of your plan and provider before connecting an application. See [OpenAI's terms](https://openai.com/policies/terms-of-use/) and [Anthropic's consumer terms](https://www.anthropic.com/legal/consumer-terms).
+
 Firefly Agent Bridge runs on a trusted developer machine. An execution-capable token can cause actions with that developer's permissions. Restrict service access to trusted callers, including when you install it from the open-source repository.
 
 ## Authentication
