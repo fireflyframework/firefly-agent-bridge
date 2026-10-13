@@ -2660,6 +2660,25 @@ body[data-connection="connected"]
   max-height: 48px;
   padding-inline: 0;
 }
+.activity > .section-heading,
+.activity-controls {
+  flex-wrap: wrap;
+}
+.activity-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+#diagnostic-activity-toggle {
+  min-height: 40px;
+  font-size: 12px;
+  padding: 8px 12px;
+}
+.content:has(#diagnostics-view:not([hidden]))
+  .activity:has(#diagnostic-activity-toggle[aria-expanded="true"])
+  #events {
+  max-height: clamp(256px, 30dvh, 360px);
+}
 .created-token {
   padding: 16px;
   margin: 16px 0;
@@ -3430,16 +3449,24 @@ body[data-connection="connected"]
   margin: 0;
 }
 
+@media (max-width: 900px), (max-height: 700px) {
+  #messages {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+.continuation-control {
+  min-height: 40px;
+  padding: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--accent-ink);
+}
+
 @media (max-width: 900px) {
   .shell-header:has(.continuation-control:not([hidden])),
   .shell-tools:has(.continuation-control:not([hidden])) {
     gap: 8px;
-  }
-  .continuation-control {
-    min-height: 40px;
-    padding: 8px;
-    font-size: 12px;
-    white-space: nowrap;
-    color: var(--accent-ink);
   }
 }

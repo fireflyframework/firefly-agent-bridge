@@ -2,6 +2,13 @@
 
 # Changelog
 
+## 0.2.7 — 2026-10-12
+
+- Off-screen setup and workflow actions have a scroll-and-focus shortcut on desktop as well as phones.
+- Long conversations scroll with the page on phones and short windows, preserving access to the latest response and continuation form.
+- Diagnostics can expand recent recorded activity with keyboard-accessible View activity and Hide activity controls.
+- File inspection describes the configured coding agent without attributing Codex observations to Claude.
+
 ## 0.2.6 — 2026-10-12
 
 - Preserve cancellation when readiness subsequently fails in both official-agent workers. Uncanceled readiness failures retain their original errors.

@@ -95,7 +95,7 @@ limitations under the License.
         <div class="connection-row">
           <span class="status-dot"></span
           ><span id="connection">Disconnected</span
-          ><span class="version">v0.2.6</span>
+          ><span class="version">v0.2.7</span>
         </div>
         <button id="connect-session" type="button">Open connection</button
         ><button id="logout" hidden>Disconnect session</button>
@@ -936,7 +936,19 @@ limitations under the License.
                   >Waiting for connection</span
                 >
               </div>
-              <span class="section-caption">Durable event history</span>
+              <div class="activity-controls">
+                <span class="section-caption">Durable event history</span>
+                <button
+                  id="diagnostic-activity-toggle"
+                  type="button"
+                  class="quiet"
+                  aria-controls="events"
+                  aria-expanded="false"
+                  hidden
+                >
+                  View activity
+                </button>
+              </div>
             </div>
             <ol id="events"></ol>
           </section>

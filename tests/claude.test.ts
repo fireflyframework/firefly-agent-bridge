@@ -17,10 +17,11 @@
  * limitations under the License.
  */
 
-import { beforeEach, afterEach, describe, it, expect } from "vitest";
+import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
 import { mkdtempSync, rmSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { setTimeout as pause } from "node:timers/promises";
 import { ClaudeWorker } from "../src/claude.js";
 import { prepareCompletion } from "../src/completion-protocol.js";
 import type { Job, Attempt } from "../src/contracts.js";
@@ -30,6 +31,8 @@ beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "bridge-worker-"));
 });
 afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
   rmSync(dir, { recursive: true, force: true });
 });
 function worker(overrides: Record<string, unknown> = {}) {
@@ -226,12 +229,54 @@ describe("official CLI boundary", () => {
     ).toMatch(/quota/);
   });
   it("terminates the owned process group on timeout", async () => {
-    const outcome = await worker({ timeoutMs: 300 }).run(
+    const executor = worker({ timeoutMs: 300 });
+    const readiness = await executor.ready();
+    expect(readiness.ready, readiness.reason).toBe(true);
+    vi.spyOn(executor, "ready").mockResolvedValue(readiness);
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const controller = new AbortController();
+    const pending = executor.run(
       input("fixture:hang"),
       () => {},
-      new AbortController().signal,
+      controller.signal,
     );
-    expect(outcome.status).toBe("timed_out");
+    let completed = false;
+    void pending.then(
+      () => {
+        completed = true;
+      },
+      () => {
+        completed = true;
+      },
+    );
+    const settle = async () => {
+      const deadline = Date.now() + 4000;
+      while (!completed && Date.now() < deadline) {
+        await pause(10);
+        await vi.advanceTimersByTimeAsync(30);
+      }
+      expect(completed, "Owned fixture must settle before cleanup").toBe(true);
+      return pending;
+    };
+    let outcome;
+    try {
+      const deadline = Date.now() + 4000;
+      while (!existsSync(join(dir, "child.pid")) && Date.now() < deadline)
+        await pause(10);
+      expect(existsSync(join(dir, "child.pid"))).toBe(true);
+      await vi.advanceTimersByTimeAsync(300);
+      outcome = await settle();
+    } finally {
+      try {
+        controller.abort();
+        await vi.advanceTimersByTimeAsync(2000);
+        await settle();
+      } finally {
+        vi.useRealTimers();
+        vi.restoreAllMocks();
+      }
+    }
+    expect(outcome.status, outcome.error).toBe("timed_out");
     if (process.platform !== "win32") {
       const pid = Number(readFileSync(join(dir, "child.pid"), "utf8"));
       await expect

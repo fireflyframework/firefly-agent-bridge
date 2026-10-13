@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "firefly-agent-bridge",
   "display_name": "Firefly Agent Bridge",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Private Firefly developer jobs and workflows through official local coding agents.",
   "long_description": "Private developer integration with a durable local queue, scoped authentication, workflows, audit and management console. Claude Code or Codex runs using your own official subscription login. Default permissions are enabled; explicit bypass requires a trusted host.",
   "author": {
