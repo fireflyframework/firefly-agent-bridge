@@ -12,6 +12,8 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:8796",
     headless: true,
     viewport: { width: 1440, height: 1050 },
+    screenshot: "only-on-failure",
+    trace: "retain-on-failure",
   },
   webServer: {
     command: `"${process.env.BRIDGE_PYTHON ?? "python3"}" -m http.server 8796 --bind 127.0.0.1 --directory work/docs-site`,

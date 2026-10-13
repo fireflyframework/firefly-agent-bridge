@@ -82,6 +82,14 @@ jobs:
         run: npm run check
       - name: Audit all runtime and packaging dependencies
         run: npm audit --audit-level=high
+      - name: Retain documentation browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: browser-failure-${{ matrix.platform }}-${{ matrix.arch }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: native-${{ matrix.platform }}-${{ matrix.arch }}

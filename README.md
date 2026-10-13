@@ -4,41 +4,79 @@
 
 # Firefly Agent Bridge
 
-Firefly Agent Bridge connects firefly forge, application SDKs and coding-agent hosts to your signed-in Codex or Claude Code CLI. It runs on your developer machine and uses your own coding subscription.
+Run local coding jobs and resumable workflows through your signed-in Codex or Claude Code CLI. Firefly Agent Bridge connects [firefly forge](https://github.com/fireflyframework/firefly-forge), application SDKs and coding-agent hosts to that worker through scoped HTTP APIs and MCP tools.
 
-The bridge admits work to a durable queue. It retains execution attempts, workflow checkpoints and audit records, and handles pause and resume. The official coding agent manages login, model access, native transcripts and context. Provider credentials stay with that client.
+The bridge keeps a durable queue, execution attempts, conversation references, workflow checkpoints and activity records. The official CLI owns provider login and native context. Each bridge instance uses one configured worker; its profiles choose models and limits supported by that worker.
 
-![Bridge 0.2.8 local console with fixture jobs](assets/screenshots/dashboard-desktop.png)
+[Documentation site](https://fireflyframework.github.io/firefly-agent-bridge/) · [Installation](docs/installation.md) · [Guided console tour](docs/dashboard.md) · [Releases](https://github.com/fireflyframework/firefly-agent-bridge/releases)
 
-The console image uses deterministic sample jobs. Historical provider sign-in and execution checks are documented in [verification](docs/verification.md).
+![Local bridge console with deterministic sample jobs](assets/screenshots/dashboard-desktop.png)
 
-## Use it for local development and testing
+The image shows the current console with fixture jobs. It does not establish provider execution. See [verification](docs/verification.md) for separately recorded native, SDK and subscription checks.
 
-Firefly Agent Bridge is intended for local development and testing. It uses your signed-in coding CLI subscription rather than a separately billed model API; subscription quotas still apply. We advise against using it for production workloads: provider license and usage restrictions, local security boundaries, and performance limits may make it unsuitable. Check the terms of your plan and provider before connecting an application. See [OpenAI's terms](https://openai.com/policies/terms-of-use/) and [Anthropic's consumer terms](https://www.anthropic.com/legal/consumer-terms).
+## Start on your developer machine
 
-## Run locally
+Choose the [native archive](docs/installation.md#install-a-native-archive) for macOS arm64, Linux x64 or Windows x64, or build from source with Node.js 24+, npm and Git. Verify the native archive against its release's `SHA256SUMS` before extracting it, and keep the included runtime and license files together.
 
-Install and sign in to the official agent you intend to use:
+Sign in through the official CLI you intend to use:
 
 ```sh
 codex login
 codex login status
-# Alternatively: claude auth login && claude auth status
+```
+
+For Claude Code, use `claude auth login` and `claude auth status`. Provider credentials stay with the official client; a bridge token is a separate credential.
+
+From source:
+
+```sh
+git clone https://github.com/fireflyframework/firefly-agent-bridge.git
+cd firefly-agent-bridge
 npm ci
 npm run build
 node dist/cli.cjs init --worker codex
 node dist/cli.cjs serve
 ```
 
-The published executable is `firefly-bridge`; source commands above run the same CLI. `init --worker claude` selects Claude Code instead. The default data directory is `~/Library/Application Support/Firefly Agent Bridge/` on macOS, the matching Local AppData directory on Windows, and XDG state on Linux. Protect `owner.token` and `queue.sqlite` there.
+The native executable exposes the same commands as `firefly-bridge` (`firefly-bridge.exe` on Windows). Choose `init --worker claude` for a new Claude-backed instance. Initialization preserves existing configuration; change an existing worker through the documented [stop, configure and restart procedure](docs/configuration.md).
 
-Open [the local console](http://127.0.0.1:8766), then enter the owner token. For application callers create a token scoped to their profiles and operations. Never put a bearer token in a URL.
+Open [http://127.0.0.1:8766](http://127.0.0.1:8766), or run `firefly-bridge panel` to locate the actual address and owner token file. Connect with the owner token, then follow **Providers & setup → Provider → Login → Profile → Tools**. The wizard inspects configuration; official login and worker-file changes happen on the host.
 
-## Connect firefly forge
+The default state directory is `~/Library/Application Support/Firefly Agent Bridge/` on macOS, Local AppData on Windows, and XDG state on Linux. Protect `owner.token`, `config.json`, `queue.sqlite` and the job workspace. For a custom instance, use the same `--data-dir` on every CLI invocation. The console retains its bridge token only in tab memory; disconnecting clears it.
 
-Set `FORGE_BRIDGE_URL` to the local service URL and `FORGE_BRIDGE_TOKEN` to a scoped token. firefly forge uses `bridge/default` through the OpenAI-compatible Chat Completions API. Its FireflyAgent executes the declared application tools inside the selected factory workspace.
+## Submit, inspect and continue work
 
-The bridge also accepts native agent work:
+| Step                      | What to do                                                                                                   | Guide                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| Create a job              | Enter the task, choose its profile, and review the selected worker and limits before admission.              | [Jobs and conversations](docs/dashboard.md#jobs-and-conversations) |
+| Follow execution          | Inspect reported commands, tools, results and file changes. Expand Advanced record for the original payload. | [Activity and audit](docs/audit.md)                                |
+| Continue a conversation   | Resume the retained job/session when supported. Inspect an uncertain external effect before repeating it.    | [Recovery and operations](docs/operations.md)                      |
+| Repeat an ordered process | Define a validated workflow with existing profiles; each run retains its template snapshot and checkpoints.  | [Workflow templates](docs/workflows.md)                            |
+
+Pause, cancel, resume and retry have different effects. A retry creates another execution attempt; it cannot prove that an earlier command or external write did not happen. Subscription rejection pauses dispatch without switching billing or guessing a reset time.
+
+## Connect a host or application
+
+| Connection             | Supported surface                                                                              | Setup                                                                |
+| ---------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Codex                  | Bundled plugin/operation skill or local stdio MCP.                                             | [Codex integration](docs/integrations.md#codex-plugin-and-stdio-mcp) |
+| Claude Code            | Plugin marketplace, operation/workflow skills and local stdio MCP.                             | [Claude Code plugin](docs/integrations.md#claude-code-plugin)        |
+| Claude Desktop         | Matching macOS or Windows MCPB extension; saved bridge configuration still chooses the worker. | [Desktop extension](docs/integrations.md#claude-desktop)             |
+| firefly forge and SDKs | OpenAI-compatible Chat Completions with caller-owned functions and a scoped bridge token.      | [Forge and SDKs](docs/integrations.md#firefly-forge-and-sdks)        |
+| HTTP MCP clients       | Authenticated Streamable HTTP at `/mcp`, retaining the caller's principal and scopes.          | [MCP and API reference](docs/reference.md)                           |
+| ChatGPT remote MCP     | Organization-owned reachable HTTPS/OAuth gateway and account-specific host setup.              | [Remote MCP requirements](docs/integrations.md#chatgpt-remote-mcp)   |
+
+Installing a plugin does not change the worker or grant additional native permissions. Host skills guide submission and recovery. [Claude profile-defined specialists](docs/subagents.md) use its native Agent mechanism; Codex uses its own thread protocol and does not translate those definitions. Workers do not automatically inherit a host's personal plugins or skills.
+
+For direct local stdio MCP:
+
+```sh
+codex mcp add firefly-agent-bridge -- /absolute/path/to/firefly-bridge mcp
+```
+
+Applications need their own scoped tokens. For forge, configure `FORGE_BRIDGE_URL` and load `FORGE_BRIDGE_TOKEN` from private application configuration. A hosted application cannot reach your developer machine through its own loopback address. The bridge does not supply an OAuth server or automatically establish a ChatGPT web connection.
+
+Native agent work uses the Chat Completions endpoint with an explicit execution mode:
 
 ```json
 {
@@ -48,30 +86,32 @@ The bridge also accepts native agent work:
 }
 ```
 
-Send this to `POST /v1/chat/completions` with a bearer header and an idempotency key. The 202 response is a durable job. Poll `GET /v1/bridge/jobs/{id}/result` or subscribe to `GET /v1/bridge/events`. Native jobs use their own directories under the configured workspace; HTTP callers cannot select arbitrary executables, environments or working directories.
+Send this to `POST /v1/chat/completions` with a bearer header and an idempotency key. The 202 response identifies a durable job; inspect `GET /v1/bridge/jobs/{id}/result` or `/v1/bridge/events` for its outcome. Inference requests disable native actions and return declared function calls for the calling application to execute. [SDK examples](docs/openai-compatible.md) cover structured output, functions and bounded image input with explicit capability verification.
 
-## Execution profiles
+## Configure access and execution
 
-Configuration chooses `worker: "codex"` plus an absolute `codexPath`, or `worker: "claude"` plus an absolute `claudePath`. Profiles set model, tools, timeout, output bounds and permission mode. `/v1/bridge/status` and `/v1/models` expose the selected worker and actual configured model.
+Profiles set model, deadline, output bounds and permissions. `/v1/models` and owner status report the actual configured worker/profile, rather than an account-wide model catalog. HTTP callers cannot choose arbitrary executables, environments or working directories.
 
-Default Codex jobs use `workspace-write` sandboxing and never request interactive approval. Default Claude jobs use `acceptEdits` with noninteractive permission prompts denied. An owner may explicitly choose `permissionMode: "bypass"` for a trusted execution host. CLI credentials and OS permissions remain local developer responsibilities.
+Default Codex agent jobs use workspace-write sandboxing with noninteractive approval. Default Claude jobs use acceptEdits with interactive permission prompts denied. Bypass is an explicit owner choice for a trusted host. A job directory does not establish operating-system isolation for every shell action.
 
-Codex inference disables native command, patch, browser, app and agent tools, uses a read-only sandbox and validates a structured completion envelope. Any observed native action makes the inference fail. Claude inference grants no native tools. Both expose client function calls for FireflyAgent, OpenAI SDK and Pydantic AI. Inference also accepts [bounded image attachments](docs/openai-compatible.md#image-input), with per-profile capability verification through an owner-only pixel challenge.
+Use [provider configuration](docs/configuration.md), [token scopes](docs/tokens.md), [security boundaries](docs/security.md), [operations](docs/operations.md) and [troubleshooting](docs/troubleshooting.md) when configuring a real developer host. Local protocol tests and fixture screenshots do not establish provider access, host extension consent or remote gateway acceptance.
 
-Claude profile-defined subagents remain available with `Agent`; Codex does not translate those Claude definitions. Bridge workflows provide durable sequential stages with either worker. Subscription rejection pauses dispatch without switching billing or guessing reset times.
+## Local development and testing
 
-## Documentation
-
-[Installation](docs/installation.md) · [Configuration](docs/configuration.md) · [Architecture](docs/architecture.md) · [API](docs/api.md) · [SDKs](docs/openai-compatible.md) · [Console](docs/dashboard.md) · [Workflows](docs/workflows.md) · [Audit](docs/audit.md) · [Operations](docs/operations.md) · [Verification](docs/verification.md)
+Firefly Agent Bridge is intended for local development and testing. It uses your signed-in coding CLI subscription rather than a separately billed model API; subscription quotas still apply. We advise against production use because provider license/usage restrictions, local security boundaries and performance limits may make it unsuitable. Check [OpenAI's terms](https://openai.com/policies/terms-of-use/) or [Anthropic's consumer terms](https://www.anthropic.com/legal/consumer-terms) for your plan.
 
 <a id="development-and-internal-packaging"></a>
 
 ## Development and packaging
 
-Source builds require Node.js 24+; native packages use official Node.js 26.3.0. `npm run check` runs type checks, lint, formatting, the full test suite, Python SDK interoperability, browser interactions, builds, documentation and API contract checks, native packaging and packaged MCP smoke tests. Desktop manifests use the official MCPB 0.3 JSON Schema. The builder produces unsigned deterministic ZIP bundles.
+`npm run check` runs types, lint, formatting, unit/integration tests, Python SDK interoperability, console/browser journeys, build and contract checks, documentation, native packaging and clean MCP smoke checks. Install the Python requirements described in [verification](docs/verification.md) and select that environment with `BRIDGE_PYTHON` before running the full gate. Native packaging uses official Node.js 26.3.0 through `BRIDGE_SEA_NODE`; a source-runtime check alone does not qualify a native archive.
 
-`npm run test:live:codex:images` verifies a pixel-only challenge through the signed-in official Codex client. `npm run test:live:codex` consumes your subscription allowance and records evidence locally under ignored `work/`.
+The CI matrix verifies Linux x64, macOS arm64 and Windows x64 separately. Tagged releases publish native archives, macOS/Windows MCPB bundles and checksums after those checks pass. Verify downloaded assets separately. `npm run test:live:codex` and `npm run test:live:codex:images` consume subscription allowance; their private evidence belongs under ignored `work/`.
 
-Get source and native packages from `fireflyframework/firefly-agent-bridge`. Native plugin bootstrap verifies the release archive's checksum before caching its executable. firefly forge distributions include the HTTP client integration; install the bridge separately on the machine with your coding-agent login.
+For documentation, install `docs/requirements.txt`, run `npm run docs:build`, then `npm run docs:test:browser` and `python scripts/check_docs_site.py`. MkDocs writes `work/docs-site`. The main-only GitHub Pages workflow publishes that checked site; pull requests validate without deploying. The [console tour](docs/dashboard.md) explains each screenshot and distinguishes fixture activity from actual execution.
 
-The software is open source under Apache-2.0. Keep the attribution in source notices and [NOTICE](NOTICE). Firefly marks and separately owned artwork retain the rights described in [Brand ownership](assets/BRAND-NOTICE.md). The bridge is independently operated. Provider access follows the official client's capabilities and your account permissions.
+## License and documentation
+
+The software is open source under Apache-2.0. Preserve [LICENSE](LICENSE), [NOTICE](NOTICE) and third-party notices. Firefly marks and separately owned artwork retain the rights described in [Brand ownership](assets/BRAND-NOTICE.md).
+
+[Architecture](docs/architecture.md) · [HTTP API](docs/api.md) · [CLI/MCP reference](docs/reference.md) · [Compatibility](docs/compatibility.md) · [Verification](docs/verification.md) · [Security policy](SECURITY.md)

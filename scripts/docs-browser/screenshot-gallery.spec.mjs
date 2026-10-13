@@ -19,6 +19,7 @@ for (const width of [1440, 390, 375]) {
         "openai-compatible",
       ]) {
         await page.goto(`/${guide}/`);
+        await page.evaluate(() => document.fonts.ready.then(() => undefined));
         await expect(page.locator("body")).toHaveAttribute(
           "data-md-color-scheme",
           theme === "dark" ? "slate" : "default",
@@ -77,11 +78,18 @@ for (const width of [1440, 390, 375]) {
           expect(measure.pairCount).toBe(1);
           await expect(link).toHaveAccessibleName(/Open full screenshot:/);
         }
-        expect(
-          await page.evaluate(
-            () => document.documentElement.scrollWidth <= innerWidth,
-          ),
-        ).toBe(true);
+        await expect
+          .poll(async () => {
+            return page.evaluate(() => ({
+              url: location.pathname,
+              overflow: Math.max(
+                0,
+                document.documentElement.scrollWidth - innerWidth,
+              ),
+              fontStatus: document.fonts.status,
+            }));
+          })
+          .toEqual({ url: `/${guide}/`, overflow: 0, fontStatus: "loaded" });
       }
       expect(phoneCaptures).toBeGreaterThan(0);
       await page.goto("/dashboard/");
