@@ -2677,7 +2677,7 @@ body[data-connection="connected"]
 .content:has(#diagnostics-view:not([hidden]))
   .activity:has(#diagnostic-activity-toggle[aria-expanded="true"])
   #events {
-  max-height: clamp(192px, 30dvh, 360px);
+  max-height: clamp(256px, 30dvh, 360px);
 }
 .created-token {
   padding: 16px;

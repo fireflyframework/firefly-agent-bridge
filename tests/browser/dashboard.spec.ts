@@ -1953,6 +1953,11 @@ test("diagnostic activity expands recorded events with keyboard control and reta
     result: "Recorded events available.",
   });
   await login(page);
+  await page.evaluate(() => {
+    const stylesheet = document.styleSheets[0]!;
+    stylesheet.insertRule("#events { scrollbar-gutter: stable; }");
+    stylesheet.insertRule("#events::-webkit-scrollbar { width: 17px; }");
+  });
   for (const [width, height] of [
     [1920, 1080],
     [1440, 600],
