@@ -2,7 +2,7 @@
 
 # Changelog
 
-## Unreleased
+## 0.2.5 — 2026-10-12
 
 - Paused image checks point to the Jobs resume control instead of requesting a new login.
 - Read-only provider setup explains submission access and omits its unavailable job action.
