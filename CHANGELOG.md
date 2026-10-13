@@ -2,6 +2,12 @@
 
 # Changelog
 
+## Unreleased
+
+- Paused image checks point to the Jobs resume control instead of requesting a new login.
+- Read-only provider setup explains submission access and omits its unavailable job action.
+- Phones show an Actions shortcut when setup or workflow controls are below the visible content. The shortcut scrolls and focuses those controls without advancing or submitting.
+
 ## 0.2.4 — 2026-10-12
 
 - Connection opens a compact access form, explains the selected destination, and continues there after authentication. Expired access clears private details and returns to the connection gate.

@@ -106,6 +106,26 @@ limitations under the License.
         <span class="shell-context" id="shell-context">Connect</span>
         <div class="shell-tools">
           <button
+            id="setup-scroll-control"
+            type="button"
+            class="quiet continuation-control"
+            aria-label="Show setup controls below"
+            aria-controls="providers-view"
+            hidden
+          >
+            Actions ↓
+          </button>
+          <button
+            id="workflow-scroll-control"
+            type="button"
+            class="quiet continuation-control"
+            aria-label="Show workflow actions below"
+            aria-controls="workflow-form"
+            hidden
+          >
+            Actions ↓
+          </button>
+          <button
             id="header-connect"
             type="button"
             class="quiet"
@@ -722,6 +742,10 @@ limitations under the License.
                       >Open integration guide</a
                     >
                   </div>
+                  <p id="setup-submit-help" class="hint" hidden>
+                    Your application cannot create jobs with its current access.
+                    Ask the bridge owner for submission permission.
+                  </p>
                   <details class="setup-advanced">
                     <summary>Skills and native agents</summary>
                     <p>
