@@ -2029,6 +2029,61 @@ test("short desktops expose off-screen setup actions without advancing the guide
   }
 });
 
+test("mobile job selection opens before audit loading and survives a concurrent refresh", async ({
+  page,
+}) => {
+  const job = service.store.submit(
+    { prompt: "Retain mobile job selection" },
+    owner,
+  );
+  const attempt = service.store.claim("fixture", "cli", job.id)!;
+  service.store.finish(attempt, {
+    status: "succeeded",
+    result: "Retained job result",
+  });
+  await page.setViewportSize({ width: 320, height: 568 });
+  await login(page);
+  let release!: () => void;
+  let entered!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const waiting = new Promise<void>((resolve) => {
+    entered = resolve;
+  });
+  let intercepted = false;
+  await page.route(`**/v1/bridge/jobs/${job.id}/attempts`, async (route) => {
+    if (!intercepted) {
+      intercepted = true;
+      entered();
+      await gate;
+    }
+    await route.continue();
+  });
+  try {
+    await page
+      .getByRole("button", { name: "Retain mobile job selection" })
+      .click();
+    await waiting;
+    await expect(page.locator("body")).toHaveAttribute(
+      "data-job-detail",
+      "open",
+    );
+    await expect(page.locator("#messages")).toContainText(
+      "Retained job result",
+    );
+    await page.locator("#refresh").click();
+    await expect(page.locator("#detail-state")).toHaveText("succeeded");
+    await expect(page.locator("body")).toHaveAttribute(
+      "data-job-detail",
+      "open",
+    );
+    await expect(page.locator("#messages")).toBeVisible();
+  } finally {
+    release();
+  }
+});
+
 test("short-window conversations scroll with the page to the latest response and reply", async ({
   page,
 }) => {
