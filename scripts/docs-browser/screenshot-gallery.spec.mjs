@@ -1,6 +1,7 @@
 /* Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
  * https://www.apache.org/licenses/LICENSE-2.0 */
 import { test, expect } from "@playwright/test";
+import { readyImages } from "./image-readiness.mjs";
 
 for (const width of [1440, 390, 375]) {
   for (const theme of ["light", "dark"]) {
@@ -33,23 +34,22 @@ for (const width of [1440, 390, 375]) {
               nodes.some((node) => /^\s*\|/.test(node.textContent)),
             ),
         ).toBe(false);
-        for (const summary of await article
-          .locator(".bridge-gallery > summary")
-          .all()) {
-          await summary.focus();
-          await page.keyboard.press("Enter");
-          await expect(summary.locator("..")).toHaveAttribute("open", "");
+        for (const figure of await article.locator(".bridge-shot").all()) {
+          const gallery = figure.locator(
+            'xpath=ancestor::details[contains(@class, "bridge-gallery")]',
+          );
+          if (
+            (await gallery.count()) &&
+            (await gallery.getAttribute("open")) === null
+          ) {
+            await gallery.locator(":scope > summary").focus();
+            await page.keyboard.press("Enter");
+            await expect(gallery).toHaveAttribute("open", "");
+          }
+          const images = figure.locator(".bridge-shot__link:visible img");
+          await expect(images).toHaveCount(1);
+          await readyImages(images);
         }
-        await article
-          .locator(".bridge-shot__link:visible img")
-          .evaluateAll(async (images) => {
-            await Promise.all(
-              images.map(async (image) => {
-                image.loading = "eager";
-                await image.decode();
-              }),
-            );
-          });
         const links = article.locator(".bridge-shot__link:visible");
         for (const link of await links.all()) {
           const image = link.locator("img");
