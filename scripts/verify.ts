@@ -21,6 +21,7 @@ import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { parseConfig } from "../src/config.js";
 import { QueueStore } from "../src/store.js";
 import { Workflows } from "../src/workflows.js";
@@ -177,6 +178,13 @@ const privatePaths = [
 ];
 for (const path of privatePaths)
   assert(!files.includes(path), path + " must be excluded from deliverables");
+const docsTransport = spawnSync(
+  process.env.BRIDGE_PYTHON ?? "python3",
+  ["-m", "unittest", "scripts.test_docs_server"],
+  { stdio: "inherit" },
+);
+if (docsTransport.error) throw docsTransport.error;
+assert.equal(docsTransport.status, 0, "Documentation transport checks failed");
 console.log(
   "Repository notices, documentation links and examples, versions, OpenAPI coverage, and private-file exclusions passed.",
 );
