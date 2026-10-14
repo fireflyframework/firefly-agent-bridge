@@ -301,7 +301,33 @@ describe("official CLI boundary", () => {
       () => {},
       controller.signal,
     );
-    setTimeout(() => controller.abort(), 200);
-    expect((await run).status).toBe("canceled");
+    let outcome;
+    try {
+      await expect
+        .poll(() => existsSync(join(dir, "child.pid")), { timeout: 1500 })
+        .toBe(true);
+      controller.abort();
+      outcome = await run;
+    } finally {
+      controller.abort();
+      await run;
+    }
+    expect(outcome.status, JSON.stringify(outcome)).toBe("canceled");
+    if (process.platform !== "win32") {
+      const pid = Number(readFileSync(join(dir, "child.pid"), "utf8"));
+      await expect
+        .poll(
+          () => {
+            try {
+              process.kill(pid, 0);
+              return false;
+            } catch {
+              return true;
+            }
+          },
+          { timeout: 3000 },
+        )
+        .toBe(true);
+    }
   });
 });
