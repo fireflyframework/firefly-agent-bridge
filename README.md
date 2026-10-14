@@ -62,7 +62,7 @@ Pause, cancel, resume and retry have different effects. A retry creates another 
 | Codex                  | Bundled plugin/operation skill or local stdio MCP.                                             | [Codex integration](docs/integrations.md#codex-plugin-and-stdio-mcp) |
 | Claude Code            | Plugin marketplace, operation/workflow skills and local stdio MCP.                             | [Claude Code plugin](docs/integrations.md#claude-code-plugin)        |
 | Claude Desktop         | Matching macOS or Windows MCPB extension; saved bridge configuration still chooses the worker. | [Desktop extension](docs/integrations.md#claude-desktop)             |
-| firefly forge and SDKs | OpenAI-compatible Chat Completions with caller-owned functions and a scoped bridge token.      | [Forge and SDKs](docs/integrations.md#firefly-forge-and-sdks)        |
+| firefly forge and SDKs | OpenAI-compatible Chat Completions with caller-owned functions and a scoped bridge token.      | [forge and SDKs](docs/integrations.md#firefly-forge-and-sdks)        |
 | HTTP MCP clients       | Authenticated Streamable HTTP at `/mcp`, retaining the caller's principal and scopes.          | [MCP and API reference](docs/reference.md)                           |
 | ChatGPT remote MCP     | Organization-owned reachable HTTPS/OAuth gateway and account-specific host setup.              | [Remote MCP requirements](docs/integrations.md#chatgpt-remote-mcp)   |
 
