@@ -2,11 +2,12 @@
 
 # Changelog
 
-## Unreleased
+## 0.2.11 - 2026-10-15
 
 - Maintain completion, continuation, MCP host and tool instructions in native Agentic YAML resources with explicit versions and a generated catalog.
 - Verify source and rendered-text digests before bundling; preserve the existing instruction bytes, message ordering and user workflow syntax.
 - Keep Python as a build-time authoring dependency. The installed bridge remains Node-only.
+- Compile prompts with a separate Python environment selected by `BRIDGE_PROMPT_PYTHON`, preserving the pinned SDK client and documentation environment selected by `BRIDGE_PYTHON`.
 
 ## 0.2.10 - 2026-10-14
 
