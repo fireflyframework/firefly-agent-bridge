@@ -1252,6 +1252,8 @@ test("diagnostic cards keep their borders and actions with the visible form", as
             `diagnostics-access-mobile-${theme}`,
             "#diagnostic-access-panel .diagnostic-card-actions button",
           );
+        if (width === 390 && section === "access" && theme === "light")
+          await capture(page, "diagnostics-access-mobile");
         const action = panel.locator(".diagnostic-card-actions button");
         await action.scrollIntoViewIfNeeded();
         await expect(action).toBeInViewport({ ratio: 0.99 });

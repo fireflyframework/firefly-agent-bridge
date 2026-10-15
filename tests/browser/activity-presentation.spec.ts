@@ -1,10 +1,16 @@
 /* Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
  * https://www.apache.org/licenses/LICENSE-2.0 */
 import { test, expect } from "@playwright/test";
-import { mkdtempSync, rmSync } from "node:fs";
+import {
+  mkdtempSync,
+  rmSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { startService } from "../../src/service.js";
 import { parseConfig } from "../../src/config.js";
 import { Tokens } from "../../src/auth.js";
@@ -219,6 +225,47 @@ for (const viewport of [
       await page.screenshot({
         path: test.info().outputPath(`patch-${theme}.png`),
       });
+      if (
+        process.env.UPDATE_SCREENSHOTS === "1" &&
+        [1440, 375].includes(viewport.width)
+      ) {
+        await page.evaluate(() => document.fonts.ready);
+        const version = (
+          await page.locator(".version").first().textContent()
+        )?.trim();
+        expect(version).toBe(
+          "v" + JSON.parse(readFileSync("package.json", "utf8")).version,
+        );
+        const size = viewport.width === 1440 ? "desktop" : "mobile";
+        const path = `assets/screenshots/files-code-${size}-${theme}.png`;
+        mkdirSync("assets/screenshots", { recursive: true });
+        await page.screenshot({
+          path,
+          animations: "disabled",
+          fullPage: false,
+        });
+        if (process.env.SCREENSHOT_METADATA) {
+          const metadata = process.env.SCREENSHOT_METADATA;
+          const rows = JSON.parse(readFileSync(metadata, "utf8"));
+          rows.push({
+            path,
+            sha256: createHash("sha256")
+              .update(readFileSync(path))
+              .digest("hex"),
+            viewport,
+            theme,
+            version,
+            fixture: true,
+            producer: "tests/browser/activity-presentation.spec.ts",
+            openDialogs: await page.locator("dialog[open]").count(),
+            workspaceScroll: await page
+              .locator("#content")
+              .evaluate((node) => node.scrollTop),
+            capturedAt: new Date().toISOString(),
+          });
+          writeFileSync(metadata, JSON.stringify(rows, null, 2) + "\n");
+        }
+      }
       const unknown = page
         .locator("#file-list .tool-card")
         .filter({ hasText: "src/unknown.ts" });
