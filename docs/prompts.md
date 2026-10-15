@@ -30,7 +30,9 @@ Image dimensions, serialized conversation messages and user text remain runtime 
 
 ## Change and verify a prompt
 
-Use a Python 3.13 build environment containing the pinned dependency in `scripts/prompts-requirements.txt`. Set `BRIDGE_PYTHON` to that interpreter, as for the other Python build checks. This dependency is for maintainers and CI.
+Use a separate Python 3.13 compiler environment containing the pinned dependency in `scripts/prompts-requirements.txt`, selected with `BRIDGE_PROMPT_PYTHON`. Keep `BRIDGE_PYTHON` pointed at the existing SDK client and documentation environment. The SDK matrix pins Pydantic AI Slim 2.49.0; Agentic requires a newer full Pydantic AI distribution, so combining their requirements is not supported.
+
+CI creates only its build-time compiler environment under `RUNNER_TEMP` and installs Agentic there. It leaves the SDK requirements and interpreter unchanged. For an already compatible maintainer environment, prompt commands fall back to `BRIDGE_PYTHON`, then `python3`, when `BRIDGE_PROMPT_PYTHON` is unset. Interpreter paths, including spaces, are passed directly without a shell. Installed bridge users need neither compiler interpreter.
 
 1. Edit the appropriate YAML resource. Preserve message priority and continuation behavior unless the change deliberately revises that contract.
 2. Run `npm run prompts:render`. The generator uses the native `PromptLoader`, `PromptRegistry` and `PromptTemplate.render` APIs with an explicit version.

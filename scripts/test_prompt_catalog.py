@@ -5,12 +5,27 @@ import json
 import shutil
 import tempfile
 import unittest
+
+import yaml
 from pathlib import Path
 
 from scripts.render_prompt_catalog import ROOT, generate
 
 
 class NativePromptCatalogTests(unittest.TestCase):
+    def test_ci_keeps_sdk_and_prompt_compiler_dependency_environments_separate(self):
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = workflow["jobs"]["native"]["steps"]
+        sdk = next(step["run"] for step in steps if "tests/clients/requirements.txt" in step.get("run", ""))
+        self.assertNotIn("scripts/prompts-requirements.txt", sdk)
+        compiler = next(step["run"] for step in steps if "scripts/prompts-requirements.txt" in step.get("run", ""))
+        self.assertIn("python -m venv", compiler)
+        self.assertIn("RUNNER_TEMP", compiler)
+        self.assertIn("BRIDGE_PROMPT_PYTHON", compiler)
+        self.assertIn("Scripts/python.exe", compiler)
+        self.assertIn("bin/python", compiler)
+        self.assertIn("pydantic-ai-slim[openai]==2.49.0", (ROOT / "tests/clients/requirements.txt").read_text())
+
     def test_native_render_preserves_every_released_instruction(self):
         baseline = json.loads(
             (ROOT / "tests/fixtures/prompt-baseline.json").read_text()
