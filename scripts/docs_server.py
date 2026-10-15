@@ -10,6 +10,10 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 
+class DocumentationHandler(SimpleHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+
+
 class DocumentationServer(ThreadingHTTPServer):
     # Browser galleries request many assets before the serving thread accepts them.
     request_queue_size = 128
@@ -24,7 +28,7 @@ def main() -> None:
     if not directory.is_dir():
         parser.error("Documentation directory must be a directory")
     with DocumentationServer(
-        ("127.0.0.1", args.port), partial(SimpleHTTPRequestHandler, directory=str(directory))
+        ("127.0.0.1", args.port), partial(DocumentationHandler, directory=str(directory))
     ) as server:
         server.serve_forever()
 
