@@ -175,6 +175,17 @@ try {
   ])
     if (!(await fetch(address + path)).ok)
       throw new Error("Native embedded asset missing: " + path);
+  for (const theme of ["dark", "light"]) {
+    const response = await fetch(address + `/brand-${theme}.svg`);
+    const expected = readFileSync(
+      `assets/brand/bridge-lockup-small-${theme}.svg`,
+      "utf8",
+    );
+    if (!response.ok || (await response.text()) !== expected)
+      throw new Error(
+        "Native navigation artwork differs from its source: " + theme,
+      );
+  }
   for (const [path, marker] of [
     ["/navigation.js", "createMobileNavigation"],
     ["/job-wizard.js", "createJobWizard"],
