@@ -1,7 +1,8 @@
 ---
-title: Documentation home
+title: Firefly Agent Bridge for Codex and Claude Code
 hide:
   - toc
+description: Run local coding jobs and resumable workflows with Codex or Claude Code subscriptions through Firefly Agent Bridge APIs and MCP integrations.
 ---
 
 <!-- Copyright (c) 2026 Signature Management Consultants SLU; Author: @ancongui. Modified by Firefly Software Foundation for Firefly Agent Bridge (2026). SPDX-License-Identifier: Apache-2.0. -->

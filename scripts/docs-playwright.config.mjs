@@ -16,7 +16,7 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: `"${process.env.BRIDGE_PYTHON ?? "python3"}" -m http.server 8796 --bind 127.0.0.1 --directory work/docs-site`,
+    command: `"${process.env.BRIDGE_PYTHON ?? "python3"}" scripts/docs_server.py --port 8796 --directory work/docs-site`,
     cwd: fileURLToPath(new URL("..", import.meta.url)),
     url: "http://127.0.0.1:8796",
     reuseExistingServer: false,

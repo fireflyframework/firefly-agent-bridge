@@ -1,3 +1,7 @@
+---
+description: Use supported Claude Code workflow features with explicit provider profiles, observed sessions and retained local job outcomes.
+---
+
 <!-- Copyright (c) 2026 Signature Management Consultants SLU; Author: @ancongui. Modified by Firefly Software Foundation for Firefly Agent Bridge (2026). SPDX-License-Identifier: Apache-2.0. -->
 
 # Advanced Claude Code workflows

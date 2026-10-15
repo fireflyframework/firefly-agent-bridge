@@ -1,3 +1,7 @@
+---
+description: Inspect bridge CLI commands and MCP tools for job submission, workflow execution, session access and local service management.
+---
+
 <!-- Copyright (c) 2026 Signature Management Consultants SLU; Author: @ancongui. Modified by Firefly Software Foundation for Firefly Agent Bridge (2026). SPDX-License-Identifier: Apache-2.0. -->
 
 # CLI and MCP reference

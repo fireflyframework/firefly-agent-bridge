@@ -34,10 +34,12 @@ jobs:
         env:
           BRIDGE_PYTHON: python
         run: |
+          python -m unittest scripts.test_docs_discovery
           npm run docs:editorial
           npm run docs:test
           npm run docs:build
           python scripts/check_docs_site.py
+          python scripts/check_docs_discovery.py work/docs-site https://fireflyframework.github.io/firefly-agent-bridge/
           npm run docs:test:browser
       - name: Configure Pages
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

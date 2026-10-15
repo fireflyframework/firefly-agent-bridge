@@ -75,6 +75,7 @@ nav:
       - HTTP API: api.md
       - CLI and MCP tools: reference.md
       - Verification and packaging: verification.md
+      - Publish documentation: documentation-publishing.md
 plugins:
   - search
 markdown_extensions:
@@ -86,11 +87,22 @@ markdown_extensions:
       toc_depth: 3
   - admonition
   - pymdownx.details
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.highlight:
       anchor_linenums: true
 extra:
   generator: false
+  discovery:
+    font: assets/fonts/manrope/manrope-latin-wght-normal.woff2
+    logo: assets/brand/bridge-lockup-light.svg
+    notice: assets/brand/NOTICE
+    font_notice: assets/fonts/manrope/OFL.txt
+    descriptions:
+      assets/BRAND-NOTICE.md: Read the ownership and permitted-use notices for Firefly parent marks, bridge visual assets and the bundled Manrope font.
 extra_css:
   - assets/docs.css
 copyright: Copyright &copy; 2026 Firefly Software Foundation

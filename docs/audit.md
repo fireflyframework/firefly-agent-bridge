@@ -1,3 +1,7 @@
+---
+description: Inspect command, file and tool activity with readable execution records, source changes and retained job evidence.
+---
+
 <!-- Copyright (c) 2026 Signature Management Consultants SLU; Author: @ancongui. Modified by Firefly Software Foundation for Firefly Agent Bridge (2026). SPDX-License-Identifier: Apache-2.0. -->
 
 # Execution activity and audit
