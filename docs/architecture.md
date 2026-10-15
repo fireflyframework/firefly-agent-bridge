@@ -55,6 +55,8 @@ Native Codex jobs use its workspace sandbox by default. Native Claude jobs use a
 
 ## Worker and process ownership
 
+Internal instructions are maintained as native Agentic YAML resources and rendered into a versioned catalog during the build. The Node executable embeds that catalog; no Python service or template interpreter is needed at runtime. User messages and workflow values stay opaque data. [Internal prompt maintenance](prompts.md) explains resource ownership, exact versions and digest checks.
+
 Prompts go to the owned CLI over stdin without a shell. Worker setup rejects alternate billing environment settings and preserves official subscription authentication. Codex ignores personal configuration while applying deliberate bridge profile options. Claude suppresses host customizations; arbitrary host plugins and skills are not automatically inherited.
 
 The bridge observes the provider's structured protocol. It retains session IDs and reported compaction boundaries without rewriting provider transcripts or inventing replacement summaries. Missing or unavailable sessions remain explicit errors.

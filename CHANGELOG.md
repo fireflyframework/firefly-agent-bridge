@@ -2,6 +2,12 @@
 
 # Changelog
 
+## Unreleased
+
+- Maintain completion, continuation, MCP host and tool instructions in native Agentic YAML resources with explicit versions and a generated catalog.
+- Verify source and rendered-text digests before bundling; preserve the existing instruction bytes, message ordering and user workflow syntax.
+- Keep Python as a build-time authoring dependency. The installed bridge remains Node-only.
+
 ## 0.2.10 - 2026-10-14
 
 - Claude keeps its final process-group cleanup signal after the executable closes. A transient permission error no longer marks cleanup failed when a bounded read-only check subsequently confirms that the group is absent. Persistent or unexpected errors remain explicit cleanup errors; they cannot establish successful execution or cancellation. An existing pause request keeps its paused status.

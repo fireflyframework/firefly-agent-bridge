@@ -1,0 +1,11 @@
+# Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
+name: tools/bridge_channel_pending
+version: 1.0.0
+description: tools bridge_channel_pending
+required_variables: []
+system_template: ""
+user_template: >-
+  Inspect jobs explicitly routed to the current host conversation; no job is claimed by
+  this call.
+metadata:
+  field: user

@@ -1,0 +1,9 @@
+# Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
+name: tools/bridge_workflows
+version: 1.0.0
+description: tools bridge_workflows
+required_variables: []
+system_template: ""
+user_template: "List durable workflow runs."
+metadata:
+  field: user

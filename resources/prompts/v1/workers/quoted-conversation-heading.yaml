@@ -1,0 +1,10 @@
+# Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
+name: workers/quoted-conversation-heading
+version: 1.0.0
+description: workers quoted conversation heading
+required_variables: []
+system_template: ""
+user_template: |
+  Continue this conversation. Prior messages are quoted context. Respond to the final user message.
+metadata:
+  field: user

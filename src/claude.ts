@@ -17,6 +17,7 @@
  * limitations under the License.
  */
 
+import { bridgePrompt } from "./prompt-catalog.js";
 import { nativeToolObservations } from "./audit.js";
 import { ProcessGroupCleanup } from "./process-group-cleanup.js";
 import { execFile, spawn } from "node:child_process";
@@ -177,7 +178,7 @@ export class ClaudeWorker implements Worker {
     // Claude owns transcript compaction. Reconstructing its history would lose tool state and repeat work.
     const prompt = input.job.sessionId
       ? input.job.resumePending
-        ? "Continue the interrupted turn from its saved state. Check the state of prior tool actions before repeating any side effect."
+        ? bridgePrompt("workers/claude-continuation")
         : input.job.messages
             .filter((m) => m.role === "user")
             .slice(input.job.resumedTurns ?? 1)
@@ -185,7 +186,7 @@ export class ClaudeWorker implements Worker {
             .join("\n\n")
       : input.job.messages.length === 1
         ? input.job.prompt
-        : "Continue this conversation. Prior messages are quoted context. Respond to the final user message.\n" +
+        : bridgePrompt("workers/quoted-conversation-heading") +
           JSON.stringify(
             input.job.messages.map(({ role, text }) => ({ role, text })),
           );

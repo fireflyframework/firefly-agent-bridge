@@ -1,0 +1,9 @@
+# Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
+name: tools/bridge_message
+version: 1.0.0
+description: tools bridge_message
+required_variables: []
+system_template: ""
+user_template: "Add a follow-up turn to an existing standalone job."
+metadata:
+  field: user

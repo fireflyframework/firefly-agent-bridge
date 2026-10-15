@@ -1,0 +1,11 @@
+# Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
+name: workers/codex-continuation
+version: 1.0.0
+description: workers codex continuation
+required_variables: []
+system_template: ""
+user_template: >-
+  Continue the interrupted turn from its saved state. Check prior actions before
+  repeating any side effect.
+metadata:
+  field: user
