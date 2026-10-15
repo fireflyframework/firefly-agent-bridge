@@ -1246,12 +1246,6 @@ test("diagnostic cards keep their borders and actions with the visible form", as
             ? "#diagnostic-status-panel"
             : "#diagnostic-access-panel",
         );
-        if (width === 390 && section === "access")
-          await captureAction(
-            page,
-            `diagnostics-access-mobile-${theme}`,
-            "#diagnostic-access-panel .diagnostic-card-actions button",
-          );
         const action = panel.locator(".diagnostic-card-actions button");
         await action.scrollIntoViewIfNeeded();
         await expect(action).toBeInViewport({ ratio: 0.99 });
@@ -1297,6 +1291,69 @@ test("diagnostic cards keep their borders and actions with the visible form", as
         ).toHaveAttribute("aria-selected", "true");
       }
     }
+  }
+});
+
+test("phone access guide shows its complete form in a separate clean fixture", async ({
+  page,
+}) => {
+  const guideDirectory = mkdtempSync(join(tmpdir(), "bridge-access-guide-"));
+  const guide = await startService(
+    parseConfig({
+      dataDir: guideDirectory,
+      workspace: join(guideDirectory, "jobs"),
+      claudePath: process.execPath,
+      port: 0,
+    }),
+    {
+      worker: () => ({
+        ready: async () => ({ ready: true }),
+        run: async () => ({
+          status: "succeeded",
+          result: "Unused fixture worker",
+        }),
+      }),
+    },
+  );
+  try {
+    const token = guide.ownerToken;
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(guide.address);
+    await page.getByLabel("Bridge token", { exact: true }).fill(token);
+    await page.getByRole("button", { name: "Connect", exact: true }).click();
+    await expect(page.locator("#workspace")).toBeVisible();
+    await navigate(page, "diagnostics");
+    await page
+      .getByRole("tab", { name: "Application access", exact: true })
+      .click();
+    await page.getByLabel("Client name", { exact: true }).fill("docs-app");
+    await page
+      .getByLabel("Application permissions", { exact: true })
+      .selectOption("read");
+    for (const theme of ["light", "dark"]) {
+      await page.getByLabel("Appearance", { exact: true }).selectOption(theme);
+      for (const selector of [
+        "#client-name",
+        "#client-profiles",
+        "#client-permissions",
+      ])
+        await expect(page.locator(selector)).toBeInViewport({ ratio: 1 });
+      await expect(
+        page.getByRole("button", { name: "Create token", exact: true }),
+      ).toBeInViewport({ ratio: 0.99 });
+      await captureAction(
+        page,
+        `diagnostics-access-mobile-${theme}`,
+        "#diagnostic-access-panel .diagnostic-card-actions button",
+      );
+      if (theme === "light") await capture(page, "diagnostics-access-mobile");
+    }
+    expect(new Tokens(guide.store).list().map((client) => client.id)).toEqual([
+      "owner",
+    ]);
+  } finally {
+    await guide.close();
+    rmSync(guideDirectory, { recursive: true, force: true });
   }
 });
 

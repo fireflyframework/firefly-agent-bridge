@@ -1,6 +1,7 @@
 /* Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
  * https://www.apache.org/licenses/LICENSE-2.0 */
 import { test, expect } from "@playwright/test";
+import { readyStylesheets } from "./stylesheet-readiness.mjs";
 import { readyImages } from "./image-readiness.mjs";
 
 for (const width of [1440, 390, 375]) {
@@ -20,6 +21,7 @@ for (const width of [1440, 390, 375]) {
         "openai-compatible",
       ]) {
         await page.goto(`/${guide}/`);
+        await readyStylesheets(page);
         await page.evaluate(() => document.fonts.ready.then(() => undefined));
         await expect(page.locator("body")).toHaveAttribute(
           "data-md-color-scheme",
@@ -93,6 +95,7 @@ for (const width of [1440, 390, 375]) {
       }
       expect(phoneCaptures).toBeGreaterThan(0);
       await page.goto("/dashboard/");
+      await readyStylesheets(page);
       const imageLink = page
         .locator(".bridge-shot--phone .bridge-shot__link:visible")
         .first();
@@ -108,6 +111,7 @@ test("the gallery remains readable with text enlarged to 200 percent", async ({
 }) => {
   await page.setViewportSize({ width: 720, height: 900 });
   await page.goto("/dashboard/");
+  await readyStylesheets(page);
   await page.addStyleTag({
     content:
       ".md-typeset { font-size: 32px; } .bridge-shot figcaption, .md-typeset details, .bridge-gallery > summary { font-size: 28px; }",

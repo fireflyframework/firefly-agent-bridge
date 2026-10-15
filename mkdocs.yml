@@ -24,7 +24,7 @@ use_directory_urls: true
 theme:
   name: material
   font: false
-  logo: assets/brand/bridge-lockup-light.svg
+  logo: assets/brand/bridge-lockup-small-light.svg
   favicon: assets/brand/bridge-favicon-light.svg
   palette:
     - media: "(prefers-color-scheme: light)"

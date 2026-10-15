@@ -44,12 +44,12 @@ const uiAssets = {
     "base64",
   ),
   js: readFileSync("src/ui/app.js", "utf8"),
-  brandDark: readFileSync("assets/brand/bridge-lockup-dark.svg").toString(
+  brandDark: readFileSync("assets/brand/bridge-lockup-small-dark.svg").toString(
     "base64",
   ),
-  brandLight: readFileSync("assets/brand/bridge-lockup-light.svg").toString(
-    "base64",
-  ),
+  brandLight: readFileSync(
+    "assets/brand/bridge-lockup-small-light.svg",
+  ).toString("base64"),
   mark: readFileSync("assets/brand/bridge-mark.svg").toString("base64"),
   markLight: readFileSync("assets/brand/bridge-mark-mono-light.svg").toString(
     "base64",

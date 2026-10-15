@@ -43,12 +43,12 @@ export const uiAssets = {
   js: readFileSync(directory + "app.js", "utf8"),
   brandDark: readFileSync(
     fileURLToPath(
-      new URL("../assets/brand/bridge-lockup-dark.svg", import.meta.url),
+      new URL("../assets/brand/bridge-lockup-small-dark.svg", import.meta.url),
     ),
   ).toString("base64"),
   brandLight: readFileSync(
     fileURLToPath(
-      new URL("../assets/brand/bridge-lockup-light.svg", import.meta.url),
+      new URL("../assets/brand/bridge-lockup-small-light.svg", import.meta.url),
     ),
   ).toString("base64"),
   mark: readFileSync(
