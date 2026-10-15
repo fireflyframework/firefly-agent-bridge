@@ -71,6 +71,119 @@ function input(prompt: string) {
   return { job, attempt, cwd: dir };
 }
 describe("official CLI boundary", () => {
+  it.skipIf(process.platform === "win32")(
+    "confirms a departed group after a transient cleanup permission error",
+    async () => {
+      const nativeKill = process.kill.bind(process);
+      let injected = false;
+      vi.spyOn(process, "kill").mockImplementation((pid, signal) => {
+        if (pid < 0 && signal === "SIGKILL" && !injected) {
+          injected = true;
+          try {
+            nativeKill(pid, signal);
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
+          }
+          throw Object.assign(new Error("private operating-system detail"), {
+            code: "EPERM",
+          });
+        }
+        return nativeKill(pid, signal);
+      });
+      const outcome = await worker().run(
+        input("fixture:partial"),
+        () => {},
+        new AbortController().signal,
+      );
+      expect(injected).toBe(true);
+      expect(outcome).toMatchObject({
+        status: "succeeded",
+        result: "split result",
+      });
+    },
+  );
+  it.skipIf(process.platform === "win32")(
+    "awaits group disappearance before acknowledging cancellation",
+    async () => {
+      const nativeKill = process.kill.bind(process);
+      let injected = false;
+      let observations = 0;
+      vi.spyOn(process, "kill").mockImplementation((pid, signal) => {
+        if (pid < 0 && signal === "SIGKILL" && !injected) {
+          injected = true;
+          try {
+            nativeKill(pid, signal);
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
+          }
+          throw Object.assign(new Error("private detail"), { code: "EPERM" });
+        }
+        if (pid < 0 && signal === 0 && ++observations === 1)
+          throw Object.assign(new Error("private detail"), { code: "EPERM" });
+        return nativeKill(pid, signal);
+      });
+      const controller = new AbortController();
+      const pending = worker().run(
+        input("fixture:hang"),
+        () => {},
+        controller.signal,
+      );
+      try {
+        await expect
+          .poll(() => existsSync(join(dir, "child.pid")), { timeout: 1500 })
+          .toBe(true);
+        controller.abort();
+        expect(await pending).toMatchObject({ status: "canceled" });
+        expect(injected).toBe(true);
+        expect(observations).toBeGreaterThanOrEqual(2);
+        const pid = Number(readFileSync(join(dir, "child.pid"), "utf8"));
+        await expect
+          .poll(
+            () => {
+              try {
+                nativeKill(pid, 0);
+                return false;
+              } catch (error) {
+                return (error as NodeJS.ErrnoException).code === "ESRCH";
+              }
+            },
+            { timeout: 3000 },
+          )
+          .toBe(true);
+      } finally {
+        controller.abort();
+        await pending;
+      }
+    },
+  );
+  it.skipIf(process.platform === "win32")(
+    "does not acknowledge a live group or expose private cleanup diagnostics",
+    async () => {
+      const nativeKill = process.kill.bind(process);
+      vi.spyOn(process, "kill").mockImplementation((pid, signal) => {
+        if (pid < 0 && signal === "SIGKILL") {
+          try {
+            nativeKill(pid, signal);
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
+          }
+          throw Object.assign(new Error("private detail"), { code: "EPERM" });
+        }
+        if (pid < 0 && signal === 0) return true;
+        return nativeKill(pid, signal);
+      });
+      const outcome = await worker().run(
+        input("fixture:partial"),
+        () => {},
+        new AbortController().signal,
+      );
+      expect(outcome).toMatchObject({
+        status: "failed",
+        error: "process_cleanup_failed:close:EPERM",
+      });
+      expect(JSON.stringify(outcome)).not.toContain("private detail");
+    },
+  );
   it("emits nested native tool requests and results from streamed messages", async () => {
     const tools: unknown[] = [];
     const sessions: string[] = [];

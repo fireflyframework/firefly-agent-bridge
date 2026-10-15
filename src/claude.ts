@@ -18,6 +18,7 @@
  */
 
 import { nativeToolObservations } from "./audit.js";
+import { ProcessGroupCleanup } from "./process-group-cleanup.js";
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import type { Outcome } from "./contracts.js";
@@ -196,6 +197,9 @@ export class ClaudeWorker implements Worker {
         detached: process.platform !== "win32",
         stdio: ["pipe", "pipe", "pipe"],
       });
+      const cleanup = child.pid
+        ? new ProcessGroupCleanup(child.pid)
+        : undefined;
       const subagents = new Set<string>();
       let bytes = 0,
         buffer = "",
@@ -208,7 +212,7 @@ export class ClaudeWorker implements Worker {
         retryAt: number | undefined,
         quota = false,
         killTimer: ReturnType<typeof setTimeout> | undefined;
-      const kill = (force: boolean) => {
+      const kill = (force: boolean, phase: "stop" | "escalate" | "close") => {
         if (!child.pid) return;
         if (process.platform === "win32") {
           void execute("taskkill", ["/pid", String(child.pid), "/t", "/f"], {
@@ -216,21 +220,15 @@ export class ClaudeWorker implements Worker {
           }).catch(() => {
             child.kill();
           });
-        } else {
-          try {
-            process.kill(-child.pid, force ? "SIGKILL" : "SIGTERM");
-          } catch (error) {
-            if ((error as NodeJS.ErrnoException).code !== "ESRCH")
-              fault = "process_cleanup_failed";
-          }
-        }
+        } else cleanup?.signal(force ? "SIGKILL" : "SIGTERM", phase);
       };
       const stopWork = (why: Outcome["status"]) => {
         if (stop) return;
         stop = why;
-        kill(false);
+        kill(false, "stop");
         // Give Claude time to record killed tools and flush its resumable transcript.
-        killTimer = setTimeout(() => kill(true), 2000);
+        if (!settled)
+          killTimer = setTimeout(() => kill(true, "escalate"), 2000);
       };
       const parse = (line: string) => {
         if (!line.trim()) return;
@@ -450,7 +448,9 @@ export class ClaudeWorker implements Worker {
         if (killTimer) clearTimeout(killTimer);
         signal.removeEventListener("abort", abort);
         if (buffer) parse(buffer);
-        kill(true);
+        kill(true, "close");
+        const cleanupFault = await cleanup?.complete();
+        if (cleanupFault) fault = cleanupFault;
         await pause(30);
         if (fault)
           return resolve({

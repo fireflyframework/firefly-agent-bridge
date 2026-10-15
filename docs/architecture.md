@@ -59,7 +59,7 @@ Prompts go to the owned CLI over stdin without a shell. Worker setup rejects alt
 
 The bridge observes the provider's structured protocol. It retains session IDs and reported compaction boundaries without rewriting provider transcripts or inventing replacement summaries. Missing or unavailable sessions remain explicit errors.
 
-An owned POSIX process group, or Windows process tree, supports cancellation and shutdown. Graceful termination is followed by bounded escalation. Descendants are reconciled even if the leader exits first. Host conversation jobs have a different boundary: the bridge requests a stop and waits for an explicit claim receipt acknowledgment because it does not own that host process.
+An owned POSIX process group, or Windows process tree, supports cancellation and shutdown. Graceful termination is followed by bounded escalation. Descendants are reconciled even if the leader exits first. Claude retains the final group kill after the leader closes. If a POSIX signal returns `EPERM`, the bridge observes the group for up to 250 milliseconds and accepts cleanup only after a read-only signal probe returns `ESRCH` (group absent). A live group, a persistent permission error, or any other signal failure keeps the attempt failed. Cleanup errors expose only a fixed phase and an allowlisted error code, never the operating system’s raw message. Host conversation jobs have a different boundary: the bridge requests a stop and waits for an explicit claim receipt acknowledgment because it does not own that host process.
 
 ## Streaming and retention
 
