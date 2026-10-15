@@ -13,9 +13,9 @@ for (const [width, height] of [
       page,
     }) => {
       await page.setViewportSize({ width, height });
-      await page.emulateMedia({ colorScheme: theme });
+      await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
       await page.goto("/");
-      await page.evaluate(() => document.fonts.ready);
+      await page.evaluate(() => document.fonts.ready.then(() => undefined));
       const logo = page.locator(".md-header .md-logo");
       const image = logo.locator("img");
       const geometry = await image.evaluate((node) => {
