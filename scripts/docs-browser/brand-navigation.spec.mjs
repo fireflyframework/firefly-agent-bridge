@@ -1,6 +1,7 @@
 /* Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
  * https://www.apache.org/licenses/LICENSE-2.0 */
 import { test, expect } from "@playwright/test";
+import { readyStylesheets } from "./stylesheet-readiness.mjs";
 
 for (const [width, height] of [
   [1440, 1000],
@@ -15,6 +16,7 @@ for (const [width, height] of [
       await page.setViewportSize({ width, height });
       await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
       await page.goto("/");
+      await readyStylesheets(page);
       await page.evaluate(() => document.fonts.ready.then(() => undefined));
       const logo = page.locator(".md-header .md-logo");
       const image = logo.locator("img");
