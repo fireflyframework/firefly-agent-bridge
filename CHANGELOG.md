@@ -2,11 +2,19 @@
 
 # Changelog
 
-## 0.2.9 - 2026-10-14
+## 0.2.10 - 2026-10-14
+
+- Claude keeps its final process-group cleanup signal after the executable closes. A transient permission error no longer marks cleanup failed when a bounded read-only check subsequently confirms that the group is absent. Persistent or unexpected errors remain explicit cleanup errors; they cannot establish successful execution or cancellation. An existing pause request keeps its paused status.
+- Cleanup diagnostics include only a fixed shutdown phase and an allowlisted error code. Final output parsing cannot leave an escalation timer running after the attempt settles.
+- Console, documentation, plugin manifests and native package metadata identify version 0.2.10. Current guide images use controlled local fixtures; provider login and real model execution remain separate acceptance checks.
+
+## 0.2.9 - unpublished tag, 2026-10-14
 
 - Compact console navigation uses the canonical solid Firefly parent mark while preserving the Manrope wordmark, Bridge span, and existing desktop and phone spacing.
 - Release builds embed the same compact artwork as the source console. Native package checks compare both returned logo variants with their generated assets.
-- Documentation headers use the compact solid mark at small sizes. All current guide images come from version 0.2.9 fixture services; the phone access guide keeps its fields and action visible without creating a token.
+- Documentation headers use the compact solid mark at small sizes. The 0.2.9 source refreshed guide images using fixture services; the phone access guide keeps its fields and action visible without creating a token.
+
+The 0.2.9 tag is retained unchanged. Its release verification failed on a macOS cancellation check, so the publisher did not publish release assets. The original CI signal error did not retain enough detail to establish its operating-system cause. Version 0.2.10 supersedes that unpublished release attempt.
 
 ## 0.2.8 - 2026-10-13
 
