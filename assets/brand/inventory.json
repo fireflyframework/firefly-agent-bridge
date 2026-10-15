@@ -130,6 +130,25 @@
       "owner": "The Manrope Project Authors",
       "license": "OFL-1.1",
       "sha256": "d826ab6583b12c26807d8716a545bdbbb672df04f48608a364ba9efdbe501c30"
+    },
+    {
+      "path": "assets/brand/bridge-lockup-small-dark.svg",
+      "owner": "Firefly Software Solutions Inc. and Firefly Software Foundation",
+      "license": "Proprietary artwork; product redistribution only",
+      "sha256": "5177becced5137f27391a86ad2b65a2ab8a3be2b76cabaea3d5d427d3f297e33",
+      "source": "assets/brand/bridge-lockup-dark.svg"
+    },
+    {
+      "path": "assets/brand/bridge-lockup-small-light.svg",
+      "owner": "Firefly Software Solutions Inc. and Firefly Software Foundation",
+      "license": "Proprietary artwork; product redistribution only",
+      "sha256": "815e62ef38c133c4a21ecc05f3336a082b156b3bc5e00b1d8521f6578648d832",
+      "source": "assets/brand/bridge-lockup-light.svg"
     }
-  ]
+  ],
+  "navigation": {
+    "variant": "small-solid-parent",
+    "minimumParentWidthPx": 48,
+    "generator": "External public Forge scripts/brand-assets.mjs --bridge-navigation-only"
+  }
 }
