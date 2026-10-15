@@ -104,13 +104,13 @@
   display: block;
 }
 .md-header__button.md-logo img {
-  content: url("brand/bridge-lockup-light.svg");
+  content: url("brand/bridge-lockup-small-light.svg");
   height: 30px;
   width: auto;
   object-fit: contain;
 }
 [data-md-color-scheme="slate"] .md-header__button.md-logo img {
-  content: url("brand/bridge-lockup-dark.svg");
+  content: url("brand/bridge-lockup-small-dark.svg");
 }
 .md-header__topic:first-child {
   visibility: hidden;

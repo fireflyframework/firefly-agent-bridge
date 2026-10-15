@@ -2,6 +2,11 @@
 
 # Changelog
 
+## 0.2.9 - 2026-10-14
+
+- Compact console navigation uses the canonical solid Firefly parent mark while preserving the Manrope wordmark, Bridge span, and existing desktop and phone spacing.
+- Release builds embed the same compact artwork as the source console. Native package checks compare both returned logo variants with their generated assets.
+
 ## 0.2.8 - 2026-10-13
 
 - Task-based local setup guides, a shared light/dark documentation theme, and a synchronized 3D message illustration with pause and reduced-motion controls.

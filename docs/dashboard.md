@@ -12,7 +12,7 @@ Open the local console URL returned by `bridge_panel` and authenticate with a br
 
 Select any screenshot to open its full capture. Images follow the page's light or dark appearance.
 
-The screenshots show Bridge 0.2.8 running in an isolated local fixture service at the configured desktop and mobile viewport sizes. Jobs, tool observations, workflow results and provider readiness use deterministic fixtures. Historical checks with authenticated official CLIs remain in [verification](verification.md).
+The screenshots show Bridge 0.2.9 running in an isolated local fixture service at the configured desktop and mobile viewport sizes. Jobs, tool observations, workflow results and provider readiness use deterministic fixtures. Historical checks with authenticated official CLIs remain in [verification](verification.md).
 
 ## Connect
 

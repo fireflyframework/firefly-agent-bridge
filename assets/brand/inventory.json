@@ -150,5 +150,12 @@
     "variant": "small-solid-parent",
     "minimumParentWidthPx": 48,
     "generator": "External public Forge scripts/brand-assets.mjs --bridge-navigation-only"
+  },
+  "generatorProvenance": {
+    "repository": "fireflyframework/firefly-forge",
+    "revision": "fdd30ac877d9ebb5054ac3a71dba368dbfd9937e",
+    "path": "scripts/brand-assets.mjs",
+    "mode": "--bridge-navigation-only",
+    "source": "https://github.com/fireflyframework/firefly-forge/blob/fdd30ac877d9ebb5054ac3a71dba368dbfd9937e/scripts/brand-assets.mjs"
   }
 }

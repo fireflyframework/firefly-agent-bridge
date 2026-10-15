@@ -245,7 +245,7 @@ export function createHttpService(d: HttpDependencies) {
   app.get("/v1/bridge/status", async (req) => {
     const p = requireScope(req, "read");
     return {
-      version: "0.2.8",
+      version: "0.2.9",
       protocolVersion: 2,
       eventCursorFloor: d.store.eventFloor(),
       permissionMode: d.config.profiles.default!.permissionMode,
