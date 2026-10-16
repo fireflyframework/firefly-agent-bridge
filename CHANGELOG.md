@@ -2,6 +2,13 @@
 
 # Changelog
 
+## 0.2.14 - 2026-10-16
+
+- Retain an opt-in original inference admission and its first terminal receipt, scoped to the authenticated principal and selected profile. Exact reads return the original body fingerprint, job reference and retained result without submitting work again.
+- Preserve an admitted recovery job after its last HTTP waiter disconnects or times out. Ordinary clients retain their existing cancellation behavior; explicit job controls remain available.
+- Bound recovery admissions, pending reservations and terminal result storage. Oversized or inaccessible results stay explicit rather than being reconstructed, truncated or used to authorize another submission.
+- Document separate request-body and normalized fingerprints, disabled SDK retries and HTTP redirects, and the distinction between recovering a result and restoring the caller's interrupted agent graph.
+
 ## 0.2.13 - 2026-10-15
 
 - Separate provider sign-in from quota availability in status responses and the console. A successful sign-in does not establish remaining subscription allowance; unreported quota stays unknown.

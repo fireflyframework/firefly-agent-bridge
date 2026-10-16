@@ -88,6 +88,8 @@ Native agent work uses the Chat Completions endpoint with an explicit execution 
 
 Send this to `POST /v1/chat/completions` with a bearer header and an idempotency key. The 202 response identifies a durable job; inspect `GET /v1/bridge/jobs/{id}/result` or `/v1/bridge/events` for its outcome. Inference requests disable native actions and return declared function calls for the calling application to execute. [SDK examples](docs/openai-compatible.md) cover structured output, functions and bounded image input with explicit capability verification.
 
+For inference delivery loss, a caller can opt into [original completion recovery](docs/openai-compatible.md#read-an-original-completion-after-delivery-loss) before submitting. Retain the request identity and read its original admission and first terminal result with the same principal. A missing result does not authorize another submission; recovering the result does not restore an interrupted application agent graph.
+
 ## Configure access and execution
 
 Profiles set model, deadline, output bounds and permissions. `/v1/models` and owner status report the actual configured worker/profile, rather than an account-wide model catalog. HTTP callers cannot choose arbitrary executables, environments or working directories.
@@ -104,7 +106,7 @@ Firefly Agent Bridge is intended for local development and testing. It uses your
 
 ## Development and packaging
 
-Version 0.2.13 maintains internal instructions in native Agentic YAML resources. The build verifies and embeds a generated catalog; installed users need only the normal bridge runtime. Maintainers select the separate Agentic compiler environment with `BRIDGE_PROMPT_PYTHON` and `scripts/prompts-requirements.txt`; `BRIDGE_PYTHON` continues to select the pinned SDK client and documentation environment. Use `npm run prompts:render` or `npm run prompts:check` to maintain the catalog. See [prompt maintenance](docs/prompts.md) before changing message framing or continuation instructions.
+The bridge maintains internal instructions in native Agentic YAML resources. The build verifies and embeds a generated catalog; installed users need only the normal bridge runtime. Maintainers select the separate Agentic compiler environment with `BRIDGE_PROMPT_PYTHON` and `scripts/prompts-requirements.txt`; `BRIDGE_PYTHON` continues to select the pinned SDK client and documentation environment. Use `npm run prompts:render` or `npm run prompts:check` to maintain the catalog. See [prompt maintenance](docs/prompts.md) before changing message framing or continuation instructions.
 
 `npm run check` runs types, lint, formatting, unit/integration tests, Python SDK interoperability, console/browser journeys, build and contract checks, documentation, native packaging and clean MCP smoke checks. Install the Python requirements described in [verification](docs/verification.md) and select that environment with `BRIDGE_PYTHON` before running the full gate. Native packaging uses official Node.js 26.3.0 through `BRIDGE_SEA_NODE`; a source-runtime check alone does not qualify a native archive.
 

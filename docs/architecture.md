@@ -69,7 +69,7 @@ Chat Completions sends keepalives while work runs, then releases validated final
 
 ![Request and event contracts](../assets/diagrams/communication.svg)
 
-Synchronous disconnects and deadlines cancel work when the last waiter leaves. Background jobs remain admitted after a disconnected submitter. Operator and quota pauses retain state for explicit recovery. A reported future reset can permit bounded automatic continuation; an unknown reset stays paused.
+Ordinary synchronous disconnects and deadlines cancel work when the last waiter leaves. Background jobs and explicitly admitted [original completion recovery](openai-compatible.md#read-an-original-completion-after-delivery-loss) requests remain retained after their submitting connection is lost. A recovery read never submits work or resumes the caller's agent graph. Operator and quota pauses retain state for explicit recovery. A reported future reset can permit bounded automatic continuation; an unknown reset stays paused.
 
 The service retains approximately 10,000 recent notification IDs. Expired cursors require a state refresh, preventing silent replay gaps. Jobs and full audit remain durable beyond that event window.
 
