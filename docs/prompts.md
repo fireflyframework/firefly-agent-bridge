@@ -9,10 +9,11 @@ description: Maintain versioned bridge instructions with native Agentic YAML res
 The bridge keeps its internal model instructions in `resources/prompts/v1/`. Each YAML file uses the native `fireflyframework-agentic` prompt schema. Python renders those resources during authoring and verification; the installed bridge reads the resulting catalog with Node and needs no Python interpreter.
 
 ```mermaid
+%%{init: {"flowchart": {"rankSpacing": 20, "padding": 8}}}%%
 flowchart LR
-  A[Maintained YAML] --> B[Native Agentic loader and renderer]
-  B --> C[Versioned catalog with source digests]
-  C --> D[Embedded Node executable]
+  A["YAML<br/>sources"] --> B["Agentic<br/>renderer"]
+  B --> C["Versioned<br/>catalog"]
+  C --> D["Node<br/>executable"]
 ```
 
 ## Find the instruction
