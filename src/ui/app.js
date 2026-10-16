@@ -248,15 +248,15 @@ async function selectJob(id, loadedJob, openDetail = true) {
   }
   selected = id;
   const revision = ++selectionRevision;
-  const job = loadedJob ?? (await api("/jobs/" + id));
-  if (revision !== selectionRevision) return;
-  el("selection-empty").hidden = true;
-  el("job-detail").hidden = false;
   if (openDetail && matchMedia("(max-width: 1100px)").matches) {
     document.body.dataset.jobDetail = "open";
     el("back-to-jobs").hidden = false;
     el("content").scrollTop = 0;
   }
+  const job = loadedJob ?? (await api("/jobs/" + id));
+  if (revision !== selectionRevision) return;
+  el("selection-empty").hidden = true;
+  el("job-detail").hidden = false;
   text("detail-state", job.status.replaceAll("_", " "));
   el("detail-state").className = "pill " + job.status;
   text(
