@@ -27,6 +27,8 @@ import {
   existsSync,
 } from "node:fs";
 import { resolve } from "node:path";
+import { verifyPromptSources } from "./prompt-sources.js";
+verifyPromptSources(process.cwd());
 mkdirSync("dist", { recursive: true });
 const uiAssets = {
   html: readFileSync("src/ui/index.html", "utf8"),

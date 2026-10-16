@@ -1,0 +1,9 @@
+# Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
+name: tools/bridge_channel_complete
+version: 1.0.0
+description: tools bridge_channel_complete
+required_variables: []
+system_template: ""
+user_template: "Complete a claimed job only after its work has finished and no stop is pending."
+metadata:
+  field: user

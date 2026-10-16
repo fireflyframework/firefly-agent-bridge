@@ -1,0 +1,9 @@
+# Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
+name: tools/bridge_workflow_control
+version: 1.0.0
+description: tools bridge_workflow_control
+required_variables: []
+system_template: ""
+user_template: "Pause, resume, or cancel a workflow at its current step."
+metadata:
+  field: user

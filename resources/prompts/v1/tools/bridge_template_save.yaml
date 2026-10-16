@@ -1,0 +1,11 @@
+# Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
+name: tools/bridge_template_save
+version: 1.0.0
+description: tools bridge_template_save
+required_variables: []
+system_template: ""
+user_template: >-
+  Create or update a validated reusable workflow template. Existing runs retain their
+  original snapshots.
+metadata:
+  field: user

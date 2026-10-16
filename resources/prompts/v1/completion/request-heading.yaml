@@ -1,0 +1,10 @@
+# Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
+name: completion/request-heading
+version: 1.0.0
+description: completion request heading
+required_variables: []
+system_template: ""
+user_template: |
+  Produce the next assistant turn for this Chat Completions request:
+metadata:
+  field: user

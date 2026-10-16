@@ -17,6 +17,7 @@
  * limitations under the License.
  */
 
+import { bridgePrompt } from "./prompt-catalog.js";
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { writeFileSync } from "node:fs";
@@ -143,7 +144,7 @@ export class CodexWorker implements Worker {
       args.push("-");
       const prompt = input.job.sessionId
         ? input.job.resumePending
-          ? "Continue the interrupted turn from its saved state. Check prior actions before repeating any side effect."
+          ? bridgePrompt("workers/codex-continuation")
           : input.job.messages
               .filter((m) => m.role === "user")
               .slice(input.job.resumedTurns ?? 1)

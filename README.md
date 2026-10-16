@@ -104,6 +104,8 @@ Firefly Agent Bridge is intended for local development and testing. It uses your
 
 ## Development and packaging
 
+Version 0.2.11 maintains internal instructions in native Agentic YAML resources. The build verifies and embeds a generated catalog; installed users need only the normal bridge runtime. Maintainers select the separate Agentic compiler environment with `BRIDGE_PROMPT_PYTHON` and `scripts/prompts-requirements.txt`; `BRIDGE_PYTHON` continues to select the pinned SDK client and documentation environment. Use `npm run prompts:render` or `npm run prompts:check` to maintain the catalog. See [prompt maintenance](docs/prompts.md) before changing message framing or continuation instructions.
+
 `npm run check` runs types, lint, formatting, unit/integration tests, Python SDK interoperability, console/browser journeys, build and contract checks, documentation, native packaging and clean MCP smoke checks. Install the Python requirements described in [verification](docs/verification.md) and select that environment with `BRIDGE_PYTHON` before running the full gate. Native packaging uses official Node.js 26.3.0 through `BRIDGE_SEA_NODE`; a source-runtime check alone does not qualify a native archive.
 
 The CI matrix verifies Linux x64, macOS arm64 and Windows x64 separately. Tagged releases publish native archives, macOS/Windows MCPB bundles and checksums after those checks pass. Verify downloaded assets separately. `npm run test:live:codex` and `npm run test:live:codex:images` consume subscription allowance; their private evidence belongs under ignored `work/`.

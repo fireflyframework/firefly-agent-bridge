@@ -72,6 +72,7 @@ nav:
       - Remote access: tunnels.md
   - Reference:
       - Architecture: architecture.md
+      - Internal prompts: prompts.md
       - HTTP API: api.md
       - CLI and MCP tools: reference.md
       - Verification and packaging: verification.md

@@ -1,6 +1,6 @@
 {
   "name": "firefly-agent-bridge",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "description": "Local coding jobs and workflows through official Claude Code and Codex subscriptions",
   "type": "module",
   "license": "Apache-2.0",
@@ -21,7 +21,8 @@
     "LICENSE",
     "NOTICE",
     "README.md",
-    "docs"
+    "docs",
+    "resources/prompts"
   ],
   "scripts": {
     "build": "tsx scripts/build.ts",
@@ -32,7 +33,7 @@
     "format": "prettier --write .",
     "verify": "tsx scripts/verify.ts",
     "package": "tsx scripts/package.ts",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run test:clients && npm run test:browser && npm run build && npm run verify && npm run docs:editorial && npm run docs:test && npm run docs:build && npm run docs:test:browser && npm run package && npm run test:package",
+    "check": "npm run prompts:check && npm run typecheck && npm run lint && npm run format:check && npm test && npm run test:clients && npm run test:browser && npm run build && npm run verify && npm run docs:editorial && npm run docs:test && npm run docs:build && npm run docs:test:browser && npm run package && npm run test:package",
     "test:browser": "playwright test",
     "test:live": "tsx scripts/live-smoke.ts",
     "test:package": "tsx scripts/package-smoke.ts",
@@ -46,7 +47,9 @@
     "test:live:codex:images": "tsx scripts/live-codex-images.ts",
     "test:live:codex:mcp": "tsx scripts/live-codex-mcp.ts",
     "docs:test": "node --test scripts/test_docs_scene.mjs",
-    "docs:test:browser": "playwright test --config scripts/docs-playwright.config.mjs"
+    "docs:test:browser": "playwright test --config scripts/docs-playwright.config.mjs",
+    "prompts:render": "tsx scripts/prompts.ts --render",
+    "prompts:check": "tsx scripts/prompts.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",

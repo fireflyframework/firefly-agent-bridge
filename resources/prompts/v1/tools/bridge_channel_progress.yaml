@@ -1,0 +1,11 @@
+# Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
+name: tools/bridge_channel_progress
+version: 1.0.0
+description: tools bridge_channel_progress
+required_variables: []
+system_template: ""
+user_template: >-
+  Record progress and check for pause_requested or cancel_requested. Stop your work when
+  requested, then acknowledge the stop.
+metadata:
+  field: user

@@ -1,0 +1,3 @@
+# Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
+# Build-time authoring dependency; the installed bridge remains Node-only.
+fireflyframework-agentic @ https://github.com/fireflyframework/fireflyframework-agentic/releases/download/v26.10.1/fireflyframework_agentic-26.10.1-py3-none-any.whl

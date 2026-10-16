@@ -1,0 +1,11 @@
+# Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
+name: tools/bridge_status
+version: 1.0.0
+description: tools bridge_status
+required_variables: []
+system_template: ""
+user_template: >-
+  Inspect execution readiness, subscription pause state, profiles, and workflow
+  templates.
+metadata:
+  field: user
