@@ -11,9 +11,9 @@ The bridge keeps its internal model instructions in `resources/prompts/v1/`. Eac
 ```mermaid
 %%{init: {"flowchart": {"rankSpacing": 20, "padding": 8}}}%%
 flowchart LR
-  A["YAML<br/>sources"] --> B["Agentic<br/>renderer"]
+  A["YAML<br/>source"] --> B["Agentic<br/>loader"]
   B --> C["Versioned<br/>catalog"]
-  C --> D["Node<br/>executable"]
+  C --> D["Node<br/>bundle"]
 ```
 
 ## Find the instruction
