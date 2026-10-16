@@ -1,4 +1,5 @@
 /* Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0 */
+/* https://www.apache.org/licenses/LICENSE-2.0 */
 import { existsSync } from "node:fs";
 import { expect, test } from "vitest";
 

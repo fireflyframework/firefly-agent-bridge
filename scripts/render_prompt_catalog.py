@@ -1,4 +1,5 @@
 # Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0
+# https://www.apache.org/licenses/LICENSE-2.0
 """Compile maintained native Agentic templates into the Node-only catalog."""
 
 from __future__ import annotations

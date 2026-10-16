@@ -1,4 +1,5 @@
 /* Copyright 2026 Firefly Software Foundation. SPDX-License-Identifier: Apache-2.0 */
+/* https://www.apache.org/licenses/LICENSE-2.0 */
 import { lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { promptSha256, validatePromptCatalog } from "../src/prompt-catalog.js";
