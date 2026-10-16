@@ -565,38 +565,41 @@ it("bounds admission count after small terminal results have released byte reser
   const p = auth.verify(token);
   const { prepareCompletion } = await import("../src/completion-protocol.js");
   const prepared = prepareCompletion(body);
-  for (let n = 1; n <= 1000; n++) {
-    const id = key(n);
-    const job = store.atomic(() => {
-      const job = store.idempotent(
-        p,
-        "chat/completions",
-        id,
-        prepared.request,
-        () =>
-          store.submit(
-            { prompt: prepared.prompt, profile: "default" },
-            p,
-            undefined,
-            prepared.request,
-          ),
-        (id) => store.get(id, p),
-      );
-      store.completionRecovery.admit(
-        job,
-        p,
-        id,
-        {
-          sha256: hash(JSON.stringify(body)),
-          bytes: Buffer.byteLength(JSON.stringify(body)),
-        },
-        undefined,
-        true,
-      );
-      return job;
-    });
-    store.cancel(job.id, p);
-  }
+  // Populate the count boundary without measuring 2,000 filesystem commits.
+  store.atomic(() => {
+    for (let n = 1; n <= 1000; n++) {
+      const id = key(n);
+      const job = store.atomic(() => {
+        const job = store.idempotent(
+          p,
+          "chat/completions",
+          id,
+          prepared.request,
+          () =>
+            store.submit(
+              { prompt: prepared.prompt, profile: "default" },
+              p,
+              undefined,
+              prepared.request,
+            ),
+          (id) => store.get(id, p),
+        );
+        store.completionRecovery.admit(
+          job,
+          p,
+          id,
+          {
+            sha256: hash(JSON.stringify(body)),
+            bytes: Buffer.byteLength(JSON.stringify(body)),
+          },
+          undefined,
+          true,
+        );
+        return job;
+      });
+      store.cancel(job.id, p);
+    }
+  });
   expect((await post(body, key(1001))).statusCode).toBe(429);
   expect(store.db.prepare("SELECT count(*) n FROM jobs").get()).toMatchObject({
     n: 1000,
