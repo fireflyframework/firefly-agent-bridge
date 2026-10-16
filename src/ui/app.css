@@ -3685,3 +3685,26 @@ body[data-connection="connected"]
     max-height: 220px;
   }
 }
+
+.diagnostic-status .diagnostic-signals {
+  grid-template-columns: minmax(0, 1fr);
+}
+.diagnostic-status .diagnostic-signals > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-right: 0;
+  border-bottom: 1px solid var(--line);
+}
+.diagnostic-status .diagnostic-signals > div:last-child {
+  border-bottom: 0;
+}
+.diagnostic-status .diagnostic-signals dt {
+  margin: 0;
+}
+.diagnostic-observation-details {
+  margin: 12px 0 0;
+  overflow-wrap: anywhere;
+}

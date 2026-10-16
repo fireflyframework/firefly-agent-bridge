@@ -52,8 +52,40 @@ export function providerStateLabels(status) {
     historical && !limited
       ? " · Last reported " + providerName + " quota limit"
       : "";
+  const quotaObservation = limited ? observations.quota : historical;
+  const reportProvider =
+    quotaObservation?.provider === "claude"
+      ? "Claude"
+      : quotaObservation?.provider === "codex"
+        ? "Codex"
+        : "unknown provider";
+  let diagnosticDetails = authentication + ".";
+  if (!limited) diagnosticDetails += " Quota not reported.";
+  if (quotaObservation) {
+    diagnosticDetails +=
+      " " +
+      (limited ? "Last reported " : "Previous ") +
+      reportProvider +
+      " quota limit.";
+    diagnosticDetails += quotaObservation.observedAt
+      ? " Observed at " + quotaObservation.observedAt + "."
+      : " Observation time not reported.";
+    diagnosticDetails += quotaObservation.resetAt
+      ? " Reported reset " + quotaObservation.resetAt + "."
+      : " Reset not reported.";
+  }
   return {
     authentication,
+    diagnosticAuthentication:
+      observations?.authentication?.state === "authenticated"
+        ? "Signed in"
+        : observations?.authentication?.state === "required"
+          ? "Required"
+          : observations?.authentication?.state === "unavailable"
+            ? "Unavailable"
+            : "Unknown",
+    diagnosticQuota: limited ? "Limited" : "Unknown",
+    diagnosticDetails,
     quota: quota + previous,
     provider: authentication + " · " + quota + previous,
     health: dispatch,
@@ -324,8 +356,12 @@ export function createProviderSetup(refresh, showAccess, openJob, notice) {
       element("setup-access-status").textContent =
         worker + ": " + providerStateLabels(value).provider;
       element("diagnostic-worker").textContent = worker;
+      const labels = providerStateLabels(value);
       element("diagnostic-readiness").textContent =
-        providerStateLabels(value).provider;
+        labels.diagnosticAuthentication;
+      element("diagnostic-quota").textContent = labels.diagnosticQuota;
+      element("diagnostic-observation-details").textContent =
+        labels.diagnosticDetails;
       element("diagnostic-dispatch").textContent = value.scheduler.paused
         ? "Paused"
         : "Running";

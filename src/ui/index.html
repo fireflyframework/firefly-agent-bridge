@@ -812,7 +812,7 @@ limitations under the License.
                     <div>
                       <h2 id="diagnostic-status-heading">Service status</h2>
                       <p class="section-caption">
-                        Current worker readiness and queue activity.
+                        Sign-in observations, quota reports and queue activity.
                       </p>
                     </div>
                   </div>
@@ -823,8 +823,12 @@ limitations under the License.
                         <dd id="diagnostic-worker">Checking</dd>
                       </div>
                       <div>
-                        <dt>Subscription</dt>
+                        <dt>Sign-in</dt>
                         <dd id="diagnostic-readiness">Checking</dd>
+                      </div>
+                      <div>
+                        <dt>Quota report</dt>
+                        <dd id="diagnostic-quota">Checking</dd>
                       </div>
                       <div>
                         <dt>Dispatch</dt>
@@ -835,6 +839,10 @@ limitations under the License.
                         <dd id="diagnostic-active">0</dd>
                       </div>
                     </dl>
+                    <p
+                      id="diagnostic-observation-details"
+                      class="diagnostic-observation-details"
+                    ></p>
                     <details class="setup-advanced">
                       <summary>Connection and execution details</summary>
                       <dl id="health-facts" class="health-facts"></dl>
