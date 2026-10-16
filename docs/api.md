@@ -48,18 +48,19 @@ See [image limits and subscription verification](openai-compatible.md#image-inpu
 
 ## Jobs and conversation turns
 
-| Method and path                                         | Purpose                                                                                |
-| ------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `GET /v1/bridge/status`                                 | Version, readiness, dispatch gate, profiles, available templates                       |
-| `GET /v1/models`                                        | Discover authorized `bridge/<profile>` models                                          |
-| `POST /v1/chat/completions`                             | Submit messages; returns completion JSON/SSE, or 202 Job with `bridge.background:true` |
-| `GET /v1/bridge/jobs?limit=100&after=UUID&order=asc`    | Principal-scoped page; limit 1 to 200, asc or desc                                     |
-| `GET /v1/bridge/jobs/{id}`                              | Current job, messages, status, session, reported child tasks                           |
-| `GET /v1/bridge/jobs/{id}/result`                       | 202 while nonterminal; 200 with terminal status/result/error                           |
-| `GET /v1/bridge/jobs/{id}/attempts`                     | Attempt history without private claim fences                                           |
-| `GET /v1/bridge/jobs/{id}/messages`                     | Conversation and pending messages                                                      |
-| `POST /v1/bridge/jobs/{id}/messages`                    | Queue `{text}` as another native session turn                                          |
-| `POST /v1/bridge/jobs/{id}/{pause,resume,cancel,retry}` | Explicit execution control                                                             |
+| Method and path                                         | Purpose                                                                                          |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `GET /v1/bridge/status`                                 | Version, readiness, dispatch gate, profiles, available templates                                 |
+| `GET /v1/models`                                        | Discover authorized `bridge/<profile>` models                                                    |
+| `POST /v1/chat/completions`                             | Submit messages; returns completion JSON/SSE, or 202 Job with `bridge.background:true`           |
+| `GET /v1/bridge/completion-requests/{request}`          | Exact opt-in original completion admission/terminal receipt for the current principal; read-only |
+| `GET /v1/bridge/jobs?limit=100&after=UUID&order=asc`    | Principal-scoped page; limit 1 to 200, asc or desc                                               |
+| `GET /v1/bridge/jobs/{id}`                              | Current job, messages, status, session, reported child tasks                                     |
+| `GET /v1/bridge/jobs/{id}/result`                       | 202 while nonterminal; 200 with terminal status/result/error                                     |
+| `GET /v1/bridge/jobs/{id}/attempts`                     | Attempt history without private claim fences                                                     |
+| `GET /v1/bridge/jobs/{id}/messages`                     | Conversation and pending messages                                                                |
+| `POST /v1/bridge/jobs/{id}/messages`                    | Queue `{text}` as another native session turn                                                    |
+| `POST /v1/bridge/jobs/{id}/{pause,resume,cancel,retry}` | Explicit execution control                                                                       |
 
 `model` selects a configured profile, such as `bridge/default`. `bridge.execution` defaults to `inference`: native tools are disabled and client functions are returned as OpenAI tool calls. Choose `agent` for profile-controlled native work or `channel` for a host conversation. `bridge.background:true` returns a durable Job receipt; channel requires it. Native agent/channel input is one text user message. The caller cannot supply CLI arguments, executable paths, environment overrides, or working directories.
 

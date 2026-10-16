@@ -31,6 +31,7 @@ import { Channels } from "./channels.js";
 import { uiAssets } from "./ui-assets.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createAdapter } from "./mcp.js";
+import { RECOVERY_LIMITS } from "./completion-recovery.js";
 import { registerOpenAI, CompletionError, openAIError } from "./openai.js";
 export type HttpDependencies = {
   store: QueueStore;
@@ -161,7 +162,7 @@ export function createHttpService(d: HttpDependencies) {
         )
         .header(
           "Access-Control-Allow-Headers",
-          "Authorization, Content-Type, Idempotency-Key, Last-Event-ID, X-Bridge-Image-Revision, MCP-Protocol-Version",
+          "Authorization, Content-Type, Idempotency-Key, Last-Event-ID, X-Bridge-Image-Revision, X-Bridge-Completion-Recovery, MCP-Protocol-Version",
         )
         .header("Access-Control-Max-Age", "600");
       return reply.code(204).send();
@@ -245,8 +246,16 @@ export function createHttpService(d: HttpDependencies) {
   app.get("/v1/bridge/status", async (req) => {
     const p = requireScope(req, "read");
     return {
-      version: "0.2.13",
+      version: "0.2.14",
       protocolVersion: 2,
+      completionRecovery: {
+        version: 1,
+        principal_id: p.id,
+        header: "X-Bridge-Completion-Recovery",
+        value: "1",
+        request_id_pattern: "^fbr1_[a-f0-9]{32}$",
+        limits: RECOVERY_LIMITS,
+      },
       eventCursorFloor: d.store.eventFloor(),
       permissionMode: d.config.profiles.default!.permissionMode,
       worker: d.config.worker,

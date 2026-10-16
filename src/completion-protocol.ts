@@ -20,7 +20,7 @@
 import { bridgePrompt } from "./prompt-catalog.js";
 import { z } from "zod";
 import { Ajv2020, type ValidateFunction } from "ajv/dist/2020.js";
-import { BridgeError } from "./contracts.js";
+import { BridgeError, type Job } from "./contracts.js";
 import { decodeImage, IMAGE_LIMITS, type InputImage } from "./images.js";
 const name = z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/);
 const schema = z.record(z.string(), z.unknown());
@@ -459,4 +459,36 @@ export function parseCompletionResult(raw: string, request: ChatRequest) {
     }
   }
   return { content: result.content, toolCalls: calls };
+}
+
+export function completionResponse(job: Job, request: ChatRequest) {
+  const output = job.completion
+    ? parseCompletionResult(job.result ?? "", request)
+    : { content: job.result ?? "", toolCalls: [] };
+  return {
+    id: "chatcmpl-" + job.id,
+    object: "chat.completion",
+    created: Math.floor(Date.parse(job.createdAt) / 1000),
+    model: request.model,
+    choices: [
+      {
+        index: 0,
+        message: {
+          role: "assistant",
+          content: output.content,
+          ...(output.toolCalls.length
+            ? {
+                tool_calls: output.toolCalls.map((c, index) => ({
+                  id: "call_" + job.id.replaceAll("-", "") + "_" + index,
+                  type: "function",
+                  function: { name: c.name, arguments: c.arguments },
+                })),
+              }
+            : {}),
+        },
+        finish_reason: output.toolCalls.length ? "tool_calls" : "stop",
+      },
+    ],
+    ...(job.usage ? { usage: job.usage } : {}),
+  };
 }

@@ -194,3 +194,72 @@ The selected native CLI owns compaction and resumable sessions. For a new infere
 ## Sources and verification
 
 The contract follows [OpenAI Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create), [Pydantic AI's OpenAI provider](https://pydantic.dev/docs/ai/models/openai/), and [Claude Code's programmatic interface](https://code.claude.com/docs/en/headless). The [verification record](verification.md) covers deterministic client tests, live Codex acceptance, native package checks and host-specific installation limits. Claude subscription acceptance requires an authenticated developer host.
+
+## Read an original completion after delivery loss
+
+Recovery is an explicit inference capability. Check authenticated
+`GET /v1/bridge/status` for `completionRecovery.version: 1` and retain its
+`principal_id` with your endpoint configuration. Before sending one completion,
+retain a unique `fbr1_` identity followed by 32 lowercase hexadecimal digits.
+Send it as `Idempotency-Key` together with
+`X-Bridge-Completion-Recovery: 1`. Give every completion its own identity,
+including concurrent requests and later tool cycles.
+
+Keep SDK retries disabled and configure the HTTP client with redirects disabled.
+These controls are independent: SDK `max_retries=0` does not prevent an HTTP
+client from forwarding a POST after a 307 or 308. After an uncertain response,
+read the original identity:
+
+```http
+GET /v1/bridge/completion-requests/fbr1_0123456789abcdef0123456789abcdef
+Authorization: Bearer <the same principal's current token>
+```
+
+This GET only reads retained state. It cannot submit work, check CLI readiness,
+resume a session or cancel a job. A 404 means no accessible correlation; it does
+not authorize another POST or a replacement identity. An older keyed request
+without recovery admission returns 409. Bridge does not reconstruct its identity
+from prompt similarity or job listings.
+
+For an admitted opt-in request, losing the last HTTP waiter or reaching the HTTP
+deadline leaves the inference job retained. Ordinary completion clients keep
+their existing disconnect and timeout behavior. Explicit authorized execution
+controls still apply. A background opt-in response is 202 with only `id` (the
+original job ID) and `completion_request_id`; ordinary background responses
+remain Job objects.
+
+The response includes the original `admission`, a `state`, a separate
+`current_job_status`, and `prepared_at` for this read. `pending` and `paused`
+have no terminal receipt. A pause may retain its recorded reason and reported
+reset time; an absent reset remains unknown. A terminal receipt freezes the
+first terminal attempt, status and recorded time. Success includes exact
+`result_json`, its UTF-8 byte count and SHA-256. Later explicit retries can change
+the job, but cannot replace the original terminal receipt. Failure or cancellation
+of the first attempt is preserved even if a later attempt succeeds.
+
+Admission records both the existing normalized request fingerprint and the SHA-256
+of the original HTTP body bytes. These hashes have different meanings. Equivalent
+JSON whitespace can retain the same native idempotent request while its first
+wire hash stays unchanged. Record digests cover JSON field order and values
+excluding the `digest` field itself; they detect corruption and are not signatures.
+
+The service reserves up to 256 KiB for each pending terminal receipt before
+admission. Per principal, it allows at most 1,000 retained recovery admissions and
+16 MiB of terminal receipts plus pending reservations. Admission metadata is
+limited to 4 KiB per request. Small terminal receipts release unused reserved
+bytes; retained admissions are not automatically deleted. The existing 9,000,000-byte
+incoming body limit still applies. A successful result that cannot fit its
+terminal receipt has `state: result_unavailable`, `reason: result_too_large`, and
+its original result hash and byte count, without a truncated result. Invalid
+completion output is also unavailable. A storage failure rolls back its native
+admission or terminal transaction.
+
+Exact reads require a current token with read permission and an available
+profile. Tokens rotated within the same principal can read its original
+requests. Another principal, including an owner token, uses a separate request
+namespace. Owner inspection by known job ID is a separate existing operation.
+
+This capability preserves evidence of a completion. It does not restore an
+Agentic message/tool checkpoint or make an interrupted Forge run resumable.
+Legacy unknown outcomes without a durable correlation remain held. Forge's
+operator recovery adapters and graph continuation require separate integration.

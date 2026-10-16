@@ -20,6 +20,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { z } from "zod";
 import { format } from "prettier";
+import { completionRecoverySchema } from "../src/completion-recovery.js";
 import { chatRequestSchema } from "../src/completion-protocol.js";
 import { templateSchema } from "../src/config.js";
 const str = { type: "string" },
@@ -32,6 +33,7 @@ const ref = (name: string) => ({ $ref: "#/components/schemas/" + name });
 const json = (schema: unknown) => ({ "application/json": { schema } });
 const receipt = { hostId: str, attemptId: uuid, fence: uuid };
 const schemas: Record<string, unknown> = {
+  CompletionRecovery: z.toJSONSchema(completionRecoverySchema),
   ChatRequest: z.toJSONSchema(chatRequestSchema, { io: "input" }),
   ChatCompletion: object(
     {
@@ -334,6 +336,14 @@ for (const match of (
     });
   if (path === "/v1/chat/completions")
     parameters.push({
+      name: "X-Bridge-Completion-Recovery",
+      in: "header",
+      schema: { type: "string", const: "1" },
+      description:
+        "Opt-in inference retention requires Idempotency-Key fbr1_ followed by 32 lowercase hex digits. Recover through exact authenticated GET only; never automatically resubmit.",
+    });
+  if (path === "/v1/chat/completions")
+    parameters.push({
       name: "X-Bridge-Image-Revision",
       in: "header",
       schema: { type: "string", pattern: "^[a-f0-9]{64}$" },
@@ -411,27 +421,38 @@ for (const match of (
       "/v1/bridge/jobs/{id}/retry",
       "/v1/bridge/workflow-runs",
     ].includes(path);
-  const responseSchema = path.endsWith("/audit")
-    ? ref("AuditPage")
-    : path.endsWith("/tools")
-      ? ref("ToolPage")
-      : path.endsWith("/tools/{tool}")
-        ? ref("ToolObservation")
-        : path === "/v1/bridge/jobs/{id}" ||
-            /\/jobs\/\{id\}\/(pause|resume|cancel|retry)$/.test(path)
-          ? ref("Job")
-          : path === "/v1/models"
-            ? ref("Models")
-            : path === "/v1/chat/completions"
-              ? ref("ChatCompletion")
-              : path === "/v1/bridge/status"
-                ? {
-                    type: "object",
-                    properties: {
-                      providerObservations: ref("ProviderObservations"),
-                    },
-                  }
-                : { type: "object" };
+  const responseSchema =
+    path === "/v1/bridge/completion-requests/{request}"
+      ? ref("CompletionRecovery")
+      : path.endsWith("/audit")
+        ? ref("AuditPage")
+        : path.endsWith("/tools")
+          ? ref("ToolPage")
+          : path.endsWith("/tools/{tool}")
+            ? ref("ToolObservation")
+            : path === "/v1/bridge/jobs/{id}" ||
+                /\/jobs\/\{id\}\/(pause|resume|cancel|retry)$/.test(path)
+              ? ref("Job")
+              : path === "/v1/models"
+                ? ref("Models")
+                : path === "/v1/chat/completions"
+                  ? ref("ChatCompletion")
+                  : path === "/v1/bridge/status"
+                    ? {
+                        type: "object",
+                        properties: {
+                          providerObservations: ref("ProviderObservations"),
+                          completionRecovery: object({
+                            version: { const: 1 },
+                            principal_id: str,
+                            header: { const: "X-Bridge-Completion-Recovery" },
+                            value: { const: "1" },
+                            request_id_pattern: str,
+                            limits: { type: "object" },
+                          }),
+                        },
+                      }
+                    : { type: "object" };
   const operation: Record<string, unknown> = {
     operationId:
       method +
@@ -488,9 +509,21 @@ for (const match of (
       },
     };
     responses["202"] = {
-      description: "bridge.background=true: durable job receipt",
+      description:
+        "bridge.background=true: legacy Job, or opt-in original job/request identity only",
       headers,
-      content: json(ref("Job")),
+      content: json({
+        oneOf: [
+          ref("Job"),
+          object({
+            id: uuid,
+            completion_request_id: {
+              type: "string",
+              pattern: "^fbr1_[a-f0-9]{32}$",
+            },
+          }),
+        ],
+      }),
     };
     responses["429"] = {
       description:
