@@ -63,7 +63,7 @@ it("retains the reported provider, observation and reset outside compact quota v
         state: "limited",
         provider: "claude",
         observedAt: "2026-10-15T10:00:00.000Z",
-        resetAt: "2026-10-16T10:00:00.000Z",
+        resetAt: 1792144800000,
       },
     },
   });
@@ -71,7 +71,10 @@ it("retains the reported provider, observation and reset outside compact quota v
   expect(state.diagnosticQuota).toBe("Limited");
   expect(state.diagnosticDetails).toContain("Last reported Claude quota limit");
   expect(state.diagnosticDetails).toContain("2026-10-15T10:00:00.000Z");
-  expect(state.diagnosticDetails).toContain("2026-10-16T10:00:00.000Z");
+  expect(state.diagnosticDetails).toContain(
+    new Date(1792144800000).toLocaleString(),
+  );
+  expect(state.diagnosticDetails).not.toContain("1792144800000");
 });
 it("keeps a prior provider quota report separate from the current unknown observation", () => {
   const state = labels({
@@ -91,4 +94,39 @@ it("keeps a prior provider quota report separate from the current unknown observ
   expect(state.diagnosticDetails).toContain("Previous Claude quota limit");
   expect(state.diagnosticDetails).toContain("2026-10-15T10:00:00.000Z");
   expect(state.diagnosticDetails).toContain("Reset not reported");
+});
+
+it.each([
+  null,
+  undefined,
+  NaN,
+  Infinity,
+  -1,
+  0,
+  1e20,
+  "2026-10-16T10:00:00.000Z",
+])("does not invent a readable reset from invalid wire value %s", (resetAt) => {
+  const state = labels({
+    providerObservations: {
+      quota: { state: "limited", provider: "claude", resetAt },
+    },
+  });
+  expect(state.diagnosticDetails).toContain("Reset not reported");
+  expect(state.diagnosticDetails).not.toContain("Invalid Date");
+  expect(state.diagnosticQuota).toBe("Limited");
+});
+it("keeps a past reported reset as history without clearing the quota observation", () => {
+  const quota = {
+    state: "limited",
+    provider: "claude",
+    resetAt: 1577836800000,
+  };
+  const saved = JSON.stringify(quota);
+  const state = labels({ providerObservations: { quota } });
+  expect(state.diagnosticDetails).toContain(
+    new Date(quota.resetAt).toLocaleString(),
+  );
+  expect(state.diagnosticDetails).not.toContain(String(quota.resetAt));
+  expect(state.diagnosticQuota).toBe("Limited");
+  expect(JSON.stringify(quota)).toBe(saved);
 });

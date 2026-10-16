@@ -70,9 +70,15 @@ export function providerStateLabels(status) {
     diagnosticDetails += quotaObservation.observedAt
       ? " Observed at " + quotaObservation.observedAt + "."
       : " Observation time not reported.";
-    diagnosticDetails += quotaObservation.resetAt
-      ? " Reported reset " + quotaObservation.resetAt + "."
-      : " Reset not reported.";
+    const resetAt = quotaObservation.resetAt;
+    const reset =
+      typeof resetAt === "number" && Number.isFinite(resetAt) && resetAt > 0
+        ? new Date(resetAt)
+        : null;
+    diagnosticDetails +=
+      reset && Number.isFinite(reset.getTime())
+        ? " Reported reset " + reset.toLocaleString() + "."
+        : " Reset not reported.";
   }
   return {
     authentication,
