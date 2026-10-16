@@ -17,6 +17,7 @@
  * limitations under the License.
  */
 
+import { CompletionRecovery } from "./completion-recovery.js";
 import { prepareCompletion } from "./completion-protocol.js";
 import { DatabaseSync } from "node:sqlite";
 import { createHash, randomUUID } from "node:crypto";
@@ -38,6 +39,7 @@ const system: Principal = { id: "system", owner: true, profiles: [] };
 const stamp = () => new Date().toISOString();
 export class QueueStore {
   readonly db: DatabaseSync;
+  readonly completionRecovery: CompletionRecovery;
   private auditLog: AuditLog;
   private depth = 0;
   private closed = false;
@@ -46,6 +48,7 @@ export class QueueStore {
     private capacity = 1000,
   ) {
     this.db = new DatabaseSync(path);
+    this.completionRecovery = new CompletionRecovery(this.db);
     try {
       migrate(this.db);
       this.auditLog = new AuditLog(this.db);
@@ -383,6 +386,7 @@ export class QueueStore {
         );
       this.auditLog.closeAttempt(job, attempt);
       Object.assign(job, outcome);
+      this.completionRecovery.finish(job, attempt.id);
       if (outcome.status === "succeeded")
         this.auditLog.clientResult(job, attempt);
       job.activity = outcome.status;
@@ -439,6 +443,7 @@ export class QueueStore {
       job.status = ["queued", "paused"].includes(job.status)
         ? "canceled"
         : "cancel_requested";
+      this.completionRecovery.finish(job, null);
       this.save(job);
       this.addEvent(job, "job." + job.status, {
         status: job.status,

@@ -27,6 +27,26 @@
                   "properties": {
                     "providerObservations": {
                       "$ref": "#/components/schemas/ProviderObservations"
+                    },
+                    "completionRecovery": {
+                      "type": "object",
+                      "properties": {
+                        "version": { "const": 1 },
+                        "principal_id": { "type": "string" },
+                        "header": { "const": "X-Bridge-Completion-Recovery" },
+                        "value": { "const": "1" },
+                        "request_id_pattern": { "type": "string" },
+                        "limits": { "type": "object" }
+                      },
+                      "required": [
+                        "version",
+                        "principal_id",
+                        "header",
+                        "value",
+                        "request_id_pattern",
+                        "limits"
+                      ],
+                      "additionalProperties": false
                     }
                   }
                 }
@@ -1484,6 +1504,41 @@
         }
       }
     },
+    "/v1/bridge/completion-requests/{request}": {
+      "get": {
+        "operationId": "get_v1_bridge_completion-requests_request",
+        "summary": "GET /v1/bridge/completion-requests/{request}",
+        "description": "Requires read authorization. See api.md for lifecycle semantics, errors, and response fields.",
+        "tags": ["Jobs"],
+        "x-required-scope": "read",
+        "parameters": [
+          {
+            "name": "request",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CompletionRecovery" }
+              }
+            }
+          },
+          "default": {
+            "description": "Rejected request; error.code identifies the reason.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/models": {
       "get": {
         "operationId": "get_v1_models",
@@ -1526,6 +1581,12 @@
             "schema": { "type": "string", "maxLength": 128 }
           },
           {
+            "name": "X-Bridge-Completion-Recovery",
+            "in": "header",
+            "schema": { "type": "string", "const": "1" },
+            "description": "Opt-in inference retention requires Idempotency-Key fbr1_ followed by 32 lowercase hex digits. Recover through exact authenticated GET only; never automatically resubmit."
+          },
+          {
             "name": "X-Bridge-Image-Revision",
             "in": "header",
             "schema": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
@@ -1549,7 +1610,7 @@
             }
           },
           "202": {
-            "description": "bridge.background=true: durable job receipt",
+            "description": "bridge.background=true: legacy Job, or opt-in original job/request identity only",
             "headers": {
               "X-Bridge-Job-Id": {
                 "description": "Durable job ID for console and recovery",
@@ -1558,7 +1619,23 @@
             },
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Job" }
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/Job" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "completion_request_id": {
+                          "type": "string",
+                          "pattern": "^fbr1_[a-f0-9]{32}$"
+                        }
+                      },
+                      "required": ["id", "completion_request_id"],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
               }
             }
           },
@@ -1680,6 +1757,198 @@
       }
     },
     "schemas": {
+      "CompletionRecovery": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "version": { "type": "number", "const": 1 },
+          "admission": {
+            "type": "object",
+            "properties": {
+              "version": { "type": "number", "const": 1 },
+              "request_id": {
+                "type": "string",
+                "pattern": "^fbr1_[a-f0-9]{32}$"
+              },
+              "principal_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "job_id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "model": {
+                "type": "string",
+                "pattern": "^bridge\\/[a-zA-Z0-9_-]{1,64}$"
+              },
+              "fingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+              "fingerprint_algorithm": {
+                "type": "string",
+                "const": "sha256-json-stringify-prepared-v1"
+              },
+              "wire_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+              "wire_bytes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9000000
+              },
+              "image_revision": {
+                "anyOf": [
+                  { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+                  { "type": "null" }
+                ]
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+            },
+            "required": [
+              "version",
+              "request_id",
+              "principal_id",
+              "job_id",
+              "model",
+              "fingerprint",
+              "fingerprint_algorithm",
+              "wire_sha256",
+              "wire_bytes",
+              "image_revision",
+              "created_at",
+              "digest"
+            ],
+            "additionalProperties": false
+          },
+          "state": {
+            "type": "string",
+            "enum": ["pending", "paused", "terminal", "result_unavailable"]
+          },
+          "terminal": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "version": { "type": "number", "const": 1 },
+                  "job_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "admission_digest": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "attempt_id": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      { "type": "null" }
+                    ]
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "succeeded",
+                      "failed",
+                      "canceled",
+                      "interrupted",
+                      "timed_out"
+                    ]
+                  },
+                  "recorded_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  "result_json": { "type": "string", "maxLength": 262144 },
+                  "result_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "result_bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "reason": {
+                    "type": "string",
+                    "enum": ["result_too_large", "invalid_completion"]
+                  },
+                  "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+                },
+                "required": [
+                  "version",
+                  "job_id",
+                  "admission_digest",
+                  "attempt_id",
+                  "status",
+                  "recorded_at",
+                  "digest"
+                ],
+                "additionalProperties": false
+              },
+              { "type": "null" }
+            ]
+          },
+          "current_job_status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "cancel_requested",
+              "pause_requested",
+              "paused",
+              "succeeded",
+              "failed",
+              "canceled",
+              "interrupted",
+              "timed_out"
+            ]
+          },
+          "prepared_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "observations": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "anyOf": [
+                      { "type": "string", "maxLength": 1000 },
+                      { "type": "null" }
+                    ]
+                  },
+                  "retry_at": { "type": ["number", "null"] }
+                },
+                "required": ["reason", "retry_at"],
+                "additionalProperties": false
+              },
+              { "type": "null" }
+            ]
+          }
+        },
+        "required": [
+          "version",
+          "admission",
+          "state",
+          "terminal",
+          "current_job_status",
+          "prepared_at",
+          "observations"
+        ],
+        "additionalProperties": false
+      },
       "ChatRequest": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
