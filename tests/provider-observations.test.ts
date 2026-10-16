@@ -125,7 +125,7 @@ it("reports successful authentication with unknown quota through real HTTP statu
 it("retains a quota rejection across auth refresh, scheduler recreation and explicit dispatch resume", () => {
   const { store, scheduler } = fixture();
   scheduler.readiness = authenticated;
-  scheduler.pause("quota_exhausted: controlled limit");
+  scheduler.pause("quota_exhausted: controlled limit", undefined, "claude");
   const first = observations(scheduler);
   expect(first).toMatchObject({
     quota: {
@@ -158,7 +158,7 @@ it.each([undefined, NaN, Infinity, -1, 0, Date.now() - 1000])(
   (reset) => {
     const { scheduler } = fixture();
     scheduler.readiness = authenticated;
-    scheduler.pause("quota_exhausted: controlled limit", reset);
+    scheduler.pause("quota_exhausted: controlled limit", reset, "claude");
     expect(observations(scheduler)).toMatchObject({
       quota: { state: "limited", resetAt: null },
     });
@@ -168,7 +168,7 @@ it("keeps an expired reported reset as a historical limit rather than successful
   const { store, scheduler } = fixture(),
     reset = Date.now() + 60000;
   scheduler.readiness = authenticated;
-  scheduler.pause("quota_exhausted: controlled limit", reset);
+  scheduler.pause("quota_exhausted: controlled limit", reset, "claude");
   const original = observations(scheduler).quota as Record<string, unknown>;
   expect(original.resetAt).toBe(reset);
   // A restart sees the original observation; the scheduler's separate gate may later probe.
@@ -345,7 +345,11 @@ it("does not attribute a retained Claude rejection to authenticated Codex after 
       ...authenticated,
       authentication: { ...authenticated.authentication!, provider: "claude" },
     } as WorkerReadiness;
-    claude.pause("quota_exhausted: controlled Claude rejection");
+    claude.pause(
+      "quota_exhausted: controlled Claude rejection",
+      undefined,
+      "claude",
+    );
     const original = observations(claude).quota;
     expect(original).toMatchObject({ state: "limited", provider: "claude" });
     store.close();
@@ -384,4 +388,76 @@ it("does not attribute a retained Claude rejection to authenticated Codex after 
     store.close();
     rmSync(directory, { recursive: true, force: true });
   }
+});
+
+it("binds a delayed Claude rejection to its own attempt after another worker reports Codex authentication", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "bridge-origin-")),
+    store = new QueueStore(":memory:");
+  const owner = { id: "controlled", owner: true, profiles: ["default"] };
+  const claudeJob = store.submit(
+    { prompt: "Claude controlled attempt" },
+    owner,
+  );
+  const codexJob = store.submit({ prompt: "Codex controlled attempt" }, owner);
+  let releaseClaude!: () => void;
+  const claude = {
+    ready: async () => authenticated,
+    run: async () =>
+      new Promise<{ status: "paused"; error: string }>((resolve) => {
+        releaseClaude = () =>
+          resolve({
+            status: "paused",
+            error: "quota_exhausted: controlled Claude rejection",
+          });
+      }),
+  };
+  const codex = {
+    ready: async () => ({
+      ...authenticated,
+      authentication: {
+        ...authenticated.authentication!,
+        provider: "codex" as const,
+      },
+    }),
+    run: async (_input: unknown, _emit: unknown, signal: AbortSignal) =>
+      new Promise<{ status: "canceled" }>((resolve) => {
+        const cancel = () => resolve({ status: "canceled" });
+        if (signal.aborted) cancel();
+        else signal.addEventListener("abort", cancel, { once: true });
+      }),
+  };
+  const scheduler = new Scheduler(
+    store,
+    new Workflows(store, []),
+    (job) => (job.id === claudeJob.id ? claude : codex),
+    directory,
+    2,
+  );
+  try {
+    scheduler.start();
+    await expect.poll(() => store.get(codexJob.id).status).toBe("running");
+    expect(scheduler.readiness.authentication?.provider).toBe("codex");
+    releaseClaude();
+    await expect.poll(() => scheduler.controlState.paused).toBe(true);
+    expect(observations(scheduler)).toMatchObject({
+      lastQuotaLimit: { provider: "claude", state: "limited" },
+      quota: { provider: "codex", state: "unknown" },
+    });
+  } finally {
+    releaseClaude?.();
+    await scheduler.stop();
+    store.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+it("keeps a direct pause origin unknown even when the latest authentication identifies a provider", () => {
+  const { scheduler } = fixture();
+  scheduler.readiness = authenticated;
+  scheduler.pause("quota_exhausted: origin not supplied");
+  expect(observations(scheduler)).toMatchObject({
+    quota: { provider: "claude", state: "unknown" },
+    lastQuotaLimit: { provider: null, state: "limited" },
+    dispatch: { state: "paused" },
+  });
 });

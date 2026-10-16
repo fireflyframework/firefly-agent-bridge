@@ -123,7 +123,11 @@ export class Scheduler {
     return row ? JSON.parse(row.value) : { paused: false };
   }
   /** The gate is durable so a host restart cannot erase a subscription limit. */
-  pause(reason = "operator_pause", retryAt?: number): void {
+  pause(
+    reason = "operator_pause",
+    retryAt?: number,
+    provider: QuotaObservation["provider"] = null,
+  ): void {
     this.store.atomic(() => {
       this.store.db
         .prepare(
@@ -133,7 +137,7 @@ export class Scheduler {
       if (reason.startsWith("quota_exhausted")) {
         const observation: QuotaObservation = {
           state: "limited",
-          provider: this.readiness.authentication?.provider ?? null,
+          provider,
           source: "worker_quota_rejection",
           observedAt: new Date().toISOString(),
           resetAt:
@@ -260,7 +264,9 @@ export class Scheduler {
         const job = this.store.pending("cli")[0];
         if (!job) break;
         const worker = this.workerFor(job);
-        this.readiness = await worker.ready();
+        const readiness = await worker.ready();
+        const provider = readiness.authentication?.provider ?? null;
+        this.readiness = readiness;
         // Readiness can await a subprocess while another attempt closes the quota gate.
         if (!this.readiness.ready || this.stopped || this.controlState.paused)
           break;
@@ -305,7 +311,7 @@ export class Scheduler {
             outcome.error?.startsWith("quota_exhausted") ||
             outcome.error?.startsWith("authentication_required")
           )
-            this.pause(outcome.error, outcome.retryAt);
+            this.pause(outcome.error, outcome.retryAt, provider);
         })().finally(() => {
           this.active.delete(job.id);
         });
