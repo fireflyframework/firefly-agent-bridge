@@ -24,6 +24,7 @@ import { join, resolve } from "node:path";
 import { setTimeout as pause } from "node:timers/promises";
 import { ClaudeWorker } from "../src/claude.js";
 import { prepareCompletion } from "../src/completion-protocol.js";
+import { QueueStore } from "../src/store.js";
 import type { Job, Attempt } from "../src/contracts.js";
 let dir: string;
 const fixture = resolve("tests/fixtures/claude-process.mjs");
@@ -71,6 +72,82 @@ function input(prompt: string) {
   return { job, attempt, cwd: dir };
 }
 describe("official CLI boundary", () => {
+  it.each([
+    {
+      scenario: "context exhaustion",
+      prompt: "fixture:context-full",
+      error: "context_exhausted",
+    },
+    {
+      scenario: "failed compaction",
+      prompt: "fixture:compact-failed",
+      error: "compaction_failed",
+    },
+  ])(
+    "retains $scenario across restart and resumes only the original native session",
+    async ({ prompt, error }) => {
+      const owner = { id: "owner", owner: true, profiles: ["default"] };
+      const database = join(dir, "recovery.sqlite");
+      let store = new QueueStore(database);
+      try {
+        const job = store.submit({ prompt }, owner);
+        const attempt = store.claim("controlled-worker", "cli", job.id)!;
+        const outcome = await worker().run(
+          { job: store.get(job.id), attempt, cwd: dir },
+          (event) => store.observe(attempt, event),
+          new AbortController().signal,
+        );
+        store.finish(attempt, outcome);
+        store.close();
+        store = new QueueStore(database);
+        const retained = store.get(job.id);
+        expect(retained.status).toBe("paused");
+        expect(retained.error).toMatch(new RegExp("^" + error + ":"));
+        expect(retained.sessionId).toBe("11111111-1111-4111-8111-111111111111");
+        expect(retained.activity).toBe("paused");
+        if (error === "compaction_failed") {
+          expect(store.events(owner, 0)).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                type: "job.activity",
+                data: expect.objectContaining({ compactResult: "failed" }),
+              }),
+            ]),
+          );
+          expect(retained.compactions ?? 0).toBe(0);
+        }
+        expect(retained.retryAt).toBeUndefined();
+        expect(store.pending("cli")).toHaveLength(0);
+        expect(store.attempts(job.id, owner)).toHaveLength(1);
+        expect(
+          store.db
+            .prepare("SELECT value FROM metadata WHERE key='scheduler_control'")
+            .get(),
+        ).toBeUndefined();
+        store.resume(job.id, owner);
+        const continuation = store.claim("controlled-worker", "cli", job.id)!;
+        const resumed = await worker().run(
+          { job: store.get(job.id), attempt: continuation, cwd: dir },
+          (event) => store.observe(continuation, event),
+          new AbortController().signal,
+        );
+        expect(resumed.status).toBe("succeeded");
+        const receipt = JSON.parse(resumed.result!);
+        expect(receipt.args).toContain("--resume");
+        expect(receipt.args[receipt.args.indexOf("--resume") + 1]).toBe(
+          "11111111-1111-4111-8111-111111111111",
+        );
+        expect(receipt.prompt).not.toContain(prompt);
+        store.finish(continuation, resumed);
+        expect(store.get(job.id).sessionId).toBe(
+          "11111111-1111-4111-8111-111111111111",
+        );
+        expect(store.attempts(job.id, owner)).toHaveLength(2);
+      } finally {
+        store.close();
+      }
+    },
+  );
   it.skipIf(process.platform === "win32")(
     "confirms a departed group after a transient cleanup permission error",
     async () => {

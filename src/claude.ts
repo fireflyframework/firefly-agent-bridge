@@ -263,6 +263,7 @@ export class ClaudeWorker implements Worker {
             type?: string;
             subtype?: string;
             is_error?: boolean;
+            terminal_reason?: string;
             result?: string;
             structured_output?: unknown;
             usage?: {
@@ -391,13 +392,17 @@ export class ClaudeWorker implements Worker {
               const detail = JSON.stringify(
                 message.errors ?? message.result ?? message.subtype,
               );
+              const contextFull = message.terminal_reason === "prompt_too_long";
               result = {
-                status: /rate.?limit|quota|usage limit/i.test(detail)
-                  ? "paused"
-                  : "failed",
-                error: /rate.?limit|quota|usage limit/i.test(detail)
-                  ? "quota_exhausted: Claude subscription limit reached"
-                  : "claude_execution_failed: " + detail.slice(0, 500),
+                status:
+                  contextFull || /rate.?limit|quota|usage limit/i.test(detail)
+                    ? "paused"
+                    : "failed",
+                error: contextFull
+                  ? "context_exhausted: review the retained native session before resuming"
+                  : /rate.?limit|quota|usage limit/i.test(detail)
+                    ? "quota_exhausted: Claude subscription limit reached"
+                    : "claude_execution_failed: " + detail.slice(0, 500),
               };
             } else
               result = {
@@ -502,7 +507,7 @@ export class ClaudeWorker implements Worker {
             sessionId,
             retryAt,
           });
-        if (result?.status === "failed")
+        if (result?.status === "failed" || result?.status === "paused")
           return resolve({ ...result, sessionId });
         if (code !== 0)
           return resolve({

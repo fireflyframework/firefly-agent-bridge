@@ -59,6 +59,46 @@ if (process.argv.includes("--json-schema")) {
       },
     }),
   );
+} else if (
+  prompt === "fixture:context-full" ||
+  prompt === "fixture:compact-failed"
+) {
+  console.log(
+    JSON.stringify({
+      type: "system",
+      subtype: "init",
+      session_id: "11111111-1111-4111-8111-111111111111",
+    }),
+  );
+  if (prompt === "fixture:context-full") {
+    console.log(
+      JSON.stringify({
+        type: "result",
+        subtype: "error_during_execution",
+        is_error: true,
+        terminal_reason: "prompt_too_long",
+        errors: ["The request cannot fit in the native context."],
+      }),
+    );
+    process.exitCode = 1;
+  } else {
+    console.log(
+      JSON.stringify({
+        type: "system",
+        subtype: "status",
+        status: "compacting",
+      }),
+    );
+    console.log(
+      JSON.stringify({
+        type: "system",
+        subtype: "status",
+        status: null,
+        compact_result: "failed",
+        compact_error: "Controlled compaction failure",
+      }),
+    );
+  }
 } else if (prompt === "fixture:tools") {
   for (const message of [
     {
@@ -179,7 +219,9 @@ if (process.argv.includes("--json-schema")) {
       subtype: "success",
       is_error: false,
       result: JSON.stringify({ bypass, prompt, args: process.argv.slice(2) }),
-      session_id: "fixture-session",
+      session_id: process.argv.includes("--resume")
+        ? process.argv[process.argv.indexOf("--resume") + 1]
+        : "fixture-session",
     }),
   );
 }

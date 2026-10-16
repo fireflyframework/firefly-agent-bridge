@@ -51,6 +51,8 @@ Native session continuity is separate from semantic knowledge or memory. Bridge 
 
 A reported compaction failure pauses the execution for review. If a native session has been removed or is no longer resumable, the CLI reports an error. The bridge does not silently substitute a fresh session.
 
+When Claude reports the structured terminal reason `prompt_too_long`, Bridge pauses that job with `context_exhausted` and keeps its session and activity history. It does not treat this as account quota exhaustion or automatically retry the job. Inspect the native session and its context before explicitly resuming the job. A context pause or failed compaction survives a Bridge restart; resumption uses the original session without replaying its earlier prompt. This recovery does not establish the current window size or remaining allowance.
+
 ## Subscription limits
 
 The Claude adapter observes native `rate_limit_event` records; both workers handle recognized terminal quota errors. A rejection pauses the affected job and latches a persistent global dispatch gate.
