@@ -18,7 +18,7 @@
  */
 
 import { createAuditPanel } from "./audit.js";
-import { createProviderSetup } from "./setup.js";
+import { createProviderSetup, providerStateLabels } from "./setup.js";
 import { createMobileNavigation } from "./navigation.js";
 import { createJobWizard } from "./job-wizard.js";
 import { createImageInput } from "./image-input.js";
@@ -619,17 +619,10 @@ async function refresh() {
     el("health").dataset.state = status.scheduler.paused
       ? "paused"
       : status.readiness.ready
-        ? "ready"
+        ? "connected"
         : "attention";
     selectedWorker = status.worker === "claude" ? "Claude Code" : "Codex";
-    text(
-      "health",
-      status.scheduler.paused
-        ? "Dispatch paused"
-        : status.readiness.ready
-          ? "Ready for work"
-          : "Attention required",
-    );
+    text("health", providerStateLabels(status).health);
     text(
       "summary",
       status.activeJobs +
@@ -648,11 +641,19 @@ async function refresh() {
     const facts = [
       [
         selectedWorker + " connection",
-        status.readiness.ready
-          ? "Ready"
-          : (status.readiness.reason ?? "Checking"),
+        providerStateLabels(status).authentication,
       ],
-      ["Dispatch", status.scheduler.paused ? "Paused" : "Running"],
+      [
+        "Sign-in last checked",
+        status.providerObservations?.authentication?.observedAt ??
+          "Not reported",
+      ],
+      ["Quota", providerStateLabels(status).quota],
+      [
+        "Quota last observed",
+        status.providerObservations?.quota?.observedAt ?? "Not reported",
+      ],
+      ["Dispatch", providerStateLabels(status).health],
       [
         "Permission mode",
         status.permissionMode === "bypass"
@@ -744,12 +745,7 @@ async function refresh() {
 }
 function renderProvider(status) {
   text("provider-name", selectedWorker);
-  text(
-    "provider-readiness",
-    status.readiness.ready
-      ? "Subscription ready on this machine"
-      : (status.readiness.reason ?? "Checking official CLI login"),
-  );
+  text("provider-readiness", providerStateLabels(status).provider);
   text("provider-url", location.origin + "/v1");
   el("provider-facts").replaceChildren();
   const config = status.configuration;

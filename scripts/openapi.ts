@@ -97,6 +97,50 @@ const schemas: Record<string, unknown> = {
       }),
     },
   }),
+  AuthenticationObservation: object({
+    provider: { enum: ["claude", "codex", null] },
+    state: { enum: ["unknown", "authenticated", "required", "unavailable"] },
+    source: {
+      enum: [
+        "not_reported",
+        "official_cli_auth_status",
+        "official_cli_preflight",
+      ],
+    },
+    observedAt: { type: ["string", "null"], format: "date-time" },
+  }),
+  QuotaObservation: object({
+    provider: { enum: ["claude", "codex", null] },
+    state: { enum: ["unknown", "limited"] },
+    source: {
+      enum: [
+        "not_reported",
+        "worker_quota_rejection",
+        "retained_scheduler_gate",
+      ],
+    },
+    observedAt: { type: ["string", "null"], format: "date-time" },
+    resetAt: {
+      type: ["integer", "null"],
+      description:
+        "Last reported provider reset in Unix milliseconds; not evidence that allowance returned",
+    },
+  }),
+  ProviderObservations: object({
+    version: { const: 1 },
+    authentication: ref("AuthenticationObservation"),
+    quota: ref("QuotaObservation"),
+    lastQuotaLimit: { anyOf: [ref("QuotaObservation"), { type: "null" }] },
+    dispatch: object(
+      {
+        state: { enum: ["enabled", "paused", "checking", "unavailable"] },
+        source: { const: "scheduler" },
+        observedAt: { type: "string", format: "date-time" },
+        reason: str,
+      },
+      ["state", "source", "observedAt"],
+    ),
+  }),
   Template: z.toJSONSchema(templateSchema),
   Job: {
     type: "object",
@@ -380,7 +424,14 @@ for (const match of (
             ? ref("Models")
             : path === "/v1/chat/completions"
               ? ref("ChatCompletion")
-              : { type: "object" };
+              : path === "/v1/bridge/status"
+                ? {
+                    type: "object",
+                    properties: {
+                      providerObservations: ref("ProviderObservations"),
+                    },
+                  }
+                : { type: "object" };
   const operation: Record<string, unknown> = {
     operationId:
       method +

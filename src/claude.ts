@@ -23,7 +23,13 @@ import { ProcessGroupCleanup } from "./process-group-cleanup.js";
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import type { Outcome } from "./contracts.js";
-import type { Execution, Worker, WorkerEvent } from "./worker.js";
+import type {
+  AuthenticationObservation,
+  Execution,
+  Worker,
+  WorkerEvent,
+  WorkerReadiness,
+} from "./worker.js";
 import {
   completionEnvelopeSchema,
   completionSystemPrompt,
@@ -56,7 +62,16 @@ export class ClaudeWorker implements Worker {
     delete env.CLAUDECODE;
     return env;
   }
-  async ready(): Promise<{ ready: boolean; reason?: string }> {
+  async ready(): Promise<WorkerReadiness> {
+    const observation = (
+      state: AuthenticationObservation["state"],
+      source: AuthenticationObservation["source"],
+    ): AuthenticationObservation => ({
+      provider: "claude",
+      state,
+      source,
+      observedAt: new Date().toISOString(),
+    });
     const env = this.environment();
     const conflicts = [
       "ANTHROPIC_API_KEY",
@@ -70,6 +85,7 @@ export class ClaudeWorker implements Worker {
     if (conflicts.some((key) => env[key] && env[key] !== "0"))
       return {
         ready: false,
+        authentication: observation("unavailable", "official_cli_preflight"),
         reason:
           "subscription_configuration: remove API/provider overrides from the service environment",
       };
@@ -89,6 +105,7 @@ export class ClaudeWorker implements Worker {
       )
         return {
           ready: false,
+          authentication: observation("unavailable", "official_cli_preflight"),
           reason: "unsupported_cli: Claude Code 2.1.260 or later is required",
         };
       const result = await execute(
@@ -104,15 +121,23 @@ export class ClaudeWorker implements Worker {
       return auth.loggedIn &&
         auth.authMethod === "claude.ai" &&
         Boolean(auth.subscriptionType)
-        ? { ready: true }
+        ? {
+            ready: true,
+            authentication: observation(
+              "authenticated",
+              "official_cli_auth_status",
+            ),
+          }
         : {
             ready: false,
+            authentication: observation("required", "official_cli_auth_status"),
             reason:
               "authentication_required: sign in using the official Claude Code subscription login",
           };
     } catch {
       return {
         ready: false,
+        authentication: observation("unavailable", "official_cli_preflight"),
         reason:
           "authentication_required: verify the Claude executable and its subscription login",
       };

@@ -102,7 +102,15 @@ it("Claude permissions stay enabled unless an operator selects bypass", async ()
   expect(JSON.parse(outcome.result!).bypass).toBe(false);
 });
 it("requires ChatGPT auth and rejects alternate billing overrides", async () => {
-  expect(await (await worker()).ready()).toEqual({ ready: true });
+  expect(await (await worker()).ready()).toEqual({
+    ready: true,
+    authentication: {
+      provider: "codex",
+      state: "authenticated",
+      source: "official_cli_auth_status",
+      observedAt: expect.any(String),
+    },
+  });
   expect(
     (await (await worker({ env: { CODEX_API_KEY: "not-real" } })).ready())
       .ready,

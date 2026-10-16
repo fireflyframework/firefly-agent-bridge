@@ -277,7 +277,15 @@ describe("official CLI boundary", () => {
     expect(result.prompt).not.toContain("original");
   });
   it("preflights subscription authentication and rejects alternate billing environments", async () => {
-    expect((await worker().ready()).ready).toBe(true);
+    expect(await worker().ready()).toEqual({
+      ready: true,
+      authentication: {
+        provider: "claude",
+        state: "authenticated",
+        source: "official_cli_auth_status",
+        observedAt: expect.any(String),
+      },
+    });
     expect(
       (await worker({ env: { ANTHROPIC_API_KEY: "not-a-real-key" } }).ready())
         .ready,

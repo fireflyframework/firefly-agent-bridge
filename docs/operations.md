@@ -33,9 +33,21 @@ description: Manage bridge execution, queue dispatch, service lifecycle and inte
 
 **Pause dispatch** stops new admissions to workers and requests pauses for active CLI jobs. It does not cancel the queue. **Resume dispatch** clears the global gate when the provider reset permits it; individual paused jobs remain explicit controls in the panel.
 
+## Authentication, quota and dispatch
+
+A successful CLI login check confirms that you are signed in. It cannot confirm available subscription allowance. The console separates that observation from the local dispatch gate and the last reported quota limit. With no quota observation, it says **quota not reported**. Neither Claude's `auth status` nor the current Codex `exec --json` adapter provides a current account allowance here. Bridge does not make an inference call to test availability or switch to paid API billing.
+
+A quota rejection is retained with its provider, source and observation time. Switching from Claude to Codex, or the reverse, does not attribute the old provider's limit to the new one. An older record without provider identity stays explicitly unknown; the global dispatch gate still applies. Refreshing authentication, restarting Bridge or explicitly resuming dispatch does not erase that fact. **Last reported quota limit** shows the retained observation; individual provider buckets may since have changed. A reported reset remains a reported time after it passes; it does not prove allowance returned. Unknown reset times stay unknown. The scheduler's bounded continuation policy below remains separate from quota observation.
+
+**Dispatch enabled** means the local gate permits a worker attempt. Its authentication check and the provider can still refuse it. The compatibility `readiness.ready` boolean is not a quota signal; use the separate observations described in the [API reference](api.md#provider-observations).
+
 ## Compaction
 
 The selected CLI owns its native session. Claude owns the native transcript and its compacted summary. The bridge persists session IDs and records `job.compaction` events. A compacted conversation continues through Claude's `--resume` mechanism; the bridge does not replay the pre-compaction transcript.
+
+Compaction reduces the conversation context sent to the model; it does not replenish subscription allowance and can itself consume tokens. Bridge reports native compaction events and leaves unreported context capacity and remaining token allowance unknown. Terminal token usage is not a measurement of the current context window. Consult the [official Claude Code cost and context guidance](https://code.claude.com/docs/en/costs).
+
+Native session continuity is separate from semantic knowledge or memory. Bridge retains session references and observations; it does not promise that a compacted summary preserved every fact. A caller's Flycanon retrieval, citations and durable task evidence remain separate responsibilities.
 
 A reported compaction failure pauses the execution for review. If a native session has been removed or is no longer resumable, the CLI reports an error. The bridge does not silently substitute a fresh session.
 

@@ -260,6 +260,7 @@ export function createHttpService(d: HttpDependencies) {
         d.config.worker === "codex" ? "local-codex" : "local-claude-code",
       activeJobs: d.scheduler.activeCount,
       readiness: d.scheduler.readiness,
+      providerObservations: d.scheduler.observations,
       scheduler: d.scheduler.controlState,
       eventConnections: streams.count,
       profiles: Object.keys(d.config.profiles).filter(
