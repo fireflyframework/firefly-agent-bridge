@@ -2,12 +2,20 @@
 
 # Changelog
 
-## 0.2.11 - 2026-10-15
+## 0.2.12 - 2026-10-15
+
+- Keep a requested mobile conversation open when a background refresh completes before its initial job request. Returning to the jobs list and session changes still control navigation; stale responses cannot select another job.
+- Check documentation geometry with reduced motion and an explicit, bounded canvas-readiness wait. Animated behavior keeps its separate checks, and desktop/mobile width requirements are unchanged.
+- Refresh console and integration version metadata together. This version also includes the native prompt maintenance changes prepared for 0.2.11.
+
+## 0.2.11 - unpublished tag, 2026-10-15
 
 - Maintain completion, continuation, MCP host and tool instructions in native Agentic YAML resources with explicit versions and a generated catalog.
 - Verify source and rendered-text digests before bundling; preserve the existing instruction bytes, message ordering and user workflow syntax.
 - Keep Python as a build-time authoring dependency. The installed bridge remains Node-only.
 - Compile prompts with a separate Python environment selected by `BRIDGE_PROMPT_PYTHON`, preserving the pinned SDK client and documentation environment selected by `BRIDGE_PYTHON`.
+
+The 0.2.11 tag is retained unchanged. Release verification stopped on a mobile conversation-selection race and a documentation geometry check whose first DOM measurement exceeded its polling budget. The publisher did not publish release assets. Version 0.2.12 supersedes that release attempt.
 
 ## 0.2.10 - 2026-10-14
 

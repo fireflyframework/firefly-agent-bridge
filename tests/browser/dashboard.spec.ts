@@ -2141,6 +2141,59 @@ test("mobile job selection opens before audit loading and survives a concurrent 
   }
 });
 
+test("mobile selection keeps its navigation intent when refresh wins the job request", async ({
+  page,
+}) => {
+  const job = service.store.submit(
+    { prompt: "Keep the requested conversation open" },
+    owner,
+  );
+  const attempt = service.store.claim("fixture", "cli", job.id)!;
+  service.store.finish(attempt, {
+    status: "succeeded",
+    result: "The selected conversation is ready.",
+  });
+  await page.setViewportSize({ width: 320, height: 568 });
+  await login(page);
+  let release!: () => void;
+  let entered!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const waiting = new Promise<void>((resolve) => {
+    entered = resolve;
+  });
+  let intercepted = false;
+  await page.route(`**/v1/bridge/jobs/${job.id}`, async (route) => {
+    if (!intercepted && route.request().method() === "GET") {
+      intercepted = true;
+      entered();
+      await gate;
+    }
+    await route.continue();
+  });
+  try {
+    await page
+      .getByRole("button", { name: "Keep the requested conversation open" })
+      .click();
+    await waiting;
+    await page.locator("#refresh").click();
+    // Refresh can render the selected job before the original request returns.
+    await expect(page.locator("#detail-state")).toHaveText("succeeded");
+    await expect(page.locator("body")).toHaveAttribute(
+      "data-job-detail",
+      "open",
+    );
+    await expect(page.locator("#messages")).toBeVisible();
+    release();
+    await expect(page.locator("#messages")).toContainText(
+      "The selected conversation is ready.",
+    );
+  } finally {
+    release();
+  }
+});
+
 test("short-window conversations scroll with the page to the latest response and reply", async ({
   page,
 }) => {

@@ -208,10 +208,16 @@ test("home references a normal footnote and the footer contains only Foundation 
 test("the scene fills its allocated hero column on desktop and phone", async ({
   page,
 }) => {
+  test.setTimeout(60000);
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/");
   const scene = page.locator("[data-docs-scene]");
   await expect(scene).toHaveAttribute("data-renderer", "webgl");
+  // Initial WebGL work can delay the first DOM read on software-rendered CI.
+  // Geometry is independent of motion, which has its own behavior checks.
+  await expect(scene.locator("canvas")).toBeVisible({ timeout: 30000 });
+  await expect(scene).toHaveAttribute("data-motion", "reduced");
   const measure = () =>
     scene.evaluate((element) => {
       const hero = element.parentElement;
