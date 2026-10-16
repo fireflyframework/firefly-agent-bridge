@@ -25,7 +25,13 @@ import { join } from "node:path";
 import { stageImages } from "./images.js";
 import type { ClaudeOptions } from "./claude.js";
 import type { Outcome } from "./contracts.js";
-import type { Execution, Worker, WorkerEvent } from "./worker.js";
+import type {
+  AuthenticationObservation,
+  Execution,
+  Worker,
+  WorkerEvent,
+  WorkerReadiness,
+} from "./worker.js";
 import {
   completionEnvelopeSchema,
   completionSystemPrompt,
@@ -38,7 +44,16 @@ export class CodexWorker implements Worker {
   private environment(): NodeJS.ProcessEnv {
     return { ...(this.options.env ?? process.env) };
   }
-  async ready(): Promise<{ ready: boolean; reason?: string }> {
+  async ready(): Promise<WorkerReadiness> {
+    const observation = (
+      state: AuthenticationObservation["state"],
+      source: AuthenticationObservation["source"],
+    ): AuthenticationObservation => ({
+      provider: "codex",
+      state,
+      source,
+      observedAt: new Date().toISOString(),
+    });
     const env = this.environment();
     if (
       [
@@ -50,6 +65,7 @@ export class CodexWorker implements Worker {
     )
       return {
         ready: false,
+        authentication: observation("unavailable", "official_cli_preflight"),
         reason:
           "subscription_configuration: remove API/provider overrides from the service environment",
       };
@@ -60,15 +76,23 @@ export class CodexWorker implements Worker {
         { env, timeout: 10000, maxBuffer: 20000 },
       );
       return /Logged in using ChatGPT/.test(auth.stdout + auth.stderr)
-        ? { ready: true }
+        ? {
+            ready: true,
+            authentication: observation(
+              "authenticated",
+              "official_cli_auth_status",
+            ),
+          }
         : {
             ready: false,
+            authentication: observation("required", "official_cli_auth_status"),
             reason:
               "authentication_required: sign in with official Codex ChatGPT login",
           };
     } catch {
       return {
         ready: false,
+        authentication: observation("unavailable", "official_cli_preflight"),
         reason:
           "authentication_required: verify the Codex executable and ChatGPT login",
       };

@@ -22,7 +22,12 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import type { Job, Outcome } from "./contracts.js";
-import type { Worker } from "./worker.js";
+import type {
+  ProviderObservations,
+  QuotaObservation,
+  Worker,
+  WorkerReadiness,
+} from "./worker.js";
 import { QueueStore } from "./store.js";
 import { Workflows } from "./workflows.js";
 export class Scheduler {
@@ -34,7 +39,83 @@ export class Scheduler {
   private stopped = true;
   private ticking = false;
   readonly owner = randomUUID();
-  readiness: { ready: boolean; reason?: string } = { ready: true };
+  private readinessValue: WorkerReadiness = { ready: true };
+  private readinessAt = new Date().toISOString();
+  get readiness(): WorkerReadiness {
+    return this.readinessValue;
+  }
+  set readiness(value: WorkerReadiness) {
+    this.readinessValue = value;
+    this.readinessAt = new Date().toISOString();
+  }
+  get observations(): ProviderObservations {
+    const gate = this.controlState;
+    const retained = this.store.db
+      .prepare("SELECT value FROM metadata WHERE key='provider_quota'")
+      .get() as { value: string } | undefined;
+    const value = retained
+      ? (JSON.parse(retained.value) as QuotaObservation)
+      : null;
+    const historical: QuotaObservation | null = value
+      ? {
+          ...value,
+          provider:
+            value.provider === "claude" || value.provider === "codex"
+              ? value.provider
+              : null,
+        }
+      : gate.reason?.startsWith("quota_exhausted")
+        ? {
+            state: "limited",
+            provider: null,
+            source: "retained_scheduler_gate",
+            observedAt: null,
+            resetAt:
+              typeof gate.retryAt === "number" &&
+              Number.isFinite(gate.retryAt) &&
+              gate.retryAt > 0
+                ? gate.retryAt
+                : null,
+          }
+        : null;
+    const authentication = this.readiness.authentication ?? {
+      provider: null,
+      state: "unknown" as const,
+      source: "not_reported" as const,
+      observedAt: null,
+    };
+    const provider = authentication.provider ?? null;
+    const quota: QuotaObservation =
+      provider && historical?.provider === provider
+        ? historical
+        : {
+            provider,
+            state: "unknown",
+            source: "not_reported",
+            observedAt: null,
+            resetAt: null,
+          };
+    return {
+      version: 1,
+      authentication,
+      quota,
+      lastQuotaLimit: historical,
+      dispatch: {
+        state: gate.paused
+          ? "paused"
+          : this.readiness.ready
+            ? "enabled"
+            : this.readiness.reason?.startsWith("Checking")
+              ? "checking"
+              : "unavailable",
+        source: "scheduler",
+        observedAt: this.readinessAt,
+        ...((gate.reason ?? this.readiness.reason)
+          ? { reason: gate.reason ?? this.readiness.reason }
+          : {}),
+      },
+    };
+  }
   get controlState(): { paused: boolean; reason?: string; retryAt?: number } {
     const row = this.store.db
       .prepare("SELECT value FROM metadata WHERE key='scheduler_control'")
@@ -42,11 +123,36 @@ export class Scheduler {
     return row ? JSON.parse(row.value) : { paused: false };
   }
   /** The gate is durable so a host restart cannot erase a subscription limit. */
-  pause(reason = "operator_pause", retryAt?: number): void {
-    this.store.db
-      .prepare("INSERT OR REPLACE INTO metadata VALUES('scheduler_control',?)")
-      .run(JSON.stringify({ paused: true, reason, retryAt }));
-    this.readiness = { ready: false, reason };
+  pause(
+    reason = "operator_pause",
+    retryAt?: number,
+    provider: QuotaObservation["provider"] = null,
+  ): void {
+    this.store.atomic(() => {
+      this.store.db
+        .prepare(
+          "INSERT OR REPLACE INTO metadata VALUES('scheduler_control',?)",
+        )
+        .run(JSON.stringify({ paused: true, reason, retryAt }));
+      if (reason.startsWith("quota_exhausted")) {
+        const observation: QuotaObservation = {
+          state: "limited",
+          provider,
+          source: "worker_quota_rejection",
+          observedAt: new Date().toISOString(),
+          resetAt:
+            typeof retryAt === "number" &&
+            Number.isFinite(retryAt) &&
+            retryAt > Date.now()
+              ? retryAt
+              : null,
+        };
+        this.store.db
+          .prepare("INSERT OR REPLACE INTO metadata VALUES('provider_quota',?)")
+          .run(JSON.stringify(observation));
+      }
+    });
+    this.readiness = { ...this.readiness, ready: false, reason };
     for (const [id] of this.active)
       this.store.pause(id, { id: "system", owner: true, profiles: [] });
   }
@@ -54,10 +160,18 @@ export class Scheduler {
     const gate = this.controlState;
     if (gate.retryAt && gate.retryAt > Date.now())
       throw new Error("The provider reset time has not arrived");
-    this.store.db
-      .prepare("DELETE FROM metadata WHERE key='scheduler_control'")
-      .run();
-    this.readiness = { ready: true };
+    const quota = this.observations.lastQuotaLimit;
+    this.store.atomic(() => {
+      // Old installations retained the limit only in the gate; clearing dispatch is not a quota observation.
+      if (quota?.state === "limited")
+        this.store.db
+          .prepare("INSERT OR IGNORE INTO metadata VALUES('provider_quota',?)")
+          .run(JSON.stringify(quota));
+      this.store.db
+        .prepare("DELETE FROM metadata WHERE key='scheduler_control'")
+        .run();
+    });
+    this.readiness = { ...this.readiness, ready: true, reason: undefined };
     this.wake();
   }
   constructor(
@@ -100,7 +214,11 @@ export class Scheduler {
           );
       const gate = this.controlState;
       if (gate.paused) {
-        this.readiness = { ready: false, reason: gate.reason };
+        this.readiness = {
+          ...this.readiness,
+          ready: false,
+          reason: gate.reason,
+        };
         if (!gate.retryAt || gate.retryAt > Date.now() || this.active.size)
           return;
         // Only an explicit provider timestamp enables automatic continuation; unknown resets remain manual.
@@ -146,7 +264,9 @@ export class Scheduler {
         const job = this.store.pending("cli")[0];
         if (!job) break;
         const worker = this.workerFor(job);
-        this.readiness = await worker.ready();
+        const readiness = await worker.ready();
+        const provider = readiness.authentication?.provider ?? null;
+        this.readiness = readiness;
         // Readiness can await a subprocess while another attempt closes the quota gate.
         if (!this.readiness.ready || this.stopped || this.controlState.paused)
           break;
@@ -191,7 +311,7 @@ export class Scheduler {
             outcome.error?.startsWith("quota_exhausted") ||
             outcome.error?.startsWith("authentication_required")
           )
-            this.pause(outcome.error, outcome.retryAt);
+            this.pause(outcome.error, outcome.retryAt, provider);
         })().finally(() => {
           this.active.delete(job.id);
         });

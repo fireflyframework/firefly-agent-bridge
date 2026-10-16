@@ -245,7 +245,7 @@ export function createHttpService(d: HttpDependencies) {
   app.get("/v1/bridge/status", async (req) => {
     const p = requireScope(req, "read");
     return {
-      version: "0.2.12",
+      version: "0.2.13",
       protocolVersion: 2,
       eventCursorFloor: d.store.eventFloor(),
       permissionMode: d.config.profiles.default!.permissionMode,
@@ -260,6 +260,7 @@ export function createHttpService(d: HttpDependencies) {
         d.config.worker === "codex" ? "local-codex" : "local-claude-code",
       activeJobs: d.scheduler.activeCount,
       readiness: d.scheduler.readiness,
+      providerObservations: d.scheduler.observations,
       scheduler: d.scheduler.controlState,
       eventConnections: streams.count,
       profiles: Object.keys(d.config.profiles).filter(

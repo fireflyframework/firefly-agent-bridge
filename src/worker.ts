@@ -34,8 +34,39 @@ export type WorkerEvent = {
   text: string;
   data?: Record<string, unknown>;
 };
+export type AuthenticationObservation = {
+  provider: "claude" | "codex" | null;
+  state: "unknown" | "authenticated" | "required" | "unavailable";
+  source:
+    "not_reported" | "official_cli_auth_status" | "official_cli_preflight";
+  observedAt: string | null;
+};
+export type WorkerReadiness = {
+  ready: boolean;
+  reason?: string;
+  authentication?: AuthenticationObservation;
+};
+export type QuotaObservation = {
+  provider: "claude" | "codex" | null;
+  state: "unknown" | "limited";
+  source: "not_reported" | "worker_quota_rejection" | "retained_scheduler_gate";
+  observedAt: string | null;
+  resetAt: number | null;
+};
+export type ProviderObservations = {
+  version: 1;
+  authentication: AuthenticationObservation;
+  quota: QuotaObservation;
+  lastQuotaLimit: QuotaObservation | null;
+  dispatch: {
+    state: "enabled" | "paused" | "checking" | "unavailable";
+    source: "scheduler";
+    observedAt: string;
+    reason?: string;
+  };
+};
 export interface Worker {
-  ready(): Promise<{ ready: boolean; reason?: string }>;
+  ready(): Promise<WorkerReadiness>;
   run(
     input: Execution,
     emit: (event: WorkerEvent) => void,

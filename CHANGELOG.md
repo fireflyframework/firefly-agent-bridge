@@ -2,6 +2,13 @@
 
 # Changelog
 
+## 0.2.13 - 2026-10-15
+
+- Separate provider sign-in from quota availability in status responses and the console. A successful sign-in does not establish remaining subscription allowance; unreported quota stays unknown.
+- Retain the provider and timestamp of the last reported quota limit across dispatch changes and restarts. Attribute a worker outcome to the provider that started that attempt, including when readiness changes while it runs.
+- Pause Claude sessions on structured context exhaustion, and verify the existing failed-compaction recovery across restart. Keep the original session and recorded activity for an explicit continuation; neither condition resets quota or starts an automatic replacement conversation.
+- Cover quota attribution, retained observations, context exhaustion and compaction recovery with controlled CLI fixtures. These checks do not measure a live account's quota or context capacity.
+
 ## 0.2.12 - 2026-10-15
 
 - Keep a requested mobile conversation open when a background refresh completes before its initial job request. Returning to the jobs list and session changes still control navigation; stale responses cannot select another job.

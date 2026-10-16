@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Firefly Agent Bridge API",
-    "version": "0.2.12",
+    "version": "0.2.13",
     "description": "OpenAI-compatible Chat Completions and unified /v1/bridge orchestration extensions. Copyright 2026 Firefly Software Foundation. Author @ancongui.",
     "license": { "name": "Apache-2.0", "identifier": "Apache-2.0" }
   },
@@ -21,7 +21,16 @@
           "200": {
             "description": "Successful response",
             "content": {
-              "application/json": { "schema": { "type": "object" } }
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "providerObservations": {
+                      "$ref": "#/components/schemas/ProviderObservations"
+                    }
+                  }
+                }
+              }
             }
           },
           "default": {
@@ -2020,6 +2029,83 @@
           }
         },
         "required": ["object", "data"],
+        "additionalProperties": false
+      },
+      "AuthenticationObservation": {
+        "type": "object",
+        "properties": {
+          "provider": { "enum": ["claude", "codex", null] },
+          "state": {
+            "enum": ["unknown", "authenticated", "required", "unavailable"]
+          },
+          "source": {
+            "enum": [
+              "not_reported",
+              "official_cli_auth_status",
+              "official_cli_preflight"
+            ]
+          },
+          "observedAt": { "type": ["string", "null"], "format": "date-time" }
+        },
+        "required": ["provider", "state", "source", "observedAt"],
+        "additionalProperties": false
+      },
+      "QuotaObservation": {
+        "type": "object",
+        "properties": {
+          "provider": { "enum": ["claude", "codex", null] },
+          "state": { "enum": ["unknown", "limited"] },
+          "source": {
+            "enum": [
+              "not_reported",
+              "worker_quota_rejection",
+              "retained_scheduler_gate"
+            ]
+          },
+          "observedAt": { "type": ["string", "null"], "format": "date-time" },
+          "resetAt": {
+            "type": ["integer", "null"],
+            "description": "Last reported provider reset in Unix milliseconds; not evidence that allowance returned"
+          }
+        },
+        "required": ["provider", "state", "source", "observedAt", "resetAt"],
+        "additionalProperties": false
+      },
+      "ProviderObservations": {
+        "type": "object",
+        "properties": {
+          "version": { "const": 1 },
+          "authentication": {
+            "$ref": "#/components/schemas/AuthenticationObservation"
+          },
+          "quota": { "$ref": "#/components/schemas/QuotaObservation" },
+          "lastQuotaLimit": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/QuotaObservation" },
+              { "type": "null" }
+            ]
+          },
+          "dispatch": {
+            "type": "object",
+            "properties": {
+              "state": {
+                "enum": ["enabled", "paused", "checking", "unavailable"]
+              },
+              "source": { "const": "scheduler" },
+              "observedAt": { "type": "string", "format": "date-time" },
+              "reason": { "type": "string" }
+            },
+            "required": ["state", "source", "observedAt"],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "version",
+          "authentication",
+          "quota",
+          "lastQuotaLimit",
+          "dispatch"
+        ],
         "additionalProperties": false
       },
       "Template": {

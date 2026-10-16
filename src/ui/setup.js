@@ -16,6 +16,87 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+export function providerStateLabels(status) {
+  const observations = status?.providerObservations;
+  const authentication =
+    observations?.authentication?.state === "authenticated"
+      ? "Signed in"
+      : observations?.authentication?.state === "required"
+        ? "Sign-in required"
+        : observations?.authentication?.state === "unavailable"
+          ? "Sign-in check unavailable"
+          : "Authentication not reported";
+  const limited = observations?.quota?.state === "limited";
+  const quota = limited
+    ? "Last reported quota limit" +
+      (observations.quota.resetAt
+        ? " · reported reset " +
+          new Date(observations.quota.resetAt).toLocaleString()
+        : " · reset not reported")
+    : "quota not reported";
+  const dispatch = status?.scheduler?.paused
+    ? "Dispatch paused"
+    : status?.readiness?.ready
+      ? "Dispatch enabled"
+      : status?.readiness?.reason?.startsWith("Checking")
+        ? "Checking sign-in"
+        : "Attention required";
+  const historical = observations?.lastQuotaLimit;
+  const providerName =
+    historical?.provider === "claude"
+      ? "Claude"
+      : historical?.provider === "codex"
+        ? "Codex"
+        : "unknown provider";
+  const previous =
+    historical && !limited
+      ? " · Last reported " + providerName + " quota limit"
+      : "";
+  const quotaObservation = limited ? observations.quota : historical;
+  const reportProvider =
+    quotaObservation?.provider === "claude"
+      ? "Claude"
+      : quotaObservation?.provider === "codex"
+        ? "Codex"
+        : "unknown provider";
+  let diagnosticDetails = authentication + ".";
+  if (!limited) diagnosticDetails += " Quota not reported.";
+  if (quotaObservation) {
+    diagnosticDetails +=
+      " " +
+      (limited ? "Last reported " : "Previous ") +
+      reportProvider +
+      " quota limit.";
+    diagnosticDetails += quotaObservation.observedAt
+      ? " Observed at " + quotaObservation.observedAt + "."
+      : " Observation time not reported.";
+    const resetAt = quotaObservation.resetAt;
+    const reset =
+      typeof resetAt === "number" && Number.isFinite(resetAt) && resetAt > 0
+        ? new Date(resetAt)
+        : null;
+    diagnosticDetails +=
+      reset && Number.isFinite(reset.getTime())
+        ? " Reported reset " + reset.toLocaleString() + "."
+        : " Reset not reported.";
+  }
+  return {
+    authentication,
+    diagnosticAuthentication:
+      observations?.authentication?.state === "authenticated"
+        ? "Signed in"
+        : observations?.authentication?.state === "required"
+          ? "Required"
+          : observations?.authentication?.state === "unavailable"
+            ? "Unavailable"
+            : "Unknown",
+    diagnosticQuota: limited ? "Limited" : "Unknown",
+    diagnosticDetails,
+    quota: quota + previous,
+    provider: authentication + " · " + quota + previous,
+    health: dispatch,
+  };
+}
 export function createProviderSetup(refresh, showAccess, openJob, notice) {
   const element = (id) => document.getElementById(id);
   let step = 0,
@@ -207,9 +288,7 @@ export function createProviderSetup(refresh, showAccess, openJob, notice) {
     element("setup-provider-detail-running").textContent = worker;
     element("setup-provider-detail-readiness").textContent = !current
       ? "Not checked for this provider"
-      : status?.readiness.ready
-        ? "Ready on this machine"
-        : "Needs attention";
+      : providerStateLabels(status).provider;
     element("setup-provider-detail-instruction").textContent = current
       ? ""
       : "This guide does not change your worker. Stop the bridge, update its worker and executable, then restart before checking this login.";
@@ -281,15 +360,14 @@ export function createProviderSetup(refresh, showAccess, openJob, notice) {
       element("setup-claude-current").textContent =
         value.worker === "claude" ? "Running" : "Guide";
       element("setup-access-status").textContent =
-        worker +
-        ": " +
-        (value.readiness.ready
-          ? "Ready on this machine"
-          : value.readiness.reason || "Checking login");
+        worker + ": " + providerStateLabels(value).provider;
       element("diagnostic-worker").textContent = worker;
-      element("diagnostic-readiness").textContent = value.readiness.ready
-        ? "Ready"
-        : "Needs attention";
+      const labels = providerStateLabels(value);
+      element("diagnostic-readiness").textContent =
+        labels.diagnosticAuthentication;
+      element("diagnostic-quota").textContent = labels.diagnosticQuota;
+      element("diagnostic-observation-details").textContent =
+        labels.diagnosticDetails;
       element("diagnostic-dispatch").textContent = value.scheduler.paused
         ? "Paused"
         : "Running";

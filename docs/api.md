@@ -20,6 +20,21 @@ Errors use `{"error":{"code":"...","message":"...","type":"invalid_request_error
 
 Traffic is limited to 240 requests per minute per principal per admission class: ordinary requests, execution controls, and host leases. Read polling cannot exhaust the lease or stop/cancel bucket. SSE permits four connections per principal and 100 per service.
 
+## Provider observations
+
+`GET /v1/bridge/status` retains `readiness` and `scheduler` for compatibility and adds `providerObservations` version1:
+
+| Field            | States and meaning                                                                                                                                                                                            |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `authentication` | `authenticated`, `required`, `unavailable` or `unknown`; source is `official_cli_auth_status`, `official_cli_preflight` or `not_reported`, with `observedAt` as an ISO timestamp or null                      |
+| `quota`          | `unknown` or `limited` for the provider identified by the current authentication observation; `observedAt` is the original observation timestamp or null, and `resetAt` is reported Unix milliseconds or null |
+| `lastQuotaLimit` | The retained historical limit, or null; source is `worker_quota_rejection` or `retained_scheduler_gate`, with its original provider, observation time and reported reset                                      |
+| `dispatch`       | `enabled`, `paused`, `checking` or `unavailable`; source is `scheduler`, with an observation timestamp and optional reason                                                                                    |
+
+Authentication and quota observations include `provider: "claude" | "codex" | null`. A limit from an older installation has unknown provider and observation time; Bridge does not relabel it using the current configuration. Switching providers retains the global dispatch gate and the historical limit, while the new provider's quota remains unknown. No per-model allowance is inferred.
+
+Authentication success does not mean quota is available. A boolean-only controlled worker has unknown authentication, even when its compatibility `ready` value is true. Auth refresh, restart, an elapsed reset time or explicit dispatch resume cannot clear a retained limit observation. The quota fields describe the last reported limit, not a live multi-bucket usage query. Unreported percentages, context capacity and remaining allowance stay unknown. Current Codex uses `exec --json`, not the separate App Server rate-limit or context APIs.
+
 ## Image capability verification
 
 `GET /v1/models` includes `image_input.status`, `config_revision`, `mime_types`, `max_images`, `max_decoded_bytes`, and `detail` for each permitted profile. A successful owner probe adds `verified_at` and `probe_job_id`.

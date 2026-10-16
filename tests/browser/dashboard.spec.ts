@@ -32,6 +32,7 @@ import { randomUUID, createHash } from "node:crypto";
 import { startService } from "../../src/service.js";
 import { parseConfig } from "../../src/config.js";
 import { Tokens } from "../../src/auth.js";
+import type { ProviderObservations } from "../../src/worker.js";
 
 test("provider setup keeps one focused step and preserves profile selection", async ({
   page,
@@ -1896,6 +1897,140 @@ test("diagnostic worker and state values remain complete single lines inside the
           JSON.stringify({ viewport: width, ...value }),
         ).toBe(false);
       }
+    }
+  }
+});
+
+test("diagnostic fixture observations keep compact values and complete historical metadata", async ({
+  page,
+}) => {
+  const resetAt = 1792144800000;
+  function observation(historical: boolean): ProviderObservations {
+    return {
+      version: 1,
+      authentication: {
+        state: "authenticated",
+        provider: historical ? "codex" : "claude",
+        source: "official_cli_auth_status",
+        observedAt: "2026-10-15T10:00:00.000Z",
+      },
+      quota: historical
+        ? {
+            state: "unknown",
+            provider: "codex",
+            source: "not_reported",
+            observedAt: null,
+            resetAt: null,
+          }
+        : {
+            state: "limited",
+            provider: "claude",
+            source: "worker_quota_rejection",
+            observedAt: "2026-10-15T10:00:00.000Z",
+            resetAt,
+          },
+      lastQuotaLimit: historical
+        ? {
+            state: "limited",
+            provider: "claude",
+            source: "worker_quota_rejection",
+            observedAt: "2026-10-15T10:00:00.000Z",
+            resetAt: null,
+          }
+        : null,
+      dispatch: {
+        state: "enabled",
+        source: "scheduler",
+        observedAt: "2026-10-15T10:00:00.000Z",
+      },
+    };
+  }
+  let observations = observation(false);
+  await page.route("**/v1/bridge/status", async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      json: {
+        ...(await response.json()),
+        worker: observations.authentication.provider,
+        providerObservations: observations,
+      },
+    });
+  });
+  await login(page);
+  await navigate(page, "diagnostics");
+  for (const width of [960, 320]) {
+    await page.setViewportSize({ width, height: 844 });
+    for (const theme of ["light", "dark"]) {
+      await page.locator("#appearance").selectOption(theme);
+      for (const historical of [false, true]) {
+        observations = observation(historical);
+        await page.locator("#refresh-diagnostics").click();
+        await expect(page.locator("#diagnostic-readiness")).toHaveText(
+          "Signed in",
+        );
+        await expect(page.locator("#diagnostic-quota")).toHaveText(
+          historical ? "Unknown" : "Limited",
+        );
+        const details = page.locator("#diagnostic-observation-details");
+        await expect(details).toContainText(
+          historical
+            ? "Previous Claude quota limit"
+            : "Last reported Claude quota limit",
+        );
+        await expect(details).toContainText("2026-10-15T10:00:00.000Z");
+        await expect(details).toContainText(
+          historical
+            ? "Reset not reported"
+            : await page.evaluate(
+                (value) => new Date(value).toLocaleString(),
+                resetAt,
+              ),
+        );
+        if (!historical) {
+          await expect(details).not.toContainText(String(resetAt));
+          await expect(page.locator("#diagnostics")).toContainText(
+            '"resetAt": ' + resetAt,
+          );
+        }
+        await details.scrollIntoViewIfNeeded();
+        await expect(details).toBeVisible();
+        const metrics = await page
+          .locator(".diagnostic-signals dd")
+          .evaluateAll((nodes) =>
+            nodes.map((node) => {
+              const range = document.createRange();
+              range.selectNodeContents(node);
+              return {
+                text: node.textContent,
+                lines: range.getClientRects().length,
+                overflow: node.scrollWidth > node.clientWidth + 1,
+                font: getComputedStyle(node).fontSize,
+              };
+            }),
+          );
+        for (const value of metrics) {
+          expect(
+            value.lines,
+            JSON.stringify({ width, theme, historical, ...value }),
+          ).toBe(1);
+          expect(
+            value.overflow,
+            JSON.stringify({ width, theme, historical, ...value }),
+          ).toBe(false);
+          expect(parseFloat(value.font)).toBeGreaterThanOrEqual(16);
+        }
+        expect(
+          await details.evaluate(
+            (node) => node.scrollWidth <= node.clientWidth + 1,
+          ),
+        ).toBe(true);
+      }
+      await page.screenshot({
+        path: test
+          .info()
+          .outputPath(`diagnostic-observations-${width}-${theme}.png`),
+      });
     }
   }
 });
