@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 set -euo pipefail
-version="0.2.14"
+version="0.2.15"
 build="release-1"
 repository="fireflyframework/firefly-agent-bridge"
 case "$(uname -s)" in

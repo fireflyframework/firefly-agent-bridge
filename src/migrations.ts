@@ -32,6 +32,7 @@ export function migrate(db: DatabaseSync): void {
  CREATE INDEX IF NOT EXISTS jobs_status ON jobs(status,mode);
  CREATE TABLE IF NOT EXISTS attempts(id TEXT PRIMARY KEY, job_id TEXT NOT NULL REFERENCES jobs(id), data TEXT NOT NULL);
  CREATE INDEX IF NOT EXISTS attempts_job ON attempts(job_id);
+ CREATE INDEX IF NOT EXISTS attempts_running_owner ON attempts(json_extract(data,'$.owner')) WHERE json_extract(data,'$.status')='running';
  CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT, principal_id TEXT NOT NULL, job_id TEXT NOT NULL, type TEXT NOT NULL, data TEXT NOT NULL, created_at TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS idempotency(principal_id TEXT NOT NULL, route TEXT NOT NULL, key TEXT NOT NULL, fingerprint TEXT NOT NULL, resource_id TEXT NOT NULL, PRIMARY KEY(principal_id,route,key));
  CREATE TABLE IF NOT EXISTS tokens(hash TEXT PRIMARY KEY, data TEXT NOT NULL, revoked INTEGER NOT NULL DEFAULT 0);

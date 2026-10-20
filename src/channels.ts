@@ -100,7 +100,9 @@ export class Channels {
     for (const [id, seen] of this.hosts)
       if (now - seen > 7000) this.hosts.delete(id);
     for (const row of this.store.db
-      .prepare("SELECT data FROM attempts")
+      .prepare(
+        "SELECT data FROM attempts WHERE json_extract(data,'$.status')='running' AND json_extract(data,'$.owner') GLOB 'channel:*'",
+      )
       .all() as { data: string }[]) {
       const a = JSON.parse(row.data) as Attempt;
       if (

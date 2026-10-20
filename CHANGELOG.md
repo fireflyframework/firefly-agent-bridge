@@ -2,6 +2,13 @@
 
 # Changelog
 
+## 0.2.15 - 2026-10-20
+
+- Limit periodic channel-lease maintenance to running channel claims through a partial SQLite index. Retain completed attempt history without decoding it on every maintenance pass.
+- Preserve scheduler-owned CLI attempts, channel lease expiry and fenced interruption. Apply the index to existing version-2 databases without rewriting attempt records.
+
+The performance regression uses synthetic attempt history and controlled host leases. It does not establish the cause of a live service slowdown.
+
 ## 0.2.14 - 2026-10-16
 
 - Retain an opt-in original inference admission and its first terminal receipt, scoped to the authenticated principal and selected profile. Exact reads return the original body fingerprint, job reference and retained result without submitting work again.
