@@ -47,13 +47,13 @@ async function main() {
     },
   });
   if (values.version) {
-    console.log("0.2.15");
+    console.log("0.2.16");
     return;
   }
   const command = positionals[0] ?? "help",
     dataDir = resolve(values["data-dir"] ?? defaultDataDir());
   if (command === "help" || values.help) {
-    console.log(`Firefly Agent Bridge 0.2.15
+    console.log(`Firefly Agent Bridge 0.2.16
 Usage: firefly-bridge <command> [--data-dir PATH]
   init        Initialize local configuration (--worker codex|claude)
   serve       Run the service (--managed follows host leases)
