@@ -2,6 +2,10 @@
 
 # Changelog
 
+## 0.2.16 - 2026-10-20
+
+- Update the locked Hono dependency from 4.13.9 to 4.13.11 for the upstream static-path security fix in [GHSA-5r4p-p66f-jhc7](https://github.com/advisories/GHSA-5r4p-p66f-jhc7).
+
 ## 0.2.15 - 2026-10-20
 
 - Limit periodic channel-lease maintenance to running channel claims through a partial SQLite index. Retain completed attempt history without decoding it on every maintenance pass.
