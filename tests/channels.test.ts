@@ -17,9 +17,10 @@
  * limitations under the License.
  */
 
-import { it, expect } from "vitest";
+import { it, expect, vi } from "vitest";
 import { Channels } from "../src/channels.js";
 import { QueueStore } from "../src/store.js";
+import { migrate } from "../src/migrations.js";
 const owner = { id: "owner", owner: true, profiles: ["default"] };
 it("fences channel delivery and interrupts orphaned claims without rerunning side effects", () => {
   const s = new QueueStore(":memory:"),
@@ -55,6 +56,88 @@ it("allows only one outstanding claim per host conversation", () => {
     c.complete("host", a.id, a.fence, "done");
     expect(c.claim("host", second.id).job.id).toBe(second.id);
   } finally {
+    s.close();
+  }
+});
+
+it("reaps only indexed active channel attempts regardless of terminal history", () => {
+  const s = new QueueStore(":memory:"),
+    c = new Channels(s);
+  try {
+    vi.spyOn(Date, "now").mockReturnValue(1_000_000);
+    c.heartbeat("finished");
+    const completed = s.submit({ prompt: "finished", mode: "channel" }, owner);
+    const terminal = c.claim("finished", completed.id).attempt;
+    c.complete("finished", terminal.id, terminal.fence, "done");
+    const history = s.db
+      .prepare("SELECT data FROM attempts WHERE id=?")
+      .get(terminal.id) as { data: string };
+    s.atomic(() => {
+      const insert = s.db.prepare("INSERT INTO attempts VALUES(?,?,?)");
+      for (let i = 0; i < 2000; i++) {
+        const id = "history-" + i;
+        insert.run(
+          id,
+          completed.id,
+          JSON.stringify({ ...JSON.parse(history.data), id }),
+        );
+      }
+    });
+    c.heartbeat("live");
+    c.heartbeat("orphan");
+    const live = s.submit({ prompt: "live", mode: "channel" }, owner);
+    const orphan = s.submit({ prompt: "orphan", mode: "channel" }, owner);
+    c.claim("live", live.id);
+    c.claim("orphan", orphan.id);
+    const cli = s.submit({ prompt: "CLI remains owned" }, owner);
+    s.claim("scheduler", "cli", cli.id);
+    const now = Date.now();
+    c.heartbeat("live");
+    // Reapplying the startup migration must preserve existing version-2 history.
+    s.db.exec("DROP INDEX IF EXISTS attempts_running_owner");
+    migrate(s.db);
+    migrate(s.db);
+    let materialized = 0,
+      query = "";
+    const prepare = s.db.prepare.bind(s.db);
+    vi.spyOn(s.db, "prepare").mockImplementation((sql) => {
+      const statement = prepare(sql);
+      if (sql.startsWith("SELECT data FROM attempts")) {
+        query = sql;
+        const all = statement.all.bind(statement);
+        vi.spyOn(statement, "all").mockImplementation((...parameters) => {
+          const rows = all(...parameters);
+          materialized += rows.length;
+          return rows;
+        });
+      }
+      return statement;
+    });
+    c.reap(now + 6999);
+    vi.restoreAllMocks();
+    expect(materialized).toBe(2);
+    expect(s.get(cli.id).status).toBe("running");
+    expect(s.get(live.id).status).toBe("running");
+    expect(s.get(orphan.id).status).toBe("running");
+    c.reap(now + 8000);
+    expect(s.get(live.id).status).toBe("interrupted");
+    expect(s.get(orphan.id).status).toBe("interrupted");
+    expect(s.get(cli.id).status).toBe("running");
+    expect(
+      (
+        s.db.prepare("SELECT COUNT(*) AS count FROM attempts").get() as {
+          count: number;
+        }
+      ).count,
+    ).toBe(2004);
+    const plan = s.db.prepare("EXPLAIN QUERY PLAN " + query).all() as {
+      detail: string;
+    }[];
+    expect(
+      plan.some((row) => row.detail.includes("attempts_running_owner")),
+    ).toBe(true);
+  } finally {
+    vi.restoreAllMocks();
     s.close();
   }
 });
