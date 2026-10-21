@@ -40,12 +40,17 @@ export class Scheduler {
   private ticking = false;
   readonly owner = randomUUID();
   private readinessValue: WorkerReadiness = { ready: true };
+  private readinessRevisionValue = 0;
   private readinessAt = new Date().toISOString();
+  get readinessRevision(): number {
+    return this.readinessRevisionValue;
+  }
   get readiness(): WorkerReadiness {
     return this.readinessValue;
   }
   set readiness(value: WorkerReadiness) {
     this.readinessValue = value;
+    this.readinessRevisionValue++;
     this.readinessAt = new Date().toISOString();
   }
   get observations(): ProviderObservations {

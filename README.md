@@ -88,6 +88,8 @@ Native agent work uses the Chat Completions endpoint with an explicit execution 
 
 Send this to `POST /v1/chat/completions` with a bearer header and an idempotency key. The 202 response identifies a durable job; inspect `GET /v1/bridge/jobs/{id}/result` or `/v1/bridge/events` for its outcome. Inference requests disable native actions and return declared function calls for the calling application to execute. [SDK examples](docs/openai-compatible.md) cover structured output, functions and bounded image input with explicit capability verification.
 
+Requests that wait for a completion use the scheduler's fresh readiness result instead of treating a saved startup failure as current. Background agent requests still return their durable admission immediately. A fresh unavailable result returns `execution_unavailable`; the configured completion timeout still bounds the wait. See [readiness and errors](docs/openai-compatible.md#worker-readiness) for details.
+
 For inference delivery loss, a caller can opt into [original completion recovery](docs/openai-compatible.md#read-an-original-completion-after-delivery-loss) before submitting. Retain the request identity and read its original admission and first terminal result with the same principal. A missing result does not authorize another submission; recovering the result does not restore an interrupted application agent graph.
 
 ## Configure access and execution

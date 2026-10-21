@@ -12,7 +12,7 @@ Open the local console URL returned by `bridge_panel` and authenticate with a br
 
 Select any screenshot to open its full capture. Images follow the page's light or dark appearance.
 
-The screenshots show Bridge 0.2.16 running in an isolated local fixture service at the configured desktop and mobile sizes. Jobs, tool observations, workflow results and provider states use deterministic fixtures. Sign-in, quota reports and dispatch appear separately; a signed-in or enabled state does not establish remaining quota or context capacity. The controlled scenes do not measure a real subscription. Historical checks with authenticated official CLIs remain in [verification](verification.md).
+The screenshots show Bridge 0.2.17 running in an isolated local fixture service at the configured desktop and mobile sizes. Jobs, tool observations, workflow results and provider states use deterministic fixtures. Sign-in, quota reports and dispatch appear separately; a signed-in or enabled state does not establish remaining quota or context capacity. The controlled scenes do not measure a real subscription. Historical checks with authenticated official CLIs remain in [verification](verification.md).
 
 ## Connect
 

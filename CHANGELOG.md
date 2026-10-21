@@ -2,6 +2,15 @@
 
 # Changelog
 
+## 0.2.17 - 2026-10-21
+
+- Wait for a fresh scheduler readiness check before refusing a waiting completion because of a stale startup failure. Both buffered and streaming requests can proceed when the selected worker becomes ready.
+- Return `execution_unavailable` only after a fresh unavailable result. The existing completion timeout, durable admission and cancellation rules continue to apply.
+- Refresh package metadata, installation examples and controlled console screenshots for this version.
+- Pin the development-only Vite dependency to 8.3.3 for the upstream editor-launch security fixes. The installed bridge does not ship Vite.
+
+The regression uses controlled worker readiness and real local HTTP requests. Live subscription execution and factory acceptance are recorded separately.
+
 ## 0.2.16 - 2026-10-20
 
 - Update the locked Hono dependency from 4.13.9 to 4.13.11 for the upstream static-path security fix in [GHSA-5r4p-p66f-jhc7](https://github.com/advisories/GHSA-5r4p-p66f-jhc7).

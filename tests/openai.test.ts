@@ -25,11 +25,15 @@ import { startService } from "../src/service.js";
 import { parseConfig } from "../src/config.js";
 import { Tokens } from "../src/auth.js";
 import type { Outcome } from "../src/contracts.js";
+import type { WorkerReadiness } from "../src/worker.js";
 let dir: string,
   service: Awaited<ReturnType<typeof startService>>,
   token: string,
   delay: number,
   readyDelay: number,
+  readyResult: WorkerReadiness,
+  readySettled: boolean,
+  runCount: number,
   outcome: Outcome;
 const base = {
   model: "bridge/default",
@@ -39,6 +43,9 @@ beforeEach(async () => {
   dir = mkdtempSync(join(tmpdir(), "bridge-completions-"));
   delay = 10;
   readyDelay = 0;
+  readyResult = { ready: true };
+  readySettled = false;
+  runCount = 0;
   outcome = {
     status: "succeeded",
     result: JSON.stringify({ content: "Hello!", tool_calls: [] }),
@@ -56,9 +63,11 @@ beforeEach(async () => {
       worker: () => ({
         ready: async () => {
           await new Promise((r) => setTimeout(r, readyDelay));
-          return { ready: true };
+          readySettled = true;
+          return readyResult;
         },
         run: async (_input, _emit, signal) => {
+          runCount++;
           await new Promise<void>((r) => {
             const timer = setTimeout(done, delay);
             function done() {
@@ -95,6 +104,36 @@ function post(body: unknown = base, extra: Record<string, string> = {}) {
     body: JSON.stringify(body),
   });
 }
+it.each([false, true])(
+  "waits for fresh worker readiness instead of rejecting a stale startup failure (stream=%s)",
+  async (stream) => {
+    service.scheduler.readiness = {
+      ready: false,
+      reason: "authentication_required: verify the executable and login",
+    };
+    readyDelay = 200;
+    const response = await post({ ...base, stream });
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("Hello!");
+    expect(readySettled).toBe(true);
+    expect(runCount).toBe(1);
+    expect(service.store.list()[0]!.status).toBe("succeeded");
+  },
+);
+it("rejects an unavailable worker only after a fresh check, even when its readiness object is reused", async () => {
+  readyResult = {
+    ready: false,
+    reason: "authentication_required: sign in with the official CLI",
+  };
+  service.scheduler.readiness = readyResult;
+  readyDelay = 200;
+  const response = await post();
+  expect(response.status).toBe(503);
+  expect(await response.text()).toContain("execution_unavailable");
+  expect(readySettled).toBe(true);
+  expect(runCount).toBe(0);
+  expect(service.store.list()[0]!.status).toBe("canceled");
+});
 it("lists authorized model aliases and returns a persisted OpenAI response and usage", async () => {
   const models = await fetch(service.address + "/v1/models", {
     headers: { authorization: "Bearer " + token },

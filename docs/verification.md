@@ -30,6 +30,12 @@ The home-page illustration is an original Bridge span mesh rendered with pinned 
 
 The prose check catches a small set of editorial regressions outside code and links. It does not automate the Humanizer's contextual judgment. Manual review preserves technical claims, API labels, commands, and limitations while removing repetitive or promotional wording.
 
+## 0.2.17 readiness regression
+
+The completion regressions hold a readiness check open while the previous snapshot reports an authentication failure. Buffered and streaming requests wait for the fresh successful result, execute one controlled worker attempt and return the retained completion. A separate unavailable case reuses the same readiness object and proves that the fresh check returns HTTP 503 without executing a worker.
+
+These tests exercise actual local HTTP admission and scheduler behavior with controlled workers. The release gate separately checks the Python clients, console, strict documentation and native package. Actual provider sign-in, subscription execution and forge delivery remain separate acceptance steps.
+
 ## 0.2.4 console checks
 
 The console checks cover anonymous destination gating, 120-pixel phone chrome, native modal navigation, Escape and focus restoration, three-step job validation and Back behavior, masked token creation, explicit permission choices, expired access cleanup, job admission replay, and image-probe failure without a false vision claim. Named workflow inputs replace the primary JSON box; JSON remains an explicit advanced option. Diagnostic values are tested against their card width so worker names and states remain readable. Existing conversation, workflow, file/audit and footer checks remain in the release gate.
