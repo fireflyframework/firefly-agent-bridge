@@ -232,6 +232,7 @@ export function registerOpenAI(
       const key = req.headers["idempotency-key"];
       if (Array.isArray(key))
         throw new BridgeError("invalid_header", "Use one idempotency key");
+      const readinessRevisionAtAdmission = d.scheduler.readinessRevision;
       const job = d.store.atomic(() => {
         let created = false;
         const admitted = d.store.idempotent(
@@ -425,7 +426,9 @@ export function registerOpenAI(
               current.error ?? "Execution did not complete",
               current.status === "timed_out" ? 504 : 502,
             );
+          // A startup failure may predate the scheduler's fresh check of queued work.
           if (
+            d.scheduler.readinessRevision > readinessRevisionAtAdmission &&
             !d.scheduler.readiness.ready &&
             d.scheduler.readiness.reason &&
             !d.scheduler.readiness.reason.startsWith("Checking")
