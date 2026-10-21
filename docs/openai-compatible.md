@@ -263,3 +263,9 @@ This capability preserves evidence of a completion. It does not restore an
 Agentic message/tool checkpoint or make an interrupted Forge run resumable.
 Legacy unknown outcomes without a durable correlation remain held. Forge's
 operator recovery adapters and graph continuation require separate integration.
+
+## Worker readiness
+
+A saved startup failure can become stale while the scheduler checks a newly queued completion. Requests that wait for a completion use that fresh check before treating an unavailable result as current. A successful check lets the admitted job proceed; a fresh failure returns HTTP 503 with `execution_unavailable`. Buffered and streaming completion waits use the same rule, within the configured completion timeout. Background agent requests return their durable admission immediately.
+
+Readiness describes the selected worker at the time of the check. Provider authentication and reported subscription limits remain visible separately in Diagnostics. After a delivery problem, use the original completion recovery contract or the same idempotency key to inspect the existing admission before submitting anything new.
