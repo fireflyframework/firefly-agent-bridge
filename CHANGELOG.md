@@ -7,6 +7,7 @@
 - Wait for a fresh scheduler readiness check before refusing a waiting completion because of a stale startup failure. Both buffered and streaming requests can proceed when the selected worker becomes ready.
 - Return `execution_unavailable` only after a fresh unavailable result. The existing completion timeout, durable admission and cancellation rules continue to apply.
 - Refresh package metadata, installation examples and controlled console screenshots for this version.
+- Pin the development-only Vite dependency to 8.3.3 for the upstream editor-launch security fixes. The installed bridge does not ship Vite.
 
 The regression uses controlled worker readiness and real local HTTP requests. Live subscription execution and factory acceptance are recorded separately.
 
