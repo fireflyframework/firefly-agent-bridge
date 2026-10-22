@@ -428,56 +428,125 @@ const diagrams: Record<
 };
 const escape = (s: string) =>
   s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-for (const [name, diagram] of Object.entries(diagrams))
-  for (const dark of [false, true]) {
-    const c = dark
-      ? {
-          bg: "#10110f",
-          surface: "#1a1b17",
-          ink: "#f3f1eb",
-          muted: "#bfb8ab",
-          line: "#474a42",
-          accent: "#ffb34a",
-        }
-      : {
-          bg: "#f3f1eb",
-          surface: "#ffffff",
-          ink: "#272820",
-          muted: "#62645b",
-          line: "#d8d4ca",
-          accent: "#855414",
-        };
-    const text = (
-      x: number,
-      y: number,
-      value: string,
-      size = 18,
-      fill = c.ink,
-      weight = 450,
-    ) =>
-      `<text x="${x}" y="${y}" fill="${fill}" font-size="${size}" font-weight="${weight}">${escape(value)}</text>`;
-    const cards = diagram.cards
-      .map((card, i) => {
-        const x = 40 + (i % 3) * 416,
-          y = 196 + Math.floor(i / 3) * 220;
-        return (
-          `<rect x="${x}" y="${y}" width="384" height="192" rx="12" fill="${c.surface}" stroke="${c.line}"/><rect x="${x + 24}" y="${y + 25}" width="4" height="24" rx="2" fill="#ffb34a"/>` +
-          text(x + 42, y + 44, card[0], 22, c.ink, 650) +
-          card
-            .slice(1)
-            .map((line, j) => text(x + 24, y + 90 + j * 32, line, 17, c.muted))
-            .join("")
-        );
-      })
-      .join("");
-    const svg =
-      notice +
-      `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title desc"><title id="title">${escape(diagram.title)}</title><desc id="desc">${escape(diagram.description + " " + diagram.foot)}</desc><style>@font-face{font-family:Manrope;src:url(data:font/woff2;base64,${font}) format('woff2');font-weight:200 800}text{font-family:Manrope,Arial,sans-serif}</style><rect width="1280" height="700" fill="${c.bg}"/>${text(40, 46, "FIREFLY AGENT BRIDGE / " + name.replaceAll("-", " ").toUpperCase(), 12, c.accent, 750)}${text(40, 105, diagram.title, 36, c.ink, 500)}${text(40, 146, diagram.description, 18, c.muted)}${cards}<path d="M40 646H1240" stroke="${c.line}"/>${text(40, 676, diagram.foot, 14, c.muted)}</svg>`;
-    writeFileSync(
-      "assets/diagrams/" + name + (dark ? "-dark" : "") + ".svg",
-      svg,
-    );
+const wrap = (value: string, limit: number) => {
+  const lines: string[] = [];
+  for (const word of value.split(" ")) {
+    const last = lines.at(-1);
+    if (last && last.length + word.length + 1 <= limit)
+      lines[lines.length - 1] = last + " " + word;
+    else lines.push(word);
   }
+  return lines;
+};
+for (const [name, diagram] of Object.entries(diagrams))
+  for (const dark of [false, true])
+    for (const narrow of [false, true]) {
+      const c = dark
+        ? {
+            bg: "#10110f",
+            surface: "#1a1b17",
+            ink: "#f3f1eb",
+            muted: "#bfb8ab",
+            line: "#474a42",
+            accent: "#ffb34a",
+          }
+        : {
+            bg: "#f3f1eb",
+            surface: "#ffffff",
+            ink: "#272820",
+            muted: "#62645b",
+            line: "#d8d4ca",
+            accent: "#855414",
+          };
+      const width = narrow ? 360 : 960;
+      const margin = narrow ? 20 : 32;
+      const columns = narrow ? 1 : 2;
+      const gap = 24;
+      const cardWidth = (width - margin * 2 - gap * (columns - 1)) / columns;
+      const text = (
+        x: number,
+        y: number,
+        value: string,
+        size = 18,
+        fill = c.ink,
+        weight = 450,
+      ) =>
+        `<text x="${x}" y="${y}" fill="${fill}" font-size="${size}" font-weight="${weight}">${escape(value)}</text>`;
+      const titleLines = wrap(diagram.title, narrow ? 22 : 48);
+      const introLines = wrap(diagram.description, narrow ? 34 : 88);
+      let y = 40;
+      let content = text(
+        margin,
+        y,
+        "Firefly Agent Bridge",
+        narrow ? 16 : 18,
+        c.accent,
+        650,
+      );
+      y += 44;
+      for (const line of titleLines) {
+        content += text(margin, y, line, narrow ? 28 : 34, c.ink, 550);
+        y += narrow ? 36 : 44;
+      }
+      y += 8;
+      for (const line of introLines) {
+        content += text(margin, y, line, 18, c.muted);
+        y += 28;
+      }
+      y += 20;
+      for (let i = 0; i < diagram.cards.length; i += columns) {
+        const row = diagram.cards.slice(i, i + columns).map((card) => {
+          const heading = wrap(card[0], narrow ? 23 : 32);
+          const body = card
+            .slice(1)
+            .flatMap((line) => wrap(line, narrow ? 29 : 43));
+          return {
+            heading,
+            body,
+            height: 48 + heading.length * 30 + body.length * 28,
+          };
+        });
+        const rowHeight = Math.max(...row.map((card) => card.height));
+        row.forEach((card, column) => {
+          const x = margin + column * (cardWidth + gap);
+          content += '<g class="diagram-card">';
+          content += `<rect x="${x}" y="${y}" width="${cardWidth}" height="${rowHeight}" rx="12" fill="${c.surface}" stroke="${c.line}"/>`;
+          content += `<rect x="${x + 20}" y="${y + 24}" width="3" height="22" rx="1" fill="#ffb34a"/>`;
+          card.heading.forEach((line, index) => {
+            content += text(x + 34, y + 42 + index * 30, line, 22, c.ink, 650);
+          });
+          card.body.forEach((line, index) => {
+            content += text(
+              x + 20,
+              y + 62 + card.heading.length * 30 + index * 28,
+              line,
+              18,
+              c.muted,
+            );
+          });
+          content += "</g>";
+        });
+        y += rowHeight + gap;
+      }
+      content += `<path d="M${margin} ${y}H${width - margin}" stroke="${c.line}"/>`;
+      y += 30;
+      for (const line of wrap(diagram.foot, narrow ? 36 : 88)) {
+        content += text(margin, y, line, narrow ? 16 : 18, c.muted);
+        y += 26;
+      }
+      const height = y + 10;
+      const svg =
+        notice +
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="title desc"><title id="title">${escape(diagram.title)}</title><desc id="desc">${escape(diagram.description + " " + diagram.cards.map((card) => card.join(". ")).join(". ") + " " + diagram.foot)}</desc><style>@font-face{font-family:Manrope;src:url(data:font/woff2;base64,${font}) format('woff2');font-weight:200 800}text{font-family:Manrope,Arial,sans-serif}</style><rect width="${width}" height="${height}" fill="${c.bg}"/>${content}</svg>`;
+      writeFileSync(
+        "assets/diagrams/" +
+          name +
+          (dark ? "-dark" : "") +
+          (narrow ? "-narrow" : "") +
+          ".svg",
+        svg,
+      );
+    }
 console.log(
   "Generated nine theme-aware Bridge diagrams from maintained execution contracts.",
 );

@@ -39,7 +39,7 @@ claude --plugin-dir /absolute/path/to/firefly-agent-bridge/integrations/claude-c
 
 The native archive includes a Codex plugin manifest, operation skill, MCP configuration, and local artwork beside the executable. Register it in a trusted local marketplace and install it through your supported Codex surface. The manifest uses the documented compatibility layout. See [OpenAI plugin packaging](https://developers.openai.com/plugins/build/plugins) and [local marketplaces](https://learn.chatgpt.com/docs/changelog).
 
-Register the extracted native archive as a local marketplace, then install its plugin. The following identifier matches the 0.2.17 package metadata:
+Register the extracted native archive as a local marketplace, then install its plugin. The following identifier matches the 0.2.18 package metadata:
 
 ```sh
 codex plugin marketplace add /absolute/path/to/firefly-bridge-local

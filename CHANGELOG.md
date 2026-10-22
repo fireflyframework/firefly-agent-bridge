@@ -2,6 +2,12 @@
 
 # Changelog
 
+## 0.2.18 - 2026-10-22
+
+- Reflow all nine architecture and workflow diagrams into two columns on wider pages and one column on phones. Light and dark variants embed Manrope and keep labels inside their cards.
+- Select narrow SVG diagrams in the documentation reading view, retain downloadable PNG versions, and keep the 320-pixel header within the viewport.
+- Check rendered label sizes, embedded fonts, theme selection, and every diagram's text bounds in the browser. Refresh controlled console screenshots and release metadata together.
+
 ## 0.2.17 - 2026-10-21
 
 - Wait for a fresh scheduler readiness check before refusing a waiting completion because of a stale startup failure. Both buffered and streaming requests can proceed when the selected worker becomes ready.

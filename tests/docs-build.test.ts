@@ -238,3 +238,46 @@ it("keeps themed screenshots inside table cells and preserves native phone dimen
   expect(html).toContain("<td>Choose Jobs</td>");
   expect(html).not.toContain("<p>|");
 });
+
+it("publishes escaped theme and responsive diagram paths on root and guide pages", () => {
+  mkdirSync(join(directory, "assets/diagrams"), { recursive: true });
+  for (const variant of ["", "-dark", "-narrow", "-dark-narrow"])
+    writeFileSync(
+      join(directory, `assets/diagrams/example${variant}.svg`),
+      '<svg xmlns="http://www.w3.org/2000/svg" width="360" height="100"></svg>',
+    );
+  const body = described(
+    '# Diagram\n\n![A "quoted" & <marked> diagram](../assets/diagrams/example.svg)\n',
+    "responsive diagrams",
+  );
+  writeFileSync(join(directory, "docs/index.md"), body);
+  writeFileSync(
+    join(directory, "docs/installation.md"),
+    body
+      .replace("# Diagram", "# Install")
+      .replace("responsive diagrams", "guide diagrams"),
+  );
+  const root = build();
+  const guide = readFileSync(
+    join(directory, "work/docs-site/installation/index.html"),
+    "utf8",
+  );
+  for (const [html, prefix] of [
+    [root, ""],
+    [guide, "../"],
+  ]) {
+    expect(html).toContain(
+      'alt="A &quot;quoted&quot; &amp; &lt;marked&gt; diagram"',
+    );
+    for (const theme of ["light", "dark"]) {
+      const suffix = theme === "dark" ? "-dark" : "";
+      expect(html).toContain(`class="bridge-diagram theme-${theme}"`);
+      expect(html).toContain(
+        `srcset="${prefix}assets/diagrams/example${suffix}-narrow.svg"`,
+      );
+      expect(html).toContain(
+        `src="${prefix}assets/diagrams/example${suffix}.svg"`,
+      );
+    }
+  }
+});

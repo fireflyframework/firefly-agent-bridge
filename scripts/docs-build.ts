@@ -67,16 +67,16 @@ for (const file of readdirSync(staging).filter((name) =>
   body = body.replace(
     /!\[([^\]]*)\]\((assets\/(diagrams|screenshots)\/[^)]+)\)/g,
     (original, alt, path) => {
+      const escape = (value: string) =>
+        value
+          .replaceAll("&", "&amp;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
       const themed = /-light(?=-|\.)/.test(path)
         ? path.replace(/-light(?=-|\.)/, "-dark")
         : path.replace(/\.(svg|png)$/, "-dark.$1");
       if (path.startsWith("assets/screenshots/")) {
-        const escape = (value: string) =>
-          value
-            .replaceAll("&", "&amp;")
-            .replaceAll('"', "&quot;")
-            .replaceAll("<", "&lt;")
-            .replaceAll(">", "&gt;");
         const link = (image: string, theme: string) => {
           const png = readFileSync(join(staging, image));
           const width = png.readUInt32BE(16);
@@ -87,6 +87,16 @@ for (const file of readdirSync(staging).filter((name) =>
         // Keep theme pairs inline so image expansion cannot split table rows.
         return link(path, "theme-light") + link(themed, "theme-dark");
       }
+      const picture = (image: string, theme: string) => {
+        const narrow = image.replace(/\.svg$/, "-narrow.svg");
+        const url = (value: string) =>
+          file === "index.md" ? value : "../" + value;
+        if (!existsSync(join(staging, narrow)))
+          throw new Error("Missing narrow diagram: " + narrow);
+        return `<picture class="bridge-diagram ${theme}"><source media="(max-width: 760px)" srcset="${escape(url(narrow))}"><img src="${escape(url(image))}" alt="${escape(alt)}" loading="lazy"></picture>`;
+      };
+      if (path.startsWith("assets/diagrams/") && path.endsWith(".svg"))
+        return picture(path, "theme-light") + picture(themed, "theme-dark");
       return (
         original +
         "{ .theme-light }\n\n![" +
