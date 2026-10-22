@@ -253,6 +253,29 @@
   display: none;
 }
 
+.md-typeset .bridge-diagram {
+  display: block;
+  width: 100%;
+  margin-block: 24px;
+}
+
+.md-typeset .bridge-diagram img {
+  display: block;
+  width: 100%;
+  margin: 0;
+}
+
+[data-md-color-scheme="default"] .bridge-diagram.theme-dark,
+[data-md-color-scheme="slate"] .bridge-diagram.theme-light {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .md-typeset .bridge-diagram {
+    max-width: 416px;
+  }
+}
+
 .md-typeset table:not([class]) {
   background: var(--bridge-surface);
   border-color: var(--bridge-line);
@@ -528,9 +551,8 @@
 }
 
 @media (max-width: 600px) {
-  .md-header__title {
-    margin-inline: 4px;
-    font-size: 14px;
+  .md-header__inner .md-header__title {
+    display: none;
   }
 
   .md-header__button.md-logo {
@@ -540,9 +562,6 @@
   .md-header__button.md-logo img {
     width: auto;
     height: 23px;
-  }
-  .md-header__title {
-    margin-inline: 0;
   }
 
   .md-typeset h1 {
@@ -564,6 +583,12 @@
 
   .md-typeset pre > code {
     padding: 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .md-header__button.md-logo img {
+    height: 20px;
   }
 }
 

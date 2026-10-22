@@ -30,6 +30,12 @@ The home-page illustration is an original Bridge span mesh rendered with pinned 
 
 The prose check catches a small set of editorial regressions outside code and links. It does not automate the Humanizer's contextual judgment. Manual review preserves technical claims, API labels, commands, and limitations while removing repetitive or promotional wording.
 
+## 0.2.18 diagram readability
+
+The documentation browser checks measure the smallest rendered SVG label at 320, 390, 768, 1024 and 1440 pixels in both themes. Labels stay at least 12 CSS pixels high, the selected theme and narrow variant match the viewport, and the page stays within its viewport. A separate check loads all 36 generated SVGs, verifies the embedded Manrope face and checks every label against its canvas and card bounds. The source build tests preserve escaped alternative text and relative asset paths on the landing page and guide pages.
+
+The maintained diagram content generates both SVG and PNG variants. Browser geometry checks accompany direct visual review of the reading view; they do not establish actual provider execution.
+
 ## 0.2.17 readiness regression
 
 The completion regressions hold a readiness check open while the previous snapshot reports an authentication failure. Buffered and streaming requests wait for the fresh successful result, execute one controlled worker attempt and return the retained completion. A separate unavailable case reuses the same readiness object and proves that the fresh check returns HTTP 503 without executing a worker.

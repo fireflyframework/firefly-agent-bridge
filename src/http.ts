@@ -246,7 +246,7 @@ export function createHttpService(d: HttpDependencies) {
   app.get("/v1/bridge/status", async (req) => {
     const p = requireScope(req, "read");
     return {
-      version: "0.2.17",
+      version: "0.2.18",
       protocolVersion: 2,
       completionRecovery: {
         version: 1,

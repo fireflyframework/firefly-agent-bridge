@@ -51,3 +51,11 @@ Back up a stopped service and its SQLite sidecars. The bridge retains jobs and a
 The listener stays bound to `127.0.0.1`. A [tunnel](tunnels.md) can provide an HTTPS edge with exact host/origin allowlists and an additional access policy. Bridge bearer authentication still applies. Keep the owner token local and issue a scoped token to each trusted remote client.
 
 Report security problems privately through the channel in [SECURITY.md](../SECURITY.md). Keep private prompts, tokens and provider login material out of public issues.
+
+## Dependency maintenance
+
+Version 0.2.18 pins Fastify 5.12.6 for its [header-schema normalization fix](https://github.com/fastify/fastify/security/advisories/GHSA-389g-gv7q-r4x8). A targeted override keeps the MCP rate limiter's ip-address dependency at 10.7.4 for the [bounded IPv6 zone parsing fix](https://github.com/beaugunderson/ip-address/security/advisories/GHSA-rxp7-6hxx-x8q5). Fastify is included in the installed executable; ip-address belongs to the locked SDK dependency graph used by source installations.
+
+The development-only Vitest 5.0.3 pin includes the [manual mock registration](https://github.com/vitest-dev/vitest/security/advisories/GHSA-qxg6-89mg-rqv8) and [Windows redirect validation](https://github.com/vitest-dev/vitest/security/advisories/GHSA-xp26-3454-mjgp) fixes. Vitest is excluded from the installed executable.
+
+Audit the complete lockfile, including development dependencies, with `npm audit --package-lock-only --audit-level=low`. Run `npm run check` after changing the lockfile so HTTP behavior, SDK clients, browser flows, documentation and the native package are checked together. An audit result describes the advisory database at the time it runs; it is separate from provider and host acceptance.

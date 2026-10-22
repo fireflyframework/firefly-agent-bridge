@@ -2,6 +2,14 @@
 
 # Changelog
 
+## 0.2.18 - 2026-10-22
+
+- Reflow all nine architecture and workflow diagrams into two columns on wider pages and one column on phones. Light and dark variants embed Manrope and keep labels inside their cards.
+- Select narrow SVG diagrams in the documentation reading view, retain downloadable PNG versions, and keep the 320-pixel header within the viewport.
+- Check rendered label sizes, embedded fonts, theme selection, and every diagram's text bounds in the browser. Refresh controlled console screenshots and release metadata together.
+- Pin Fastify 5.12.6 and the rate limiter's ip-address 10.7.4 dependency for the upstream [header-schema validation](https://github.com/fastify/fastify/security/advisories/GHSA-389g-gv7q-r4x8) and [IPv6 parsing](https://github.com/beaugunderson/ip-address/security/advisories/GHSA-rxp7-6hxx-x8q5) fixes.
+- Pin development-only Vitest 5.0.3 for the upstream [manual mock registration](https://github.com/vitest-dev/vitest/security/advisories/GHSA-qxg6-89mg-rqv8) and [Windows mock redirect](https://github.com/vitest-dev/vitest/security/advisories/GHSA-xp26-3454-mjgp) fixes.
+
 ## 0.2.17 - 2026-10-21
 
 - Wait for a fresh scheduler readiness check before refusing a waiting completion because of a stale startup failure. Both buffered and streaming requests can proceed when the selected worker becomes ready.
