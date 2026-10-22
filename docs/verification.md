@@ -30,6 +30,12 @@ The home-page illustration is an original Bridge span mesh rendered with pinned 
 
 The prose check catches a small set of editorial regressions outside code and links. It does not automate the Humanizer's contextual judgment. Manual review preserves technical claims, API labels, commands, and limitations while removing repetitive or promotional wording.
 
+## 0.2.19 Connect guide and locked navigation
+
+The dashboard guide selects the existing desktop and phone captures at the reading viewport and matches the selected theme. Browser checks verify native image dimensions, the full-image keyboard link, one caption and no horizontal overflow at 1440 and 390 pixels in both themes. The locked navigation checks keep every destination label on one line, retain the accessible Connect required description and exercise the existing sign-in gate without submitting jobs.
+
+The canonical screenshots come from isolated services and deterministic workers. These checks do not establish actual provider sign-in or model execution.
+
 ## 0.2.18 diagram readability
 
 The documentation browser checks measure the smallest rendered SVG label at 320, 390, 768, 1024 and 1440 pixels in both themes. Labels stay at least 12 CSS pixels high, the selected theme and narrow variant match the viewport, and the page stays within its viewport. A separate check loads all 36 generated SVGs, verifies the embedded Manrope face and checks every label against its canvas and card bounds. The source build tests preserve escaped alternative text and relative asset paths on the landing page and guide pages.

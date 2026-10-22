@@ -97,11 +97,16 @@ for (const width of [1440, 390, 375]) {
       await page.goto("/dashboard/");
       await readyStylesheets(page);
       const imageLink = page
-        .locator(".bridge-shot--phone .bridge-shot__link:visible")
-        .first();
+        .locator("article .bridge-shot")
+        .first()
+        .locator(".bridge-shot__link:visible");
       await imageLink.focus();
       await page.keyboard.press("Enter");
-      await expect(page).toHaveURL(/connect-mobile-(light|dark)\.png$/);
+      await expect(page).toHaveURL(
+        new RegExp(
+          `connect-${width === 1440 ? "desktop" : "mobile"}-(light|dark)\\.png$`,
+        ),
+      );
     });
   }
 }
