@@ -617,6 +617,17 @@
 .md-typeset .bridge-shot--phone .bridge-shot__link {
   max-width: min(100%, 320px);
 }
+.bridge-shot__mobile {
+  display: none;
+}
+@media (max-width: 760px) {
+  .bridge-shot__desktop {
+    display: none;
+  }
+  .bridge-shot__mobile {
+    display: block;
+  }
+}
 [data-md-color-scheme="default"] .bridge-shot__link.theme-dark,
 [data-md-color-scheme="slate"] .bridge-shot__link.theme-light {
   display: none;

@@ -12,7 +12,7 @@ Open the local console URL returned by `bridge_panel` and authenticate with a br
 
 Select any screenshot to open its full capture. Images follow the page's light or dark appearance.
 
-The screenshots show Bridge 0.2.18 running in an isolated local fixture service at the configured desktop and mobile sizes. Jobs, tool observations, workflow results and provider states use deterministic fixtures. Sign-in, quota reports and dispatch appear separately; a signed-in or enabled state does not establish remaining quota or context capacity. The controlled scenes do not measure a real subscription. Historical checks with authenticated official CLIs remain in [verification](verification.md).
+The screenshots show Bridge 0.2.19 running in an isolated local fixture service at the configured desktop and mobile sizes. Jobs, tool observations, workflow results and provider states use deterministic fixtures. Sign-in, quota reports and dispatch appear separately; a signed-in or enabled state does not establish remaining quota or context capacity. The controlled scenes do not measure a real subscription. Historical checks with authenticated official CLIs remain in [verification](verification.md).
 
 ## Connect
 
@@ -20,9 +20,19 @@ At **Connect**, choose a destination from the sidebar or phone menu. The console
 
 Paste an owner or application token into **Bridge token**. It remains in tab memory and is cleared from the form after connection. Reloading or disconnecting clears the session. Expired or revoked access returns to the connection gate and clears loaded private details.
 
-<figure class="bridge-shot bridge-shot--phone" markdown="1">
+<figure class="bridge-shot" markdown="1">
+
+<div class="bridge-shot__desktop" markdown="1">
+
+![Connect gate on desktop](../assets/screenshots/connect-desktop-light.png)
+
+</div>
+
+<div class="bridge-shot__mobile" markdown="1">
 
 ![Connect gate on a phone](../assets/screenshots/connect-mobile-light.png)
+
+</div>
 
 <figcaption>Connection gate before authentication. Choose your destination, enter a bridge token, then select Connect. Private job details appear only after access is accepted.</figcaption>
 </figure>

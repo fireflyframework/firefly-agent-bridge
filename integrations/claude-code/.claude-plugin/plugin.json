@@ -1,6 +1,6 @@
 {
   "name": "firefly-agent-bridge",
-  "version": "0.2.18",
+  "version": "0.2.19",
   "description": "Local jobs and workflows through your configured official Codex or Claude Code subscription.",
   "author": {
     "name": "@ancongui",

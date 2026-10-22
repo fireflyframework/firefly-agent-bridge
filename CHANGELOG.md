@@ -2,6 +2,12 @@
 
 # Changelog
 
+## 0.2.19 - 2026-10-22
+
+- Show the desktop Connect screenshot across the desktop dashboard guide and keep the phone capture on narrow screens, with matching light and dark variants.
+- Replace repeated Connect badges on locked navigation items with compact lock indicators. Preserve the accessible Connect required description and existing destination gate.
+- Refresh the controlled console captures and release metadata together. Add browser checks for single-line navigation labels, accessible locked destinations and the guide screenshot selection.
+
 ## 0.2.18 - 2026-10-22
 
 - Reflow all nine architecture and workflow diagrams into two columns on wider pages and one column on phones. Light and dark variants embed Manrope and keep labels inside their cards.
