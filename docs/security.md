@@ -54,7 +54,7 @@ Report security problems privately through the channel in [SECURITY.md](../SECUR
 
 ## Dependency maintenance
 
-Version 0.2.18 pins Fastify 5.12.6 for its [header-schema normalization fix](https://github.com/fastify/fastify/security/advisories/GHSA-389g-gv7q-r4x8). A targeted override keeps the MCP rate limiter's ip-address dependency at 10.7.4 for the [bounded IPv6 zone parsing fix](https://github.com/beaugunderson/ip-address/security/advisories/GHSA-rxp7-6hxx-x8q5). These dependencies are included in the installed bridge.
+Version 0.2.18 pins Fastify 5.12.6 for its [header-schema normalization fix](https://github.com/fastify/fastify/security/advisories/GHSA-389g-gv7q-r4x8). A targeted override keeps the MCP rate limiter's ip-address dependency at 10.7.4 for the [bounded IPv6 zone parsing fix](https://github.com/beaugunderson/ip-address/security/advisories/GHSA-rxp7-6hxx-x8q5). Fastify is included in the installed executable; ip-address belongs to the locked SDK dependency graph used by source installations.
 
 The development-only Vitest 5.0.3 pin includes the [manual mock registration](https://github.com/vitest-dev/vitest/security/advisories/GHSA-qxg6-89mg-rqv8) and [Windows redirect validation](https://github.com/vitest-dev/vitest/security/advisories/GHSA-xp26-3454-mjgp) fixes. Vitest is excluded from the installed executable.
 
