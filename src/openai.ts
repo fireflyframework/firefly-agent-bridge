@@ -151,31 +151,60 @@ export function registerOpenAI(
   app.post(
     "/v1/chat/completions",
     {
-      bodyLimit: IMAGE_BODY_LIMIT,
+      // Fastify requires a numeric ceiling; owner policy is enforced on each request below.
+      bodyLimit: Number.MAX_SAFE_INTEGER,
       preParsing: async (req, _reply, payload) => {
+        scope(req, "read");
+        scope(req, "submit");
         const recovery = req.headers["x-bridge-completion-recovery"];
-        if (recovery === undefined) return payload;
         if (
-          recovery !== "1" ||
-          !recoveryRequestId.safeParse(req.headers["idempotency-key"]).success
+          recovery !== undefined &&
+          (recovery !== "1" ||
+            !recoveryRequestId.safeParse(req.headers["idempotency-key"])
+              .success)
         )
           throw new BridgeError(
             "invalid_completion_recovery",
             "Use recovery version 1 and one fbr1_ request identity",
             400,
           );
-        const hash = createHash("sha256");
+        const hash = recovery === "1" ? createHash("sha256") : undefined;
+        const configuredLimit =
+          d.config.openai.maxRequestBytes ?? Number.MAX_SAFE_INTEGER;
+        const limit =
+          recovery === "1"
+            ? Math.min(configuredLimit, IMAGE_BODY_LIMIT)
+            : configuredLimit;
+        const tooLarge = () =>
+          new BridgeError(
+            "request_too_large",
+            recovery === "1" && limit === IMAGE_BODY_LIMIT
+              ? "Completion recovery v1 wire exceeds 9000000 bytes"
+              : "Request exceeds configured maxRequestBytes",
+            413,
+          );
+        const length = req.headers["content-length"];
+        if (
+          typeof length === "string" &&
+          /^[0-9]+$/.test(length) &&
+          BigInt(length) > BigInt(limit)
+        )
+          throw tooLarge();
         let bytes = 0;
         const stream = Object.assign(
           new Transform({
             transform(chunk: Buffer, _encoding, done) {
               bytes += chunk.length;
               stream.receivedEncodedLength = bytes;
-              if (bytes <= IMAGE_BODY_LIMIT) hash.update(chunk);
+              if (bytes > limit) {
+                done(tooLarge());
+                return;
+              }
+              hash?.update(chunk);
               done(null, chunk);
             },
             flush(done) {
-              wires.set(req, { sha256: hash.digest("hex"), bytes });
+              if (hash) wires.set(req, { sha256: hash.digest("hex"), bytes });
               done();
             },
           }),
@@ -186,8 +215,11 @@ export function registerOpenAI(
     },
     async (req, reply) => {
       scope(req, "read");
-      const p = scope(req, "submit");
-      const { request, prompt, images } = prepareCompletion(req.body);
+      let p = scope(req, "submit");
+      const { request, prompt, images } = prepareCompletion(
+        req.body,
+        d.config.openai,
+      );
       const imageRevision = images.length
         ? req.headers["x-bridge-image-revision"]
         : undefined;
@@ -234,6 +266,17 @@ export function registerOpenAI(
         throw new BridgeError("invalid_header", "Use one idempotency key");
       const readinessRevisionAtAdmission = d.scheduler.readinessRevision;
       const job = d.store.atomic(() => {
+        scope(req, "read");
+        p = scope(req, "submit");
+        if (
+          !d.config.profiles[profile] ||
+          (!p.owner && !p.profiles.includes(profile))
+        )
+          throw new BridgeError(
+            "model_not_found",
+            "Model is unavailable to this client",
+            404,
+          );
         let created = false;
         const admitted = d.store.idempotent(
           p,
@@ -269,6 +312,7 @@ export function registerOpenAI(
               p,
               undefined,
               request.bridge.execution === "inference" ? request : undefined,
+              d.config.openai,
             );
             if (images.length)
               freezeImageExecution(d.store, admitted.id, d.config, profile);

@@ -33,6 +33,9 @@ export const jobInputSchema = z.strictObject({
   mode: z.enum(["cli", "channel"]).default("cli"),
 });
 export type JobInput = z.infer<typeof jobInputSchema>;
+export const completionJobInputSchema = jobInputSchema.extend({
+  prompt: z.string().trim().min(1),
+});
 export type JobStatus =
   | "queued"
   | "running"

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Firefly Agent Bridge API",
-    "version": "0.2.19",
+    "version": "0.2.20",
     "description": "OpenAI-compatible Chat Completions and unified /v1/bridge orchestration extensions. Copyright 2026 Firefly Software Foundation. Author @ancongui.",
     "license": { "name": "Apache-2.0", "identifier": "Apache-2.0" }
   },
@@ -1959,7 +1959,6 @@
           },
           "messages": {
             "minItems": 1,
-            "maxItems": 128,
             "type": "array",
             "items": {
               "type": "object",

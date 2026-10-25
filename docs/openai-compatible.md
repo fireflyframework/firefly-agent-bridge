@@ -163,7 +163,7 @@ This is buffered streaming: it keeps the connection active but does not expose t
 
 | Field or capability                      | Support                                                                                                                                                                                     |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `messages`                               | 1 to 128 messages; system, developer, user, assistant, tool; strings or text parts; inference user messages also accept bounded image parts                                                 |
+| `messages`                               | One or more messages; optional owner-configured count; system, developer, user, assistant, tool; strings or text parts; inference user messages also accept bounded image parts             |
 | `tools`                                  | Up to 32 function definitions; up to 16 returned calls; validated JSON arguments                                                                                                            |
 | `tool_choice`                            | `auto`, `none`, `required`, or a named function                                                                                                                                             |
 | `parallel_tool_calls`                    | Boolean; false rejects a response containing multiple calls                                                                                                                                 |
@@ -175,7 +175,7 @@ This is buffered streaming: it keeps the connection active but does not expose t
 | Sampling and generation parameters       | `temperature`, `top_p`, `max_tokens`, `max_completion_tokens`, `stop`, penalties, seed, and logprobs return HTTP 400                                                                        |
 | Other APIs and media                     | Responses, embeddings, audio, image generation, video, files, and batches are unsupported                                                                                                   |
 
-The request object is strict: unsupported fields return an error rather than silently changing behavior. The expanded conversation is limited to 100,000 characters and the Chat Completions HTTP body to 9,000,000 bytes. Other routes retain a 120,000-byte body limit. Profiles bound attempt duration, output size, and model turns. Schema validation is enforced even when `strict` is false.
+The request object is strict: unsupported fields return an error rather than silently changing behavior. The owner can configure optional Chat Completions input limits through `openai.maxRequestBytes`, `openai.maxExpandedCharacters`, and `openai.maxMessages`. Each accepts a positive safe integer or `null`; all three default to `null`. A finite limit rejects the complete request before durable admission. The bridge preserves the full history without clipping, summarizing, or dropping tool results. See [completion input policy](configuration.md#completion-input-policy). Other routes retain a 120,000-byte body limit, and direct job/MCP prompt submissions retain their separate 100,000-character contract. Profiles bound attempt duration, output size, and model turns. Schema validation is enforced even when `strict` is false.
 
 Usage reflects the provider's reported invocation totals, including cache reads/writes and bridge instructions. It is not an OpenAI billing record or an exact tokenization of the submitted messages. Missing provider usage is omitted.
 
@@ -247,8 +247,7 @@ The service reserves up to 256 KiB for each pending terminal receipt before
 admission. Per principal, it allows at most 1,000 retained recovery admissions and
 16 MiB of terminal receipts plus pending reservations. Admission metadata is
 limited to 4 KiB per request. Small terminal receipts release unused reserved
-bytes; retained admissions are not automatically deleted. The existing 9,000,000-byte
-incoming body limit still applies. A successful result that cannot fit its
+bytes; retained admissions are not automatically deleted. Recovery protocol v1 retains its 9,000,000-byte wire bound even when the ordinary completion body policy is `null`; a smaller configured `openai.maxRequestBytes` also applies. These recovery custody budgets and exact-response semantics are unchanged. A successful result that cannot fit its
 terminal receipt has `state: result_unavailable`, `reason: result_too_large`, and
 its original result hash and byte count, without a truncated result. Invalid
 completion output is also unavailable. A storage failure rolls back its native

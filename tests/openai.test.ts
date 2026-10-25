@@ -344,7 +344,7 @@ it.each([
   },
 );
 
-it("expands the body limit only for bounded image completions", async () => {
+it("keeps ordinary job and image validation separate from recovery-v1 wire bounds", async () => {
   const { crc32 } = await import("../src/images.js");
   const png = Buffer.from(
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC",
@@ -395,6 +395,8 @@ it("expands the body limit only for bounded image completions", async () => {
           authorization: "Bearer " + token,
           "content-type": "application/json",
           "content-length": "9000001",
+          "x-bridge-completion-recovery": "1",
+          "idempotency-key": "fbr1_" + "9".repeat(32),
         },
       },
       (response) => {

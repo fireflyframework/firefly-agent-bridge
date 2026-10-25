@@ -21,6 +21,19 @@ import { z } from "zod";
 import { isAbsolute } from "node:path";
 const identifier = z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/);
 const absolute = z.string().refine(isAbsolute, "Path must be absolute");
+const optionalInputLimit = z
+  .number()
+  .int()
+  .min(1)
+  .max(Number.MAX_SAFE_INTEGER)
+  .nullable()
+  .default(null);
+export const completionInputLimitsSchema = z.strictObject({
+  maxRequestBytes: optionalInputLimit,
+  maxExpandedCharacters: optionalInputLimit,
+  maxMessages: optionalInputLimit,
+});
+export type CompletionInputLimits = z.infer<typeof completionInputLimitsSchema>;
 export const profileSchema = z.strictObject({
   permissionMode: z.enum(["default", "bypass"]).default("default"),
   tools: z
@@ -107,6 +120,7 @@ export const configSchema = z.strictObject({
     .strictObject({
       timeoutMs: z.number().int().min(100).max(3600000).default(300000),
       maxConnections: z.number().int().min(1).max(64).default(16),
+      ...completionInputLimitsSchema.shape,
     })
     .prefault({}),
   profiles: z

@@ -2,6 +2,12 @@
 
 # Changelog
 
+## 0.2.20 - 2026-10-24
+
+- Make complete Chat Completions body size, expanded-prompt length and message count owner-configurable with positive integer or nullable policies. Preserve full histories and exact persisted prompts instead of failing at an implicit 100,000-character aggregate limit.
+- Check read and submit scope before parsing a request body, then revalidate current token and profile authority inside the queue transaction. Reject configured declared or streamed limits before queue admission.
+- Preserve recovery-v1 wire and retained-result budgets, original request hashes, known receipts and no-replay behavior. Generic job, image, tool and schema contracts remain separate.
+
 ## 0.2.19 - 2026-10-22
 
 - Show the desktop Connect screenshot across the desktop dashboard guide and keep the phone capture on narrow screens, with matching light and dark variants.

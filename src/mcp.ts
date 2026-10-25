@@ -17,6 +17,7 @@
  * limitations under the License.
  */
 
+import { releaseVersion } from "./release-version.js";
 import { bridgePrompt } from "./prompt-catalog.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
@@ -31,7 +32,7 @@ export function createAdapter(
 ) {
   const hostId = randomUUID();
   const server = new McpServer(
-    { name: "firefly-agent-bridge", version: "0.2.19" },
+    { name: "firefly-agent-bridge", version: releaseVersion },
     {
       capabilities: channel ? { experimental: { "claude/channel": {} } } : {},
       instructions: bridgePrompt("mcp/server"),

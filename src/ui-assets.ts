@@ -18,11 +18,12 @@
  */
 
 import { readFileSync } from "node:fs";
+import { releaseHtml } from "./release-version.js";
 import { fileURLToPath } from "node:url";
 // The release builder embeds these same files, so native installations need no asset directory.
 const directory = fileURLToPath(new URL("./ui/", import.meta.url));
 export const uiAssets = {
-  html: readFileSync(directory + "index.html", "utf8"),
+  html: releaseHtml(readFileSync(directory + "index.html", "utf8")),
   css: readFileSync(directory + "app.css", "utf8"),
   themeJs: readFileSync(directory + "theme.js", "utf8"),
   auditJs: readFileSync(directory + "audit.js", "utf8"),

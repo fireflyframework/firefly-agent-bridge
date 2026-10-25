@@ -18,6 +18,7 @@
  */
 
 import { bridgePrompt } from "./prompt-catalog.js";
+import type { CompletionInputLimits } from "./config.js";
 import { z } from "zod";
 import { Ajv2020, type ValidateFunction } from "ajv/dist/2020.js";
 import { BridgeError, type Job } from "./contracts.js";
@@ -58,8 +59,7 @@ export const chatRequestSchema = z.strictObject({
         tool_call_id: z.string().min(1).max(200).optional(),
       }),
     )
-    .min(1)
-    .max(128),
+    .min(1),
   tools: z
     .array(
       z.strictObject({
@@ -251,7 +251,10 @@ function validators(request: ChatRequest) {
         : undefined,
   };
 }
-export function prepareCompletion(raw: unknown): {
+export function prepareCompletion(
+  raw: unknown,
+  limits: Partial<CompletionInputLimits> = {},
+): {
   request: ChatRequest;
   prompt: string;
   images: InputImage[];
@@ -264,6 +267,15 @@ export function prepareCompletion(raw: unknown): {
       "Unsupported or invalid Chat Completions fields; see docs/openai-compatible.md",
     );
   }
+  if (
+    limits.maxMessages != null &&
+    request.messages.length > limits.maxMessages
+  )
+    throw new BridgeError(
+      "request_too_large",
+      "Conversation exceeds configured maxMessages",
+      413,
+    );
   const images: InputImage[] = [];
   let imageBytes = 0;
   const messages = request.messages.map((message) => ({
@@ -382,10 +394,13 @@ export function prepareCompletion(raw: unknown): {
           parallel_tool_calls: request.parallel_tool_calls,
           response_format: request.response_format,
         });
-  if (prompt.length > 100000)
+  if (
+    limits.maxExpandedCharacters != null &&
+    prompt.length > limits.maxExpandedCharacters
+  )
     throw new BridgeError(
       "request_too_large",
-      "Expanded conversation exceeds 100000 characters",
+      "Expanded conversation exceeds configured maxExpandedCharacters",
       413,
     );
   return { request, prompt, images };

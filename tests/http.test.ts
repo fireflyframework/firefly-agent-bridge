@@ -23,6 +23,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { releaseHtml, releaseVersion } from "../src/release-version.js";
 import { QueueStore } from "../src/store.js";
 import { Workflows } from "../src/workflows.js";
 import { Scheduler } from "../src/scheduler.js";
@@ -504,4 +505,28 @@ it("streams a complete audit export through the public API without overwriting a
     ),
   ).rejects.toThrow(/EEXIST/);
   expect(readFileSync(destination, "utf8")).toBe(raw);
+});
+
+it("serves one package release version in root HTML and authenticated API", async () => {
+  const version = JSON.parse(readFileSync("package.json", "utf8")).version;
+  const page = await app.inject({ method: "GET", url: "/" });
+  const status = await app.inject({
+    method: "GET",
+    url: "/v1/bridge/status",
+    headers: headers(),
+  });
+  expect(page.statusCode).toBe(200);
+  expect(status.statusCode).toBe(200);
+  expect(status.json().version).toBe(version);
+  expect(page.body.match(/class="version">([^<]+)<\/span>/)?.[1]).toBe(
+    "v" + version,
+  );
+});
+
+it("requires exactly one dashboard version marker before rendering", () => {
+  expect(releaseHtml("v__BRIDGE_RELEASE_VERSION__")).toBe("v" + releaseVersion);
+  expect(() => releaseHtml("v0.0.0")).toThrow("exactly one");
+  expect(() =>
+    releaseHtml("__BRIDGE_RELEASE_VERSION____BRIDGE_RELEASE_VERSION__"),
+  ).toThrow("exactly one");
 });

@@ -64,6 +64,19 @@ class ClientCompatibility(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(calls, [(2,5)])
         self.assertIn("7", result.output)
 
+    async def test_pydantic_large_complete_history_tool_loop(self):
+        agent = Agent(self.model)
+        calls = []
+        @agent.tool_plain
+        def add(a: int, b: int) -> int:
+            """Add two integers."""
+            calls.append((a, b))
+            return a + b
+        prompt = "Complete-history-start:" + "x" * 180000 + ":complete-history-end"
+        result = await agent.run(prompt)
+        self.assertEqual(calls, [(2, 5)])
+        self.assertIn("7", result.output)
+
     async def test_pydantic_typed_output(self):
         result = await Agent(self.model, output_type=Score).run("Return total=7 and label=verified.")
         self.assertEqual(result.output, Score(total=7,label="verified"))

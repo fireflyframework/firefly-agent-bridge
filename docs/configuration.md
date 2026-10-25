@@ -61,20 +61,43 @@ Default permissions stay enabled. Bypass needs a trusted host and workspace. A j
 
 ## Service settings
 
-| Setting                 | Default                    | Constraint or effect                                               |
-| ----------------------- | -------------------------- | ------------------------------------------------------------------ |
-| `worker`                | Codex on initial CLI setup | `codex` or `claude`; saved configuration chooses subsequent starts |
-| `host`                  | `127.0.0.1`                | Loopback only                                                      |
-| `port`                  | 8766                       | 0 to 65535; 0 requests a free port                                 |
-| `concurrency`           | 1                          | 1 to 8 owned jobs                                                  |
-| `queueCapacity`         | 1000                       | 1 to 10000 admitted queue entries                                  |
-| `idleMs`                | 30000                      | 1000 to 3600000 milliseconds; managed lifecycle only               |
-| `allowedHosts`          | localhost, 127.0.0.1       | Exact accepted request hostnames                                   |
-| `allowedOrigins`        | Empty                      | Additional browser origins; authentication still required          |
-| `openai.timeoutMs`      | 300000                     | 100 to 3600000 milliseconds including queue wait                   |
-| `openai.maxConnections` | 16                         | 1 to 64 service-wide waiting connections                           |
+| Setting                        | Default                    | Constraint or effect                                                                       |
+| ------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------ |
+| `worker`                       | Codex on initial CLI setup | `codex` or `claude`; saved configuration chooses subsequent starts                         |
+| `host`                         | `127.0.0.1`                | Loopback only                                                                              |
+| `port`                         | 8766                       | 0 to 65535; 0 requests a free port                                                         |
+| `concurrency`                  | 1                          | 1 to 8 owned jobs                                                                          |
+| `queueCapacity`                | 1000                       | 1 to 10000 admitted queue entries                                                          |
+| `idleMs`                       | 30000                      | 1000 to 3600000 milliseconds; managed lifecycle only                                       |
+| `allowedHosts`                 | localhost, 127.0.0.1       | Exact accepted request hostnames                                                           |
+| `allowedOrigins`               | Empty                      | Additional browser origins; authentication still required                                  |
+| `openai.timeoutMs`             | 300000                     | 100 to 3600000 milliseconds including queue wait                                           |
+| `openai.maxConnections`        | 16                         | 1 to 64 service-wide waiting connections                                                   |
+| `openai.maxRequestBytes`       | `null`                     | Optional positive safe integer; complete Chat Completions HTTP body in bytes               |
+| `openai.maxExpandedCharacters` | `null`                     | Optional positive safe integer; expanded completion prompt in JavaScript UTF-16 code units |
+| `openai.maxMessages`           | `null`                     | Optional positive safe integer; complete Chat Completions message count                    |
 
 Keep `127.0.0.1` in the host allowlist when using Streamable HTTP MCP: management tools call the same service over its loopback listener. A remote gateway needs its exact hostname and browser origin configured as applicable.
+
+## Completion input policy
+
+Set the optional input policy in the local owner's saved configuration. Client requests cannot override it:
+
+```json
+{
+  "openai": {
+    "timeoutMs": 300000,
+    "maxConnections": 16,
+    "maxRequestBytes": null,
+    "maxExpandedCharacters": null,
+    "maxMessages": null
+  }
+}
+```
+
+A positive safe integer enables that limit; `null` disables that configured aggregate limit. The expanded count includes the protocol instructions and serialized conversation, function definitions and output schema. Admission and persisted completion prompts use the same policy. Read and submit authorization are checked before the HTTP body is parsed, including when its limit is disabled. A declared or streamed oversized request returns HTTP 413 before a job is queued. Token, read/submit scope and profile authority are revalidated inside the queue transaction after the body has arrived; revocation during a streamed request cannot queue work.
+
+The bridge retains complete input and original wire hashes. It does not shorten history or invent context to fit a limit. Existing admitted jobs and recovery receipts remain readable when a later policy becomes smaller; a new admission still uses current settings. `null` does not remove the runtime or model's context/resource constraints. Image validation, JSON Schema/tool contracts, profile duration/output budgets, and [recovery-v1 custody](openai-compatible.md#read-an-original-completion-after-delivery-loss) remain separate. In particular, recovery-v1 requests keep their 9,000,000-byte wire bound and existing retained-result budgets. Direct job/MCP submissions keep their separate 100,000-character prompt contract.
 
 ## Profile settings
 
