@@ -105,15 +105,18 @@ assert(
     'version="' + version + '"',
   ),
 );
-assert(read("src/cli.ts").includes('console.log("' + version + '")'));
-assert(
-  read("src/http.ts").includes('version: "' + version + '"'),
-  "HTTP status release version",
-);
-assert(
-  read("src/mcp.ts").includes('version: "' + version + '"'),
-  "MCP server release version",
-);
+for (const file of ["src/cli.ts", "src/http.ts", "src/mcp.ts"])
+  assert(
+    read(file).includes('from "./release-version.js"'),
+    file + " canonical version import",
+  );
+assert(read("src/cli.ts").includes("console.log(releaseVersion)"));
+assert(read("src/http.ts").includes("version: releaseVersion"));
+assert(read("src/mcp.ts").includes("version: releaseVersion"));
+assert(read("src/ui/index.html").includes("v__BRIDGE_RELEASE_VERSION__"));
+assert(read("scripts/build.ts").includes("html: releaseHtml("));
+assert(read("src/ui-assets.ts").includes("html: releaseHtml("));
+
 for (const file of files) {
   if (file.startsWith("vendor-licenses/") || brandPaths.has(file)) continue;
   if (/\.(ts|js|mjs|css|svg|html|sh|yml|py)$/.test(file)) {

@@ -19,6 +19,7 @@
 
 import { CompletionRecovery } from "./completion-recovery.js";
 import { prepareCompletion } from "./completion-protocol.js";
+import type { CompletionInputLimits } from "./config.js";
 import { DatabaseSync } from "node:sqlite";
 import { createHash, randomUUID } from "node:crypto";
 import { AuditLog, type AuditQuery, type ToolsQuery } from "./audit.js";
@@ -27,6 +28,7 @@ import type { WorkerEvent } from "./worker.js";
 import {
   BridgeError,
   jobInputSchema,
+  completionJobInputSchema,
   terminal,
   type Attempt,
   type BridgeEvent,
@@ -142,8 +144,20 @@ export class QueueStore {
     p: Principal,
     key?: string,
     completion?: Job["completion"],
+    limits?: Partial<CompletionInputLimits>,
   ): Job {
-    const input = jobInputSchema.parse(raw);
+    const input = (
+      completion || limits ? completionJobInputSchema : jobInputSchema
+    ).parse(raw);
+    if (
+      limits?.maxExpandedCharacters != null &&
+      input.prompt.length > limits.maxExpandedCharacters
+    )
+      throw new BridgeError(
+        "request_too_large",
+        "Expanded conversation exceeds configured maxExpandedCharacters",
+        413,
+      );
     if (!p.owner && !p.profiles.includes(input.profile))
       throw new BridgeError(
         "profile_forbidden",

@@ -17,6 +17,7 @@
  * limitations under the License.
  */
 
+import { releaseVersion } from "./release-version.js";
 import Fastify, { type FastifyRequest } from "fastify";
 import { z } from "zod";
 import { BridgeError, terminal, type Principal } from "./contracts.js";
@@ -54,12 +55,14 @@ export function createHttpService(d: HttpDependencies) {
     forceCloseConnections: true,
   });
   const streams = new EventStreams(d.store, d.auth),
-    principals = new WeakMap<FastifyRequest, Principal>();
+    bearers = new WeakMap<FastifyRequest, string>();
   const channels = new Channels(d.store);
   const reaper = setInterval(() => channels.reap(), 1000);
   reaper.unref();
   const rate = new Map<string, { count: number; since: number }>();
-  const identity = (req: FastifyRequest): Principal => principals.get(req)!;
+  // Body parsing may await; scope checks must use current token authority.
+  const identity = (req: FastifyRequest): Principal =>
+    d.auth.verify(bearers.get(req)!);
   const owner = (req: FastifyRequest) => {
     const p = identity(req);
     if (!p.owner)
@@ -182,7 +185,7 @@ export function createHttpService(d: HttpDependencies) {
         401,
       );
     const principal = d.auth.verify(match[1]!);
-    principals.set(req, principal);
+    bearers.set(req, match[1]!);
     // Polling must never starve leases or an operator's stop request.
     const path = req.url.split("?")[0]!;
     const traffic =
@@ -246,7 +249,7 @@ export function createHttpService(d: HttpDependencies) {
   app.get("/v1/bridge/status", async (req) => {
     const p = requireScope(req, "read");
     return {
-      version: "0.2.19",
+      version: releaseVersion,
       protocolVersion: 2,
       completionRecovery: {
         version: 1,

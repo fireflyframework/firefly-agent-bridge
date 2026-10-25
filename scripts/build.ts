@@ -18,6 +18,7 @@
  */
 
 import { build } from "esbuild";
+import { releaseHtml } from "../src/release-version.js";
 import {
   mkdirSync,
   readFileSync,
@@ -31,7 +32,7 @@ import { verifyPromptSources } from "./prompt-sources.js";
 verifyPromptSources(process.cwd());
 mkdirSync("dist", { recursive: true });
 const uiAssets = {
-  html: readFileSync("src/ui/index.html", "utf8"),
+  html: releaseHtml(readFileSync("src/ui/index.html", "utf8")),
   css: readFileSync("src/ui/app.css", "utf8"),
   themeJs: readFileSync("src/ui/theme.js", "utf8"),
   auditJs: readFileSync("src/ui/audit.js", "utf8"),

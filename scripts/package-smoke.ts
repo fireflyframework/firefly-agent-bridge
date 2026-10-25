@@ -161,6 +161,8 @@ try {
   const page = await (await fetch(address)).text();
   if (
     !page.includes("Firefly Agent Bridge") ||
+    !page.includes('class="version">v' + version + "</span>") ||
+    page.includes("__BRIDGE_RELEASE_VERSION__") ||
     !page.includes("template-dialog") ||
     !page.includes("export-audit")
   )

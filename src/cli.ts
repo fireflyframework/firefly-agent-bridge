@@ -18,6 +18,7 @@
  * limitations under the License.
  */
 
+import { releaseVersion } from "./release-version.js";
 import { parseArgs } from "node:util";
 import { resolve, join } from "node:path";
 import { spawn } from "node:child_process";
@@ -47,13 +48,13 @@ async function main() {
     },
   });
   if (values.version) {
-    console.log("0.2.19");
+    console.log(releaseVersion);
     return;
   }
   const command = positionals[0] ?? "help",
     dataDir = resolve(values["data-dir"] ?? defaultDataDir());
   if (command === "help" || values.help) {
-    console.log(`Firefly Agent Bridge 0.2.19
+    console.log(`Firefly Agent Bridge ${releaseVersion}
 Usage: firefly-bridge <command> [--data-dir PATH]
   init        Initialize local configuration (--worker codex|claude)
   serve       Run the service (--managed follows host leases)
