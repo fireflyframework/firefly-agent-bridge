@@ -40,6 +40,8 @@ Inference disables native command, filesystem mutation, browser, app, media, and
 
 The application declares its functions and executes returned calls. The bridge validates names and arguments but does not execute function code. Grant application tools only the authority they need. Treat prompt and tool output as untrusted input to that application.
 
+JSON Schema string patterns are compiled with explicit size and instruction bounds and matched by a bundled non-backtracking engine. Untrusted patterns never run in JavaScript's backtracking matcher against completion values. Unsupported regex syntax is refused before queue admission, and the same local validators check structured output and tool arguments. See [the supported schema contract](openai-compatible.md#supported-contract) for the accepted syntax and bounds.
+
 ## Data and audit
 
 The database can contain prompts, original image attachments, complete file contents, commands, tool outputs, and remote responses. Audit export preserves these payloads. Protect the data directory, exports, logs, backups, and job workspaces as developer data. Local audit history is an operational record; the operating-system user can modify the database.
