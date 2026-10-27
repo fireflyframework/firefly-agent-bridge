@@ -21,6 +21,7 @@ import { bridgePrompt } from "./prompt-catalog.js";
 import type { CompletionInputLimits } from "./config.js";
 import { z } from "zod";
 import { Ajv2020, type ValidateFunction } from "ajv/dist/2020.js";
+import { schemaRegExp } from "./schema-pattern.js";
 import { BridgeError, type Job } from "./contracts.js";
 import { decodeImage, IMAGE_LIMITS, type InputImage } from "./images.js";
 const name = z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/);
@@ -128,7 +129,13 @@ export const completionEnvelopeSchema = z.toJSONSchema(envelope, {
 });
 export const completionSystemPrompt = bridgePrompt("completion/system");
 function compile(value: Record<string, unknown>): ValidateFunction {
-  const maps = ["properties", "$defs", "definitions", "dependentSchemas"];
+  const maps = [
+    "properties",
+    "patternProperties",
+    "$defs",
+    "definitions",
+    "dependentSchemas",
+  ];
   const singles = [
     "items",
     "additionalProperties",
@@ -170,6 +177,7 @@ function compile(value: Record<string, unknown>): ValidateFunction {
     "multipleOf",
     "minLength",
     "maxLength",
+    "pattern",
     "minItems",
     "maxItems",
     "uniqueItems",
@@ -178,6 +186,17 @@ function compile(value: Record<string, unknown>): ValidateFunction {
   ]);
   let nodes = 0;
   const ancestors = new Set<object>();
+  const checkedPatterns = new Set<string>();
+  function checkPattern(pattern: unknown): void {
+    if (typeof pattern !== "string") throw bad("Invalid JSON Schema pattern");
+    if (checkedPatterns.has(pattern)) return;
+    try {
+      schemaRegExp(pattern, "u");
+    } catch {
+      throw bad("Invalid or unsupported JSON Schema pattern");
+    }
+    checkedPatterns.add(pattern);
+  }
   function reference(ref: unknown): unknown {
     if (typeof ref !== "string" || (ref !== "#" && !ref.startsWith("#/")))
       throw bad("Only local JSON Pointer schema references are supported");
@@ -209,11 +228,15 @@ function compile(value: Record<string, unknown>): ValidateFunction {
     ancestors.add(v);
     const o = v as Record<string, unknown>;
     // Allowlisting covers every schema-bearing position. In particular $async
-    // would return a Promise instead of a boolean, and regex validators can block
-    // the event loop. References count toward the expanded complexity budget.
+    // would return a Promise instead of a boolean. Patterns use the bounded
+    // non-backtracking matcher. References count toward the expanded budget.
     for (const key of Object.keys(o))
       if (!allowed.has(key))
         throw bad("Unsupported JSON Schema keyword: " + key);
+    if ("pattern" in o) checkPattern(o.pattern);
+    if (o.patternProperties && typeof o.patternProperties === "object")
+      for (const pattern of Object.keys(o.patternProperties))
+        checkPattern(pattern);
     if ("$ref" in o) visit(reference(o.$ref), depth + 1);
     for (const key of maps)
       if (o[key] && typeof o[key] === "object")
@@ -232,6 +255,7 @@ function compile(value: Record<string, unknown>): ValidateFunction {
       strict: false,
       validateFormats: false,
       allErrors: false,
+      code: { regExp: schemaRegExp },
     }).compile(value);
   } catch {
     throw bad("Invalid or unresolved JSON Schema");

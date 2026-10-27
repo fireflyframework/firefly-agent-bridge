@@ -139,7 +139,7 @@ it("validates JSON output and nested local-reference schemas", () => {
   ).toThrow();
   expect(() => parseCompletionResult("not json", p.request)).toThrow();
 });
-it("rejects unsupported options, media, remote schemas and expensive regex schemas before admission", () => {
+it("rejects unsupported options, media, remote schemas and unsupported regex syntax before admission", () => {
   for (const value of [
     { ...base, temperature: 0.5 },
     { ...base, max_tokens: 100 },
@@ -174,7 +174,7 @@ it("rejects unsupported options, media, remote schemas and expensive regex schem
           ...tool,
           function: {
             ...tool.function,
-            parameters: { type: "string", pattern: "(a+)+" },
+            parameters: { type: "string", pattern: "(?=a)a" },
           },
         },
       ],
@@ -218,12 +218,12 @@ it.each([
     { $async: true, type: "object", properties: { x: { type: "integer" } } },
   ],
   [
-    "property-name patterns",
-    { type: "object", propertyNames: { pattern: "^(a+)+$" } },
+    "property-name lookaheads",
+    { type: "object", propertyNames: { pattern: "^(?=a)a$" } },
   ],
   [
-    "unevaluated-item patterns",
-    { type: "array", unevaluatedItems: { pattern: "^(a+)+$" } },
+    "unevaluated-item lookaheads",
+    { type: "array", unevaluatedItems: { pattern: "^(?=a)a$" } },
   ],
   ["unknown validation keywords", { type: "object", customValidator: true }],
   [
