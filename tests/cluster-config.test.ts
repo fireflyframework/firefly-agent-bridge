@@ -43,6 +43,7 @@ it("accepts cluster coordinator config with bindHost and reservePercent 10", () 
   expect(config.cluster?.bindHost).toBe("0.0.0.0");
   expect(config.cluster?.reservePercent).toBe(10);
   expect(config.cluster?.heartbeatIntervalMs).toBe(2000);
+  expect(config.cluster?.maxFailovers).toBe(3);
 });
 
 it("defaults reservePercent to 10 when omitted", () => {

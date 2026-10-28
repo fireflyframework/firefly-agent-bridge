@@ -17,6 +17,7 @@
  * limitations under the License.
  */
 
+import { workerRunPrompt } from "./cluster-handoff.js";
 import { bridgePrompt } from "./prompt-catalog.js";
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
@@ -163,18 +164,18 @@ export class CodexWorker implements Worker {
         });
         args.push("--output-schema", schemaPath);
       }
+      // After cluster failover there is no sessionId — handoff brief replaces resume.
       if (input.job.sessionId) args.push("resume", input.job.sessionId);
       for (const path of staged.paths) args.push("--image", path);
       args.push("-");
-      const prompt = input.job.sessionId
-        ? input.job.resumePending
-          ? bridgePrompt("workers/codex-continuation")
-          : input.job.messages
-              .filter((m) => m.role === "user")
-              .slice(input.job.resumedTurns ?? 1)
-              .map((m) => m.text)
-              .join("\n\n")
-        : (inference ? completionSystemPrompt + "\n\n" : "") + input.job.prompt;
+      const prompt = workerRunPrompt(input.job, {
+        continuationPrompt: bridgePrompt("workers/codex-continuation"),
+        conversationHeading: bridgePrompt(
+          "workers/quoted-conversation-heading",
+        ),
+        completionPrefix: inference ? completionSystemPrompt + "\n\n" : "",
+        freshMultiTurn: "prompt",
+      });
       return await new Promise<Outcome>((resolve) => {
         const child = spawn(this.options.path, args, {
           cwd: input.cwd,

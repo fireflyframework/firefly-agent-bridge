@@ -89,6 +89,8 @@ export const clusterConfigSchema = z
     allowedWorkerCidrs: z.array(z.string().min(1).max(64)).default([]),
     joinRateLimitPerMinute: z.number().int().min(1).max(1000).default(10),
     requestSkewMs: z.number().int().min(1000).max(600_000).default(60_000),
+    /** Max sticky clear + requeue cycles before the job fails as exhausted. */
+    maxFailovers: z.number().int().min(0).max(32).default(3),
     daemon: clusterDaemonSchema.optional(),
     scheduling: clusterSchedulingSchema.default(DEFAULT_SCHEDULING),
   })

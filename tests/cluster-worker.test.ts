@@ -503,7 +503,7 @@ describe("cluster worker pull loop", () => {
     );
   });
 
-  it("coordinator offline tick interrupts running attempts", async () => {
+  it("coordinator offline tick failovers running attempts for peer reclaim", async () => {
     const dir = mkdtempSync(join(tmpdir(), "bridge-coord-offline-"));
     cleanups.push(() => rmSync(dir, { recursive: true, force: true }));
 
@@ -643,14 +643,13 @@ describe("cluster worker pull loop", () => {
       .prepare("UPDATE cluster_nodes SET last_heartbeat_at=? WHERE id=?")
       .run(new Date(Date.now() - 5000).toISOString(), worker.nodeId);
 
-    await waitFor(
-      () => service.store.get(job.id).status === "interrupted",
-      4000,
-    );
+    await waitFor(() => service.store.get(job.id).status === "queued", 4000);
 
     const done = service.store.get(job.id);
-    expect(done.status).toBe("interrupted");
-    expect(done.sessionId).toBe("sess_keep");
-    expect(done.sessionNodeId).toBe(worker.nodeId);
+    expect(done.status).toBe("queued");
+    expect(done.sessionId).toBeUndefined();
+    expect(done.sessionNodeId).toBeUndefined();
+    expect(done.clusterHandoff?.reason).toBe("offline");
+    expect(done.failoverCount).toBe(1);
   });
 });
