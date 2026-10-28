@@ -161,11 +161,10 @@ export async function startClusterWorker(
   let lastReadinessProbeAt = 0;
   const readinessProbeIntervalMs = options.readinessProbeIntervalMs ?? 15_000;
   let estimatedUsedUnits = 0;
-  let estimatedCapacityUnits = 100;
+  const estimatedCapacityUnits = 100;
   let quotaState: NodeCapacity["quota"]["state"] = "unknown";
   let quotaResetAt: number | null = null;
   const active = new Map<string, ActiveEntry>();
-  let timer: ReturnType<typeof setInterval> | undefined;
   let healthApp: ReturnType<typeof Fastify> | undefined;
   let healthAddress: string | undefined;
 
@@ -542,7 +541,7 @@ export async function startClusterWorker(
     });
   }
 
-  timer = setInterval(() => {
+  const timer = setInterval(() => {
     void tick().catch((error) =>
       console.error("cluster worker tick failed", error),
     );
@@ -561,7 +560,7 @@ export async function startClusterWorker(
     async stop() {
       if (stopped) return;
       stopped = true;
-      if (timer) clearInterval(timer);
+      clearInterval(timer);
       while (ticking) await new Promise((r) => setTimeout(r, 10));
       for (const entry of active.values()) entry.controller.abort("pause");
       await Promise.allSettled([...active.values()].map((e) => e.promise));

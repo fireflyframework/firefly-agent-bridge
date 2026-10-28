@@ -85,7 +85,7 @@ function mustOk(
 function parseJson<T>(label: string, text: string): T {
   try {
     return JSON.parse(text) as T;
-  } catch (e) {
+  } catch {
     throw new Error(`${label}: invalid JSON: ${text.slice(0, 400)}`);
   }
 }
