@@ -178,6 +178,7 @@ describe("cluster worker pull loop", () => {
         coordinatorUrl: address,
         nodeId: "node_a",
         credential: "ffn_test_credential",
+        nodePrivateKey: generateNodeKeyPair().privateKeyPem,
         reservePercent: 10,
         allowInsecure: true,
       }),
@@ -309,6 +310,7 @@ describe("cluster worker pull loop", () => {
         coordinatorUrl: address,
         nodeId: "node_a",
         credential: "ffn_test_credential",
+        nodePrivateKey: generateNodeKeyPair().privateKeyPem,
         reservePercent: null,
         allowInsecure: true,
       }),
@@ -377,6 +379,7 @@ describe("cluster worker pull loop", () => {
         coordinatorUrl: address,
         nodeId: "node_a",
         credential: "ffn_test_credential",
+        nodePrivateKey: generateNodeKeyPair().privateKeyPem,
         allowInsecure: true,
       }),
     );

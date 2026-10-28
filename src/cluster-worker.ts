@@ -122,6 +122,10 @@ export async function startClusterWorker(
   assertCoordinatorUrlAllowed(cluster.coordinatorUrl, {
     allowInsecure: cluster.allowInsecure,
   });
+  if (!cluster.nodePrivateKey?.includes("PRIVATE KEY"))
+    throw new Error(
+      "cluster.json is missing nodePrivateKey; re-run bridge cluster join to enroll an Ed25519 key",
+    );
   const doFetch = options.fetch ?? fetch;
   const intervalMs =
     options.heartbeatIntervalMs ??
@@ -166,11 +170,10 @@ export async function startClusterWorker(
       accept: "application/json",
     };
     if (bodyText.length > 0) headers["content-type"] = "application/json";
-    if (!cluster.nodePrivateKey) return headers;
     const timestamp = String(Date.now());
     const nonce = newRequestNonce();
     const signature = signEd25519Request({
-      privateKeyPem: cluster.nodePrivateKey,
+      privateKeyPem: cluster.nodePrivateKey!,
       timestamp,
       nonce,
       method,

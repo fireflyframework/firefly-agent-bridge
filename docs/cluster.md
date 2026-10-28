@@ -12,17 +12,17 @@ description: Run a headless company pool of Claude or Codex subscription workers
 
 Cluster mode turns many headless bridge **workers** (each with one Claude Code or Codex login) into one logical bridge behind a **coordinator**. Clients keep using the same HTTP, MCP, and OpenAI-compatible APIs. The coordinator fair-shares new work, keeps a configurable **reserve** of each node’s estimated quota unused (default 10%), and sticks native sessions to the node that created them.
 
-The coordinator is intended to run on an **internet-reachable host** (or private network). Workers call the coordinator over **HTTPS** (usually TLS at a reverse proxy) and stay headless with **`bridge serve --cluster-*`** — no UI required. See [Architecture — Cluster mode](architecture.md#cluster-mode-optional) for how this fits the single-node model; [Service lifecycle](operations.md) covers graceful stop and backups for any data directory.
+The coordinator is intended to run on an **internet-reachable host** (or private network). Workers call the coordinator over **HTTPS** and stay headless — no UI required. See [Architecture — Cluster mode](architecture.md#cluster-mode-optional) for how this fits the single-node model; [Service lifecycle](operations.md) covers graceful stop and backups for any data directory.
 
-!!! note "Supported run path today"
+!!! note "How to run the pool"
 
-    **`bridge serve --cluster-coordinator`** and **`bridge serve --cluster-worker`** are the supported way to run pool processes. **`bridge daemon start|status|stop`**, **listener TLS certificate CLI flags**, and **Ed25519-signed** worker heartbeats/claims are part of the intended internet-hardening model but are **not fully available yet** — workers enroll with a node **credential** today. Use **`serve`** under systemd, Docker, or a process supervisor until daemon support ships.
+    Use **`bridge serve --cluster-coordinator`** / **`--cluster-worker`** under systemd, Docker, or another supervisor, **or** **`bridge daemon start|status|stop`** with pidfile/logfile for bare VMs. Internet coordinators require listener TLS (`--tls-cert` / `--tls-key`). Workers enroll an Ed25519 key at join and sign every mutating coordinator request.
 
 ## Headless first
 
 | You need | Use |
 |----------|-----|
-| Run coordinator / worker | `bridge serve --cluster-coordinator` / `--cluster-worker` (foreground or under a supervisor) |
+| Run coordinator / worker | `bridge serve --cluster-*` or `bridge daemon start --cluster-*` |
 | Join, drain, leave, tokens, status, verify | `bridge cluster …` (JSON on stdout) |
 | Automate / CI | Same CLI + HTTP; set tokens via flags or env |
 | Watch capacity | `cluster status` or `GET /v1/bridge/status` → `cluster` |
@@ -42,7 +42,7 @@ Native `sessionId` values stay on the worker that created them. Follow-ups stick
 
 ## Bootstrap (internet coordinator)
 
-`cluster init-coordinator --exposure internet` sets **`requireTls: true`** in configuration so operators treat the public URL as HTTPS. Terminate TLS at a reverse proxy (or use `--exposure private` on a trusted network) — **built-in `--tls-cert` / `--tls-key` on the bridge listener are not available yet.**
+`cluster init-coordinator --exposure internet` forces **`requireTls: true`** and requires **`--tls-cert`** / **`--tls-key`**. The coordinator refuses to start without readable cert/key files. Behind a TLS-terminating reverse proxy, use `--exposure private`, bind localhost, and terminate TLS at the proxy instead.
 
 ```bash
 bridge init --worker claude --data-dir /var/lib/bridge-coordinator
@@ -50,8 +50,11 @@ bridge cluster init-coordinator \
   --data-dir /var/lib/bridge-coordinator \
   --exposure internet \
   --bind 0.0.0.0 --port 8787 \
+  --tls-cert /etc/ffb/fullchain.pem \
+  --tls-key /etc/ffb/privkey.pem \
   --reserve-percent 10
-bridge serve --cluster-coordinator --data-dir /var/lib/bridge-coordinator
+bridge daemon start --cluster-coordinator --data-dir /var/lib/bridge-coordinator
+# or: bridge serve --cluster-coordinator --data-dir /var/lib/bridge-coordinator
 ```
 
 Create a short-lived join token (printed once); revoke after the fleet enrolls:
@@ -61,7 +64,7 @@ bridge cluster join-token create --data-dir /var/lib/bridge-coordinator --ttl 2h
 # → { "token": "…", "expiresAt": "…" }
 ```
 
-Private lab alternative: `--exposure private`, terminate TLS at a reverse proxy, bind coordinator to localhost. Single-node loopback-only binding does not apply to cluster coordinators that intentionally expose a port.
+Private lab alternative: `--exposure private` (TLS optional on the bridge listener), or terminate TLS at a reverse proxy and bind the coordinator to localhost. Single-node loopback-only binding does not apply to cluster coordinators that intentionally expose a port.
 
 ## Join a worker (headless)
 
@@ -74,12 +77,13 @@ bridge cluster join \
   --coordinator https://bridge.company.example:8787 \
   --token "$BRIDGE_JOIN_TOKEN" \
   --name "$(hostname -s)"
-bridge serve --cluster-worker --data-dir /var/lib/bridge-worker
+bridge daemon start --cluster-worker --data-dir /var/lib/bridge-worker
+# or: bridge serve --cluster-worker --data-dir /var/lib/bridge-worker
 ```
 
-Join writes **`cluster.json`** with the coordinator URL, **`nodeId`**, and a node **credential** (`ffn_…`). Workers send that credential on coordinator requests today. **Ed25519 enrollment and signed heartbeats/claims** are planned hardening on top of the credential and are not active yet.
+Join generates an Ed25519 keypair locally and enrolls the **public key** with the coordinator. It writes **`cluster.json`** (mode `0600`) with the coordinator URL, **`nodeId`**, node **credential** (`ffn_…`), and **`nodePrivateKey`**. Workers send `Authorization: Bearer ffn_…` plus **`X-Bridge-Timestamp`**, **`X-Bridge-Nonce`**, and **`X-Bridge-Signature`** on every mutating request. A stolen credential without the private key cannot claim work. Workers refuse `http://` coordinator URLs unless you pass **`--allow-insecure`** (private lab only). Missing `nodePrivateKey` fails fast at worker start — re-run `cluster join`.
 
-Inspect a node from the coordinator:
+Inspect enrollment from the coordinator (`enrollmentFingerprint`, `lastSignedAt`, status):
 
 ```bash
 bridge cluster verify-node --data-dir /var/lib/bridge-coordinator --id node_…
@@ -115,13 +119,13 @@ Mount `/data` with `config.json` + `cluster.json`. Run `cluster join` as an init
 
 ## Secure communication (summary)
 
-| Plane | Auth (today) |
-|-------|----------------|
-| Clients → coordinator | Bridge bearer tokens (`ffb_…`); use HTTPS to the public URL |
-| Workers → coordinator | Node credential (`ffn_…`) on worker API requests |
-| Join | Short-lived join token → node credential enrollment |
+| Plane | Auth |
+|-------|------|
+| Clients → coordinator | Bridge bearer tokens (`ffb_…`) over HTTPS |
+| Workers → coordinator | Node credential (`ffn_…`) **plus** Ed25519 request signatures (timestamp + nonce, replay-protected) |
+| Join | Short-lived join token → credential + public-key enrollment (rate-limited; optional `allowedWorkerCidrs`) |
 
-**Planned hardening:** Ed25519 signature headers on worker requests (credential plus enrolled key), stricter replay windows, optional **`bridge daemon`**, and listener TLS flags. Until then, protect join tokens, restrict network paths, and terminate TLS in front of the coordinator. See [Security boundaries](security.md).
+Internet exposure requires in-process TLS on the coordinator listener. Private lab may use `--exposure private` with optional cleartext or a reverse proxy. Daemon mode (`bridge daemon start|status|stop`) writes pidfile + logfile under the data directory by default. See [Security boundaries](security.md).
 
 ## Reserve, resources, and fair-share
 
@@ -173,9 +177,11 @@ Job files live under the **worker’s** configured workspace, namespaced by job 
 
 ## Security checklist
 
-- Join tokens: short TTL, revoke after provisioning.
-- Node credentials in `cluster.json` with restrictive file modes.
-- Prefer TLS to the coordinator; restrict worker source CIDRs when possible.
+- Join tokens: short TTL, revoke after provisioning; join rate limit applies per source address.
+- Node credentials **and** Ed25519 private key in `cluster.json` with restrictive file modes (`0600`).
+- Internet coordinators: readable TLS cert/key; workers use `https://` only.
+- Optional `allowedWorkerCidrs` on the coordinator; leave/remove revokes credential and enrolled key.
+- `cluster verify-node` shows enrollment fingerprint and last successful signature time.
 - Do not expose worker health ports beyond localhost.
 - Keep rejecting Anthropic/OpenAI API-key env overrides on workers (subscription posture unchanged).
 

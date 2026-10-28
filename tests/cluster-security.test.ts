@@ -18,7 +18,7 @@
  */
 
 import { afterEach, describe, expect, it } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
@@ -29,8 +29,12 @@ import {
 } from "../src/cluster-crypto.js";
 import { parseConfig } from "../src/config.js";
 import { startService } from "../src/service.js";
-import { assertCoordinatorUrlAllowed } from "../src/cluster-worker.js";
+import {
+  assertCoordinatorUrlAllowed,
+  startClusterWorker,
+} from "../src/cluster-worker.js";
 import { QueueStore } from "../src/store.js";
+import { privateWrite } from "../src/service.js";
 
 type Service = Awaited<ReturnType<typeof startService>>;
 
@@ -349,5 +353,139 @@ describe("cluster security plane", () => {
       body,
     });
     expect(after.status).toBe(401);
+  });
+
+  it("enforces join rate limit per source address", async () => {
+    dir = mkdtempSync(join(tmpdir(), "bridge-sec-rate-"));
+    const config = parseConfig({
+      dataDir: dir,
+      workspace: join(dir, "jobs"),
+      claudePath: process.execPath,
+      port: 0,
+      cluster: {
+        mode: "coordinator",
+        bindHost: "127.0.0.1",
+        exposure: "private",
+        requireTls: false,
+        reservePercent: 10,
+        joinRateLimitPerMinute: 2,
+      },
+    });
+    service = await startService(config, {
+      worker: () => ({
+        ready: async () => ({ ready: true }),
+        run: async () => {
+          throw new Error("no local jobs");
+        },
+      }),
+    });
+    const store = new QueueStore(join(dir, "queue.sqlite"));
+    const auth = new ClusterAuth(store);
+    const tokens = [0, 1, 2].map(
+      () =>
+        auth.createJoinToken({ createdBy: "owner", ttlMs: 60_000 }).token,
+    );
+    store.close();
+
+    const statuses: number[] = [];
+    for (const token of tokens) {
+      const keys = generateNodeKeyPair();
+      const res = await fetch(service.address + "/v1/cluster/join", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          token,
+          name: "desk-" + statuses.length,
+          worker: "claude",
+          concurrency: 1,
+          publicKey: keys.publicKeyPem,
+        }),
+      });
+      statuses.push(res.status);
+    }
+    expect(statuses.slice(0, 2)).toEqual([200, 200]);
+    expect(statuses[2]).toBe(429);
+  });
+
+  it("rejects join from addresses outside allowedWorkerCidrs", async () => {
+    dir = mkdtempSync(join(tmpdir(), "bridge-sec-cidr-"));
+    const config = parseConfig({
+      dataDir: dir,
+      workspace: join(dir, "jobs"),
+      claudePath: process.execPath,
+      port: 0,
+      cluster: {
+        mode: "coordinator",
+        bindHost: "127.0.0.1",
+        exposure: "private",
+        requireTls: false,
+        reservePercent: 10,
+        // Loopback is never in this RFC1918 /24 — join must 403.
+        allowedWorkerCidrs: ["10.255.255.0/24"],
+      },
+    });
+    service = await startService(config, {
+      worker: () => ({
+        ready: async () => ({ ready: true }),
+        run: async () => {
+          throw new Error("no local jobs");
+        },
+      }),
+    });
+    const store = new QueueStore(join(dir, "queue.sqlite"));
+    const token = new ClusterAuth(store).createJoinToken({
+      createdBy: "owner",
+      ttlMs: 60_000,
+    }).token;
+    store.close();
+    const keys = generateNodeKeyPair();
+    const res = await fetch(service.address + "/v1/cluster/join", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        token,
+        name: "desk",
+        worker: "claude",
+        concurrency: 1,
+        publicKey: keys.publicKeyPem,
+      }),
+    });
+    expect(res.status).toBe(403);
+    const body = (await res.json()) as { error?: { message?: string } };
+    expect(body.error?.message).toMatch(/cidr|allowed/i);
+  });
+
+  it("fails fast when cluster.json lacks nodePrivateKey", async () => {
+    dir = mkdtempSync(join(tmpdir(), "bridge-sec-nokey-"));
+    privateWrite(
+      join(dir, "config.json"),
+      JSON.stringify(
+        parseConfig({
+          dataDir: dir,
+          workspace: join(dir, "jobs"),
+          claudePath: process.execPath,
+          port: 0,
+          cluster: { mode: "worker", reservePercent: 10 },
+        }),
+        null,
+        2,
+      ) + "\n",
+    );
+    writeFileSync(
+      join(dir, "cluster.json"),
+      JSON.stringify({
+        coordinatorUrl: "https://bridge.example:8787",
+        nodeId: "node_stale",
+        credential: "ffn_" + "a".repeat(43),
+        allowInsecure: false,
+      }),
+      { mode: 0o600 },
+    );
+    const config = parseConfig(
+      JSON.parse(readFileSync(join(dir, "config.json"), "utf8")),
+    );
+    await expect(startClusterWorker(config)).rejects.toThrow(
+      /nodePrivateKey|re-run.*join/i,
+    );
   });
 });
