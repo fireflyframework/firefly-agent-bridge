@@ -67,6 +67,7 @@ nav:
       - Audit and file activity: audit.md
   - Operate:
       - Service lifecycle: operations.md
+      - Cluster quota pool: cluster.md
       - Security boundaries: security.md
       - Troubleshooting: troubleshooting.md
       - Remote access: tunnels.md

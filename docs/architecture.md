@@ -83,6 +83,10 @@ A workflow snapshots its template and inputs. A successful current job creates i
 
 External effects are outside database atomicity. A command can write a file or call a remote service before its result is lost. Crash recovery marks lost attempts interrupted and retains their evidence; the operator reconciles effects before retrying.
 
+## Cluster mode (optional)
+
+By default the bridge remains a single local process with one CLI login. **Cluster mode** is opt-in: a headless **coordinator** owns the durable queue and public APIs; headless **workers** join with a token, each carrying its own Claude or Codex subscription. The coordinator fair-shares new jobs, keeps a configurable quota reserve on each node, and sticks native sessions to the worker that created them. Clients do not choose nodes. Cluster join, drain, status, and pause are CLI/HTTP only — the diagnostic panel is never required. See [Cluster quota pool](cluster.md) and the [design spec](superpowers/specs/2026-10-27-cluster-quota-pool-design.md).
+
 ## Documentation illustration
 
 The documentation home shows an original Bridge span and two-way packet motion. It is a local Three.js illustration: it does not read queue state, connect to a worker or make model calls. The pause control, reduced-motion preference and static fallback change only that illustration. Provider readiness and job state come from the authenticated console and API described above.

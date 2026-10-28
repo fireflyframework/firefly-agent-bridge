@@ -6,7 +6,7 @@ description: Inspect bridge CLI commands and MCP tools for job submission, workf
 
 # CLI and MCP reference
 
-Run `firefly-bridge help` for the installed version. For source installations, use `node dist/cli.cjs` in place of `firefly-bridge`. Commands that connect to a service need the same `--data-dir` as that instance.
+Run `bridge help` for the installed version (`firefly-bridge` remains a compatibility alias). For source installations, use `node dist/cli.cjs` in place of the native executable. Commands that connect to a service need the same `--data-dir` as that instance.
 
 ## Commands
 

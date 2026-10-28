@@ -53,7 +53,7 @@ The 0.2.7 archive retains `firefly-agent-bridge@firefly-internal`. Source templa
 For a direct stdio connection, register the installed executable using the official Codex CLI:
 
 ```sh
-codex mcp add firefly-agent-bridge -- /absolute/path/to/firefly-bridge mcp
+codex mcp add firefly-agent-bridge -- /absolute/path/to/bridge mcp
 ```
 
 For a source checkout:
@@ -97,6 +97,6 @@ Keep the bridge port distinct from your application's port. forge defaults to 87
 
 Check selected-worker readiness through `bridge_status`, then submit a small job. Inspect its terminal result and reported tools. Check a real function exchange separately if your application uses functions; native execution and caller functions have different ownership.
 
-Close the stdio host or disable its integration to release its lease. Use `firefly-bridge stop` to stop the service deliberately. A managed service exits after its idle timeout once hosts and active work no longer need it; plain `serve` remains available until stopped.
+Close the stdio host or disable its integration to release its lease. Use `bridge stop` to stop the service deliberately. A managed service exits after its idle timeout once hosts and active work no longer need it; plain `serve` remains available until stopped.
 
 Stateless remote MCP does not expose lease-bound `bridge_channel_*` tools. Host-conversation claims and acknowledgments remain on the local stdio adapter; a remote caller can still submit work for that local host to claim.

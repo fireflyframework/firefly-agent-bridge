@@ -6,7 +6,7 @@ description: Diagnose bridge installation, provider login, job execution, native
 
 # Troubleshoot a local bridge
 
-Start with `firefly-bridge status` or the console's Diagnostics view. Inspect the selected worker's readiness reason, dispatch state, profile, and job error before retrying work. `panel` prints the actual address and owner token file path without printing the token.
+Start with `bridge status` or the console's Diagnostics view. Inspect the selected worker's readiness reason, dispatch state, profile, and job error before retrying work. `panel` prints the actual address and owner token file path without printing the token.
 
 ## Installation and startup
 

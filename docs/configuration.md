@@ -22,8 +22,8 @@ See the [console tour](dashboard.md#appearance-and-provider-setup) for the four 
 
 ```json
 {
-  "dataDir": "/absolute/firefly-bridge-state",
-  "workspace": "/absolute/firefly-bridge-jobs",
+  "dataDir": "/absolute/bridge-state",
+  "workspace": "/absolute/bridge-jobs",
   "worker": "codex",
   "codexPath": "/absolute/path/to/codex",
   "host": "127.0.0.1",
