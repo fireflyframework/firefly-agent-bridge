@@ -50,6 +50,26 @@ it("busyRatioFromCpuTimes returns 1 when samples are empty or zero-delta", () =>
   expect(busyRatioFromCpuTimes([idle], [idle])).toBe(1);
 });
 
+it("darwin prefers reclaimable available memory over os.freemem()", () => {
+  const resources = collectNodeResources("/workspace", {
+    platform: "darwin",
+    now: () => new Date("2026-10-27T12:00:00.000Z"),
+    totalmem: () => 8_000_000_000,
+    freemem: () => 200_000_000,
+    availableMemoryBytes: () => 3_000_000_000,
+    cpus: () => [{ times: busy }],
+    loadavg: () => [0.1, 0.1, 0.1],
+    previousCpuTimes: [idle],
+    statfsSync: () => ({
+      bsize: 4096,
+      blocks: 1_000_000,
+      bavail: 500_000,
+    }),
+  });
+  expect(resources.memory.freeBytes).toBe(3_000_000_000);
+  expect(resources.memory.usedRatio).toBeCloseTo(1 - 3_000_000_000 / 8_000_000_000, 5);
+});
+
 it("collectNodeResources probes memory, disk via statfs, and cpu times", () => {
   const resources = collectNodeResources("/workspace", {
     platform: "linux",

@@ -17,6 +17,7 @@
  * limitations under the License.
  */
 
+import { spawnSync } from "node:child_process";
 import { statfsSync as defaultStatfsSync } from "node:fs";
 import {
   cpus as defaultCpus,
@@ -46,6 +47,11 @@ export type CollectNodeResourcesOptions = {
   now?: () => Date;
   totalmem?: () => number;
   freemem?: () => number;
+  /**
+   * Override available/reclaimable RAM. On darwin, Node's freemem() only counts
+   * completely free pages; the default probe prefers vm_stat available pages.
+   */
+  availableMemoryBytes?: () => number | null;
   cpus?: () => Array<{ times: CpuTimesSample }>;
   loadavg?: () => [number, number, number];
   statfsSync?: (path: string) => StatfsSample;
@@ -53,6 +59,38 @@ export type CollectNodeResourcesOptions = {
   previousCpuTimes?: CpuTimesSample[] | null;
   logError?: (message: string, error: unknown) => void;
 };
+
+/**
+ * Darwin available memory: free + inactive + speculative + purgeable pages.
+ * Node's os.freemem() under-reports reclaimable RAM and falsely starves eligibility.
+ */
+export function darwinAvailableMemoryBytes(
+  runVmStat: () => { stdout: string; status: number | null } = () =>
+    spawnSync("vm_stat", [], { encoding: "utf8" }),
+): number | null {
+  try {
+    const result = runVmStat();
+    if (result.status !== 0) return null;
+    const text = result.stdout;
+    const pageSizeMatch = text.match(/page size of\s+(\d+)\s+bytes/i);
+    const pageSize = pageSizeMatch ? Number(pageSizeMatch[1]) : 4096;
+    if (!Number.isFinite(pageSize) || pageSize <= 0) return null;
+    const pages = (label: string): number => {
+      const m = text.match(new RegExp(`Pages ${label}:\\s+([\\d.]+)`, "i"));
+      if (!m) return 0;
+      return Number(String(m[1]).replace(/\./g, ""));
+    };
+    const availablePages =
+      pages("free") +
+      pages("inactive") +
+      pages("speculative") +
+      pages("purgeable");
+    if (availablePages <= 0) return null;
+    return availablePages * pageSize;
+  } catch {
+    return null;
+  }
+}
 
 function clamp01(value: number): number {
   if (!Number.isFinite(value)) return 1;
@@ -177,7 +215,16 @@ export function collectNodeResources(
   let memory: NodeResources["memory"];
   try {
     const totalBytes = totalmem();
-    const freeBytes = freemem();
+    const freeRaw = freemem();
+    let freeBytes = freeRaw;
+    if (platform === "darwin") {
+      const available =
+        options.availableMemoryBytes?.() ?? darwinAvailableMemoryBytes();
+      if (available != null && available > freeBytes) freeBytes = available;
+    } else if (options.availableMemoryBytes) {
+      const available = options.availableMemoryBytes();
+      if (available != null && available > freeBytes) freeBytes = available;
+    }
     memory = {
       totalBytes,
       freeBytes,
@@ -191,7 +238,15 @@ export function collectNodeResources(
 
   let disk: NodeResources["disk"];
   try {
-    const stats = statfs(workspace);
+    // Workspace may not exist until the first job; probe the path or its parent.
+    let probePath = workspace;
+    try {
+      statfs(probePath);
+    } catch {
+      const parent = workspace.replace(/[/\\][^/\\]+$/, "") || workspace;
+      probePath = parent;
+    }
+    const stats = statfs(probePath);
     const totalBytes = stats.bsize * stats.blocks;
     const freeBytes = stats.bsize * stats.bavail;
     disk = {

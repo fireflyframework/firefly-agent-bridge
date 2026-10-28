@@ -74,6 +74,11 @@ export type ClusterWorkerOptions = {
   fetch?: typeof fetch;
   /** Override CLI worker construction (tests). */
   workerFactory?: (claim: ClusterClaimSnapshot) => Worker;
+  /**
+   * Override readiness/auth probe construction (tests). When omitted, uses
+   * `workerFactory` with a synthetic claim, or the configured Claude/Codex CLI.
+   */
+  probeWorker?: () => Worker;
   collectResources?: (
     workspace: string,
     options?: CollectNodeResourcesOptions,
@@ -86,6 +91,8 @@ export type ClusterWorkerOptions = {
   heartbeatIntervalMs?: number;
   /** Consecutive heartbeat failures before aborting local attempts. */
   heartbeatFailureLimit?: number;
+  /** Min interval between CLI readiness probes (default 15s). */
+  readinessProbeIntervalMs?: number;
 };
 
 export type ClusterWorkerHandle = {
@@ -150,7 +157,9 @@ export async function startClusterWorker(
   let heartbeatFailures = 0;
   let draining = false;
   let windowStartedAt = new Date().toISOString();
-  let readiness: WorkerReadiness = { ready: true };
+  let readiness: WorkerReadiness = { ready: false, reason: "probe_pending" };
+  let lastReadinessProbeAt = 0;
+  const readinessProbeIntervalMs = options.readinessProbeIntervalMs ?? 15_000;
   let estimatedUsedUnits = 0;
   let estimatedCapacityUnits = 100;
   let quotaState: NodeCapacity["quota"]["state"] = "unknown";
@@ -206,6 +215,59 @@ export async function startClusterWorker(
     if (state === "required" || state === "unavailable")
       return "unauthenticated";
     return "unknown";
+  }
+
+  function createProbeWorker(): Worker {
+    if (options.probeWorker) return options.probeWorker();
+    if (options.workerFactory) {
+      const now = new Date().toISOString();
+      return options.workerFactory({
+        attempt: {
+          id: "probe",
+          jobId: "probe",
+          owner: "probe",
+          fence: "probe",
+          status: "running",
+          createdAt: now,
+          updatedAt: now,
+          nodeId: cluster.nodeId,
+        },
+        job: {
+          id: "probe",
+          prompt: "",
+          profile: "default",
+          mode: "cli",
+          principalId: "probe",
+          status: "running",
+          createdAt: now,
+          updatedAt: now,
+          messages: [],
+        },
+        profile: config.profiles.default,
+      });
+    }
+    const path =
+      config.worker === "codex" ? config.codexPath : config.claudePath;
+    return new (config.worker === "codex" ? CodexWorker : ClaudeWorker)({
+      path: path!,
+      ...config.profiles.default,
+    });
+  }
+
+  async function refreshReadiness(force = false): Promise<void> {
+    const now = Date.now();
+    if (
+      !force &&
+      lastReadinessProbeAt > 0 &&
+      now - lastReadinessProbeAt < readinessProbeIntervalMs
+    )
+      return;
+    lastReadinessProbeAt = now;
+    try {
+      readiness = await createProbeWorker().ready();
+    } catch {
+      readiness = { ready: false, reason: "worker_ready_failed" };
+    }
   }
 
   function buildCapacity(): NodeCapacity {
@@ -389,6 +451,10 @@ export async function startClusterWorker(
     if (stopped || ticking) return;
     ticking = true;
     try {
+      // Probe CLI auth before heartbeat so the coordinator can mark the node
+      // eligible. Without this, authentication stays "unknown" forever and
+      // selectNode never assigns work (chicken-and-egg with claim-time ready()).
+      await refreshReadiness();
       const capacity = buildCapacity();
       let controls: ClusterAttemptControl[] = [];
       try {

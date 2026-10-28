@@ -559,6 +559,7 @@ export class ClusterCoordinator {
         reservedPercent: reserved,
         quotaState: cap?.quota.state ?? ("unknown" as const),
         resetAt: cap?.quota.resetAt ?? null,
+        authentication: cap?.authentication ?? ("unknown" as const),
         memoryFreeBytes: cap?.resources.memory.freeBytes ?? null,
         diskFreeBytes: cap?.resources.disk.freeBytes ?? null,
         cpuBusyRatio: cap?.resources.cpu.busyRatio ?? null,

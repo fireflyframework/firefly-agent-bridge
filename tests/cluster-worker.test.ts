@@ -229,6 +229,71 @@ describe("cluster worker pull loop", () => {
     expect(heartbeats.length).toBeGreaterThan(0);
     expect(heartbeats[0]!.resources).toBeTruthy();
     expect(heartbeats[0]!.resources.cpu.cores).toBeGreaterThan(0);
+    // Readiness is probed before the first heartbeat so the coordinator can
+    // mark the node eligible (authentication !== "unknown").
+    expect(heartbeats[0]!.authentication).toBe("authenticated");
+  });
+
+  it("probes CLI readiness before claiming so auth is not stuck unknown", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "bridge-worker-probe-"));
+    cleanups.push(() => rmSync(dir, { recursive: true, force: true }));
+
+    const heartbeats: NodeCapacity[] = [];
+    let probeCalls = 0;
+    const app = Fastify({ logger: false });
+    app.post("/v1/cluster/nodes/:id/heartbeat", async (req) => {
+      heartbeats.push(req.body as NodeCapacity);
+      return { id: "node_probe", status: "online", controls: [] };
+    });
+    app.post("/v1/cluster/nodes/:id/claim", async () => ({ claims: [] }));
+    const address = await app.listen({ host: "127.0.0.1", port: 0 });
+    cleanups.push(() => app.close());
+
+    writeFileSync(
+      join(dir, "cluster.json"),
+      JSON.stringify({
+        coordinatorUrl: address,
+        nodeId: "node_probe",
+        credential: "ffn_test_credential",
+        nodePrivateKey: generateNodeKeyPair().privateKeyPem,
+        reservePercent: 10,
+        allowInsecure: true,
+      }),
+    );
+
+    const config = parseConfig({
+      dataDir: dir,
+      workspace: join(dir, "jobs"),
+      claudePath: process.execPath,
+      concurrency: 1,
+      port: 0,
+      cluster: { mode: "worker", reservePercent: 10 },
+    });
+
+    const handle = await startClusterWorker(config, {
+      heartbeatIntervalMs: 40,
+      readinessProbeIntervalMs: 10_000,
+      probeWorker: () => {
+        probeCalls += 1;
+        return {
+          ready: async () => ({
+            ready: true,
+            authentication: {
+              provider: "codex",
+              state: "authenticated",
+              source: "official_cli_auth_status",
+              observedAt: new Date().toISOString(),
+            },
+          }),
+          run: async () => ({ status: "succeeded", result: "unused" }),
+        } satisfies Worker;
+      },
+    });
+    cleanups.push(() => handle.stop());
+
+    await waitFor(() => heartbeats.length >= 1);
+    expect(probeCalls).toBeGreaterThanOrEqual(1);
+    expect(heartbeats[0]!.authentication).toBe("authenticated");
   });
 
   it("applies pause control by aborting the active attempt", async () => {

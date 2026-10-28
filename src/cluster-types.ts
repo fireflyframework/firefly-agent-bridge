@@ -84,6 +84,9 @@ export const clusterNodeSummarySchema = z.strictObject({
   reservedPercent: z.number().int().min(0).max(90),
   quotaState: z.enum(["ok", "limited", "unknown"]),
   resetAt: z.number().nullable(),
+  authentication: z
+    .enum(["authenticated", "unauthenticated", "unknown"])
+    .default("unknown"),
   memoryFreeBytes: z.number().min(0).nullable().default(null),
   diskFreeBytes: z.number().min(0).nullable().default(null),
   cpuBusyRatio: z.number().min(0).max(1).nullable().default(null),
