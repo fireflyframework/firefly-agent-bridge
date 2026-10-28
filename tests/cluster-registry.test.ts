@@ -23,7 +23,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ClusterAuth } from "../src/cluster-auth.js";
 import { ClusterRegistry } from "../src/cluster-registry.js";
-import type { NodeCapacity } from "../src/cluster-types.js";
+import type { NodeCapacity, NodeResources } from "../src/cluster-types.js";
 import { BridgeError } from "../src/contracts.js";
 import { QueueStore } from "../src/store.js";
 import { parseConfig } from "../src/config.js";
@@ -33,6 +33,23 @@ let dir: string;
 let store: QueueStore;
 let auth: ClusterAuth;
 let registry: ClusterRegistry;
+
+const healthyResources = (): NodeResources => ({
+  platform: "darwin",
+  collectedAt: "2026-10-27T00:00:00.000Z",
+  cpu: { cores: 8, busyRatio: 0.2, load1: 1, load5: 0.8, load15: 0.5 },
+  memory: {
+    totalBytes: 16 * 1024 * 1024 * 1024,
+    freeBytes: 8 * 1024 * 1024 * 1024,
+    usedRatio: 0.5,
+  },
+  disk: {
+    path: "/workspace",
+    totalBytes: 500 * 1024 * 1024 * 1024,
+    freeBytes: 200 * 1024 * 1024 * 1024,
+    usedRatio: 0.6,
+  },
+});
 
 const capacity = (overrides: Partial<NodeCapacity> = {}): NodeCapacity => ({
   worker: "claude",
@@ -47,6 +64,7 @@ const capacity = (overrides: Partial<NodeCapacity> = {}): NodeCapacity => ({
     estimatedUsedUnits: 0,
     estimatedCapacityUnits: 100,
   },
+  resources: healthyResources(),
   reservePercent: 10,
   draining: false,
   ...overrides,

@@ -18,13 +18,53 @@
  */
 
 import { expect, it } from "vitest";
-import type { NodeCapacity } from "../src/cluster-types.js";
+import type { NodeCapacity, NodeResources } from "../src/cluster-types.js";
+import { DEFAULT_SCHEDULING } from "../src/cluster-config.js";
 import {
   markLimited,
   recordUsage,
   usableCapacity,
 } from "../src/cluster-quota.js";
 import { selectNode, type RouterNode } from "../src/cluster-router.js";
+
+function resources(
+  overrides: Partial<{
+    freeMemory: number;
+    freeDisk: number;
+    busyRatio: number;
+    memoryUsedRatio: number;
+    diskUsedRatio: number;
+  }> = {},
+): NodeResources {
+  const freeMemory = overrides.freeMemory ?? 4 * 1024 * 1024 * 1024;
+  const freeDisk = overrides.freeDisk ?? 50 * 1024 * 1024 * 1024;
+  const memoryUsedRatio = overrides.memoryUsedRatio ?? 0.4;
+  const diskUsedRatio = overrides.diskUsedRatio ?? 0.3;
+  const totalMemory = Math.round(freeMemory / Math.max(1 - memoryUsedRatio, 0.01));
+  const totalDisk = Math.round(freeDisk / Math.max(1 - diskUsedRatio, 0.01));
+  return {
+    platform: "darwin",
+    collectedAt: "2026-10-27T00:00:00.000Z",
+    cpu: {
+      cores: 8,
+      busyRatio: overrides.busyRatio ?? 0.2,
+      load1: 1,
+      load5: 0.8,
+      load15: 0.5,
+    },
+    memory: {
+      totalBytes: totalMemory,
+      freeBytes: freeMemory,
+      usedRatio: memoryUsedRatio,
+    },
+    disk: {
+      path: "/workspace",
+      totalBytes: totalDisk,
+      freeBytes: freeDisk,
+      usedRatio: diskUsedRatio,
+    },
+  };
+}
 
 function capacity(
   overrides: Partial<NodeCapacity> & {
@@ -54,6 +94,7 @@ function capacity(
       estimatedUsedUnits,
       estimatedCapacityUnits,
     },
+    resources: resources(),
     reservePercent: 10,
     draining: false,
     ...rest,
@@ -146,4 +187,99 @@ it("tie-breaks by lower active then nodeId", () => {
     node("node_a", capacity({ estimatedUsedUnits: 10, active: 0 })),
   ];
   expect(selectNode(sameActive, {})).toBe("node_a");
+});
+
+it("defaults scheduling floors and weights match design", () => {
+  expect(DEFAULT_SCHEDULING.minFreeMemoryBytes).toBe(512 * 1024 * 1024);
+  expect(DEFAULT_SCHEDULING.minFreeDiskBytes).toBe(1024 * 1024 * 1024);
+  expect(DEFAULT_SCHEDULING.maxCpuBusyRatio).toBe(0.92);
+  expect(DEFAULT_SCHEDULING.weights).toEqual({
+    quota: 0.45,
+    memory: 0.2,
+    disk: 0.15,
+    cpu: 0.2,
+  });
+});
+
+it("marks nodes past memory/disk/cpu floors ineligible despite free quota", () => {
+  const ok = node("node_ok", capacity({ estimatedUsedUnits: 20 }));
+  const lowMem = node(
+    "node_low_mem",
+    capacity({
+      estimatedUsedUnits: 0,
+      resources: resources({ freeMemory: 100 * 1024 * 1024 }),
+    }),
+  );
+  const lowDisk = node(
+    "node_low_disk",
+    capacity({
+      estimatedUsedUnits: 0,
+      resources: resources({ freeDisk: 100 * 1024 * 1024 }),
+    }),
+  );
+  const hotCpu = node(
+    "node_hot_cpu",
+    capacity({
+      estimatedUsedUnits: 0,
+      resources: resources({ busyRatio: 0.99 }),
+    }),
+  );
+
+  expect(selectNode([lowMem, ok], {})).toBe("node_ok");
+  expect(selectNode([lowDisk, ok], {})).toBe("node_ok");
+  expect(selectNode([hotCpu, ok], {})).toBe("node_ok");
+  expect(selectNode([lowMem], {})).toBeNull();
+  expect(selectNode([lowDisk], {})).toBeNull();
+  expect(selectNode([hotCpu], {})).toBeNull();
+});
+
+it("weighted score prefers resource-rich node when quota headroom matches", () => {
+  const poor = node(
+    "node_poor",
+    capacity({
+      estimatedUsedUnits: 10,
+      resources: resources({
+        memoryUsedRatio: 0.9,
+        diskUsedRatio: 0.9,
+        busyRatio: 0.9,
+        freeMemory: 600 * 1024 * 1024,
+        freeDisk: 2 * 1024 * 1024 * 1024,
+      }),
+    }),
+  );
+  const rich = node(
+    "node_rich",
+    capacity({
+      estimatedUsedUnits: 10,
+      resources: resources({
+        memoryUsedRatio: 0.1,
+        diskUsedRatio: 0.1,
+        busyRatio: 0.1,
+        freeMemory: 8 * 1024 * 1024 * 1024,
+        freeDisk: 100 * 1024 * 1024 * 1024,
+      }),
+    }),
+  );
+  expect(selectNode([poor, rich], {})).toBe("node_rich");
+});
+
+it("sticky session stays exclusive even when sticky node is resource-exhausted", () => {
+  const sticky = node(
+    "node_sticky",
+    capacity({
+      estimatedUsedUnits: 0,
+      resources: resources({ freeMemory: 1 }),
+    }),
+  );
+  const other = node(
+    "node_other",
+    capacity({
+      estimatedUsedUnits: 0,
+      resources: resources(),
+    }),
+  );
+  expect(
+    selectNode([sticky, other], { sessionNodeId: "node_sticky" }),
+  ).toBeNull();
+  expect(selectNode([sticky, other], {})).toBe("node_other");
 });

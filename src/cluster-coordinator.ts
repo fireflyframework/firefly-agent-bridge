@@ -25,7 +25,9 @@ import {
   headroom,
   usableCapacity,
 } from "./cluster-quota.js";
+import { DEFAULT_SCHEDULING } from "./cluster-config.js";
 import { ClusterRegistry } from "./cluster-registry.js";
+import { exhaustedNodeResources } from "./cluster-resources.js";
 import { selectNode, type RouterNode } from "./cluster-router.js";
 import {
   nodeCapacitySchema,
@@ -71,6 +73,10 @@ export class ClusterCoordinator {
     private auth: ClusterAuth,
     private config: BridgeConfig,
   ) {}
+
+  private get scheduling() {
+    return this.config.cluster?.scheduling ?? DEFAULT_SCHEDULING;
+  }
 
   /** Resolve ffn_ credential → node. Hook point for Task 8 signature checks. */
   authenticateWorker(credential: string): WorkerAuthContext {
@@ -203,6 +209,7 @@ export class ClusterCoordinator {
             estimatedUsedUnits: 0,
             estimatedCapacityUnits: 0,
           },
+          resources: exhaustedNodeResources(this.config.workspace),
           reservePercent: n.reservePercent,
           draining: n.status === "draining",
         },
@@ -233,10 +240,15 @@ export class ClusterCoordinator {
     const pending = this.store.pending("cli");
     for (const job of pending) {
       if (claims.length >= freeSlots) break;
-      const selected = selectNode(this.routerNodes(), {
-        sessionNodeId: job.sessionNodeId,
-        worker: input.worker ?? this.config.worker,
-      });
+      const selected = selectNode(
+        this.routerNodes(),
+        {
+          sessionNodeId: job.sessionNodeId,
+          worker: input.worker ?? this.config.worker,
+        },
+        Date.now(),
+        this.scheduling,
+      );
       if (selected !== nodeId) continue;
       const owner = `${nodeId}:${randomUUID()}`;
       const attempt = this.store.claim(owner, "cli", job.id, { nodeId });
@@ -337,7 +349,13 @@ export class ClusterCoordinator {
     const online = nodes.filter((n) => n.status === "online");
     const router = this.routerNodes();
     const eligibleCount = router.filter(
-      (n) => selectNode([n], { worker: this.config.worker }) === n.id,
+      (n) =>
+        selectNode(
+          [n],
+          { worker: this.config.worker },
+          Date.now(),
+          this.scheduling,
+        ) === n.id,
     ).length;
 
     const summaries = online.map((n) => {
@@ -363,6 +381,9 @@ export class ClusterCoordinator {
         reservedPercent: reserved,
         quotaState: cap?.quota.state ?? ("unknown" as const),
         resetAt: cap?.quota.resetAt ?? null,
+        memoryFreeBytes: cap?.resources.memory.freeBytes ?? null,
+        diskFreeBytes: cap?.resources.disk.freeBytes ?? null,
+        cpuBusyRatio: cap?.resources.cpu.busyRatio ?? null,
       };
     });
 
@@ -392,6 +413,14 @@ export class ClusterCoordinator {
     else if (eligibleCount === 0 && queuedJobs > 0)
       dispatch = "waiting_for_capacity";
 
+    const withMem = summaries.filter((s) => s.memoryFreeBytes != null);
+    const withDisk = summaries.filter((s) => s.diskFreeBytes != null);
+    const withCpu = summaries.filter((s) => s.cpuBusyRatio != null);
+    const avg = (values: number[]) =>
+      values.length === 0
+        ? null
+        : values.reduce((a, b) => a + b, 0) / values.length;
+
     return {
       mode: "coordinator",
       reservePercent: this.config.cluster?.reservePercent ?? 10,
@@ -404,6 +433,11 @@ export class ClusterCoordinator {
         fairnessSkew,
         queuedJobs,
         runningJobs,
+        avgMemoryFreeBytes: avg(
+          withMem.map((s) => s.memoryFreeBytes as number),
+        ),
+        avgDiskFreeBytes: avg(withDisk.map((s) => s.diskFreeBytes as number)),
+        avgCpuBusyRatio: avg(withCpu.map((s) => s.cpuBusyRatio as number)),
       },
     };
   }

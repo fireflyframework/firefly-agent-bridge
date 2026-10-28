@@ -19,6 +19,30 @@
 
 import { z } from "zod";
 
+export const nodeResourcesSchema = z.strictObject({
+  platform: z.enum(["darwin", "linux", "win32", "unknown"]),
+  collectedAt: z.string().min(1),
+  cpu: z.strictObject({
+    cores: z.number().int().min(1),
+    busyRatio: z.number().min(0).max(1),
+    load1: z.number().min(0),
+    load5: z.number().min(0),
+    load15: z.number().min(0),
+  }),
+  memory: z.strictObject({
+    totalBytes: z.number().min(0),
+    freeBytes: z.number().min(0),
+    usedRatio: z.number().min(0).max(1),
+  }),
+  disk: z.strictObject({
+    path: z.string(),
+    totalBytes: z.number().min(0),
+    freeBytes: z.number().min(0),
+    usedRatio: z.number().min(0).max(1),
+  }),
+});
+export type NodeResources = z.infer<typeof nodeResourcesSchema>;
+
 export const nodeCapacitySchema = z.strictObject({
   worker: z.enum(["claude", "codex"]),
   concurrency: z.number().int().min(0),
@@ -32,6 +56,7 @@ export const nodeCapacitySchema = z.strictObject({
     estimatedUsedUnits: z.number().min(0),
     estimatedCapacityUnits: z.number().min(0),
   }),
+  resources: nodeResourcesSchema,
   reservePercent: z.number().int().min(0).max(90),
   draining: z.boolean(),
 });
@@ -59,6 +84,9 @@ export const clusterNodeSummarySchema = z.strictObject({
   reservedPercent: z.number().int().min(0).max(90),
   quotaState: z.enum(["ok", "limited", "unknown"]),
   resetAt: z.number().nullable(),
+  memoryFreeBytes: z.number().min(0).nullable().default(null),
+  diskFreeBytes: z.number().min(0).nullable().default(null),
+  cpuBusyRatio: z.number().min(0).max(1).nullable().default(null),
 });
 export type ClusterNodeSummary = z.infer<typeof clusterNodeSummarySchema>;
 
@@ -69,6 +97,9 @@ export const clusterPoolSummarySchema = z.strictObject({
   fairnessSkew: z.number().min(0),
   queuedJobs: z.number().int().min(0),
   runningJobs: z.number().int().min(0),
+  avgMemoryFreeBytes: z.number().min(0).nullable().default(null),
+  avgDiskFreeBytes: z.number().min(0).nullable().default(null),
+  avgCpuBusyRatio: z.number().min(0).max(1).nullable().default(null),
 });
 export type ClusterPoolSummary = z.infer<typeof clusterPoolSummarySchema>;
 

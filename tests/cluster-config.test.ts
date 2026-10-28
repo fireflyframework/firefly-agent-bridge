@@ -53,6 +53,34 @@ it("defaults reservePercent to 10 when omitted", () => {
   expect(config.cluster?.reservePercent).toBe(10);
 });
 
+it("defaults scheduling floors and weights", () => {
+  const config = parseConfig({
+    ...base,
+    cluster: { mode: "coordinator", bindHost: "0.0.0.0" },
+  });
+  expect(config.cluster?.scheduling).toEqual({
+    minFreeMemoryBytes: 536870912,
+    minFreeDiskBytes: 1073741824,
+    maxCpuBusyRatio: 0.92,
+    weights: { quota: 0.45, memory: 0.2, disk: 0.15, cpu: 0.2 },
+  });
+});
+
+it("rejects scheduling weights that do not sum to 1", () => {
+  expect(() =>
+    parseConfig({
+      ...base,
+      cluster: {
+        mode: "coordinator",
+        bindHost: "0.0.0.0",
+        scheduling: {
+          weights: { quota: 0.5, memory: 0.5, disk: 0.5, cpu: 0.5 },
+        },
+      },
+    }),
+  ).toThrow();
+});
+
 it("rejects reservePercent outside 0–90", () => {
   expect(() =>
     parseConfig({

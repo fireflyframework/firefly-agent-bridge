@@ -19,6 +19,54 @@
 
 import { z } from "zod";
 
+const WEIGHT_SUM_EPSILON = 1e-6;
+
+export const schedulingWeightsSchema = z.strictObject({
+  quota: z.number().min(0).max(1),
+  memory: z.number().min(0).max(1),
+  disk: z.number().min(0).max(1),
+  cpu: z.number().min(0).max(1),
+});
+
+export const clusterSchedulingSchema = z
+  .strictObject({
+    minFreeMemoryBytes: z
+      .number()
+      .int()
+      .min(0)
+      .default(512 * 1024 * 1024),
+    minFreeDiskBytes: z
+      .number()
+      .int()
+      .min(0)
+      .default(1024 * 1024 * 1024),
+    maxCpuBusyRatio: z.number().min(0).max(1).default(0.92),
+    weights: schedulingWeightsSchema.default({
+      quota: 0.45,
+      memory: 0.2,
+      disk: 0.15,
+      cpu: 0.2,
+    }),
+  })
+  .superRefine((value, ctx) => {
+    const sum =
+      value.weights.quota +
+      value.weights.memory +
+      value.weights.disk +
+      value.weights.cpu;
+    if (Math.abs(sum - 1) > WEIGHT_SUM_EPSILON) {
+      ctx.addIssue({
+        code: "custom",
+        message: `scheduling.weights must sum to 1 (got ${sum})`,
+        path: ["weights"],
+      });
+    }
+  });
+export type ClusterScheduling = z.infer<typeof clusterSchedulingSchema>;
+
+export const DEFAULT_SCHEDULING: ClusterScheduling =
+  clusterSchedulingSchema.parse({});
+
 export const clusterConfigSchema = z.strictObject({
   mode: z.enum(["off", "coordinator", "worker"]).default("off"),
   bindHost: z.string().min(1).max(253).default("0.0.0.0"),
@@ -29,6 +77,7 @@ export const clusterConfigSchema = z.strictObject({
   joinTokenHash: z.string().min(1).nullable().default(null),
   requireTls: z.boolean().default(false),
   allowedWorkerCidrs: z.array(z.string().min(1).max(64)).default([]),
+  scheduling: clusterSchedulingSchema.default(DEFAULT_SCHEDULING),
 });
 export type ClusterConfig = z.infer<typeof clusterConfigSchema>;
 
