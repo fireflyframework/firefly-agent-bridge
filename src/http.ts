@@ -21,7 +21,12 @@ import { Readable } from "node:stream";
 import { releaseVersion } from "./release-version.js";
 import Fastify, { type FastifyRequest } from "fastify";
 import { z } from "zod";
-import { BridgeError, terminal, type Principal } from "./contracts.js";
+import {
+  BridgeError,
+  jobForClient,
+  terminal,
+  type Principal,
+} from "./contracts.js";
 import { parseConfig, templateSchema, type BridgeConfig } from "./config.js";
 import { auditQuery, toolsQuery } from "./audit.js";
 import { QueueStore } from "./store.js";
@@ -424,15 +429,18 @@ export function createHttpService(
         order: z.enum(["asc", "desc"]).default("asc"),
       })
       .parse(req.query);
-    const jobs = d.store.list(p, q.limit, q.after, q.order);
+    const jobs = d.store
+      .list(p, q.limit, q.after, q.order)
+      .map((job) => jobForClient(job, p));
     return {
       jobs,
       nextCursor: jobs.length === q.limit ? jobs.at(-1)?.id : null,
     };
   });
-  app.get("/v1/bridge/jobs/:id", async (req) =>
-    d.store.get(id(req), requireScope(req, "read")),
-  );
+  app.get("/v1/bridge/jobs/:id", async (req) => {
+    const p = requireScope(req, "read");
+    return jobForClient(d.store.get(id(req), p), p);
+  });
   app.get("/v1/bridge/jobs/:id/audit", async (req) =>
     d.store.audit(
       id(req),
@@ -467,9 +475,10 @@ export function createHttpService(
     })),
   }));
   app.post("/v1/bridge/jobs/:id/pause", async (req) => {
-    const job = d.store.pause(id(req), requireScope(req, "control"));
+    const p = requireScope(req, "control");
+    const job = d.store.pause(id(req), p);
     d.scheduler.wake();
-    return job;
+    return jobForClient(job, p);
   });
   app.post("/v1/bridge/jobs/:id/resume", async (req) => {
     const p = requireScope(req, "control"),
@@ -482,7 +491,7 @@ export function createHttpService(
       );
     const resumed = d.store.resume(job.id, p);
     d.scheduler.wake();
-    return resumed;
+    return jobForClient(resumed, p);
   });
   app.get("/v1/bridge/jobs/:id/result", async (req, reply) => {
     const job = d.store.get(id(req), requireScope(req, "read"));
@@ -507,12 +516,13 @@ export function createHttpService(
       throw new BridgeError("profile_forbidden", "Profile is unavailable", 403);
     const updated = d.store.sendMessage(job.id, text, p, key(req));
     d.scheduler.wake();
-    return reply.code(202).send(updated);
+    return reply.code(202).send(jobForClient(updated, p));
   });
   app.post("/v1/bridge/jobs/:id/cancel", async (req) => {
-    const job = d.store.cancel(id(req), requireScope(req, "control"));
+    const p = requireScope(req, "control");
+    const job = d.store.cancel(id(req), p);
     d.scheduler.wake();
-    return job;
+    return jobForClient(job, p);
   });
   app.post("/v1/bridge/jobs/:id/retry", async (req, reply) => {
     const p = requireScope(req, "control");
@@ -521,7 +531,7 @@ export function createHttpService(
       throw new BridgeError("profile_forbidden", "Profile is unavailable", 403);
     const updated = d.flows.retryJob(job.id, p);
     d.scheduler.wake();
-    return reply.code(202).send(updated);
+    return reply.code(202).send(jobForClient(updated, p));
   });
   app.get("/v1/bridge/events", async (req, reply) => {
     const p = requireScope(req, "read");

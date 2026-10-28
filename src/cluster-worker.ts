@@ -363,6 +363,13 @@ export async function startClusterWorker(
         quotaResetAt =
           typeof outcome.retryAt === "number" ? outcome.retryAt : null;
         estimatedUsedUnits = estimatedCapacityUnits;
+        // Pause sibling in-flight attempts on this limited node immediately.
+        for (const [siblingId, sibling] of active) {
+          if (siblingId === claim.attempt.id) continue;
+          if (sibling.control) continue;
+          sibling.control = "pause";
+          sibling.controller.abort("pause");
+        }
       } else if (outcome.status === "succeeded" || outcome.status === "failed") {
         estimatedUsedUnits += 1;
         if (quotaState === "unknown") quotaState = "ok";

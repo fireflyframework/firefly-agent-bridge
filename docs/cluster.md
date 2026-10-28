@@ -163,7 +163,7 @@ Owner token for admin HTTP remains in the coordinator `owner.token` file (same a
 
 ## Client transparency
 
-Submit jobs, watch SSE, use MCP, and call OpenAI-compatible completions against the **coordinator** exactly as against a single bridge. Callers do not select nodes. Per-node inventory in status requires owner or `cluster:admin` scope; pool summary is visible to authenticated principals.
+Submit jobs, watch SSE, use MCP, and call OpenAI-compatible completions against the **coordinator** exactly as against a single bridge. Callers do not select nodes. Per-node inventory in status requires owner or `admin` scope; pool summary is visible to authenticated principals. Internal job fields `sessionNodeId` / `assignedNodeId` are omitted from client job views unless the principal is owner or has `admin` scope.
 
 ## Workspace constraint
 

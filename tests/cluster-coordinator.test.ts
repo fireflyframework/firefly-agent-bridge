@@ -492,4 +492,330 @@ describe("ClusterCoordinator protocol", () => {
     expect(status.cluster.pool).toBeTruthy();
     expect(status.cluster.nodes).toEqual([]);
   });
+
+  it("omits sessionNodeId and assignedNodeId from non-admin client job views", async () => {
+    const { token: joinToken } = new ClusterAuth(service.store).createJoinToken({
+      createdBy: "owner",
+      ttlMs: 60_000,
+    });
+    const worker = await joinWorker(service.address, joinToken, "desk-opaque");
+    await heartbeat(service.address, worker);
+
+    const { Tokens } = await import("../src/auth.js");
+    const tokens = new Tokens(service.store);
+    const reader = tokens.create({
+      id: "job-reader",
+      owner: false,
+      profiles: ["default"],
+      scopes: ["read", "submit"],
+    }).token;
+    // Same principal id as reader, with admin — node fields visible on owned jobs.
+    const adminScoped = tokens.create({
+      id: "job-reader-admin",
+      owner: false,
+      profiles: ["default"],
+      scopes: ["read", "submit", "admin"],
+    }).token;
+
+    const submit = await fetch(service.address + "/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer " + reader,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "bridge/default",
+        messages: [{ role: "user", content: "opaque nodes" }],
+        bridge: { execution: "agent", background: true },
+      }),
+    });
+    const job = (await submit.json()) as { id: string };
+    const claimed = await claim(service.address, worker);
+    expect(claimed.claims).toHaveLength(1);
+    const attempt = claimed.claims[0]!.attempt;
+    await workerPost(
+      service.address,
+      worker,
+      `/v1/cluster/attempts/${attempt.id}/events`,
+      {
+        owner: attempt.owner,
+        fence: attempt.fence,
+        events: [
+          { kind: "session", text: "", data: { sessionId: "opaque-sess" } },
+        ],
+      },
+    );
+
+    const clientJob = await (
+      await fetch(service.address + "/v1/bridge/jobs/" + job.id, {
+        headers: { authorization: "Bearer " + reader },
+      })
+    ).json();
+    expect(clientJob.sessionId).toBe("opaque-sess");
+    expect(clientJob).not.toHaveProperty("sessionNodeId");
+    expect(clientJob).not.toHaveProperty("assignedNodeId");
+
+    const listed = await (
+      await fetch(service.address + "/v1/bridge/jobs", {
+        headers: { authorization: "Bearer " + reader },
+      })
+    ).json();
+    const listedJob = listed.jobs.find((j: { id: string }) => j.id === job.id);
+    expect(listedJob).toBeTruthy();
+    expect(listedJob).not.toHaveProperty("sessionNodeId");
+    expect(listedJob).not.toHaveProperty("assignedNodeId");
+
+    const ownerJob = await (
+      await fetch(service.address + "/v1/bridge/jobs/" + job.id, {
+        headers: { authorization: "Bearer " + service.ownerToken },
+      })
+    ).json();
+    expect(ownerJob.assignedNodeId).toBe(worker.nodeId);
+    expect(ownerJob.sessionNodeId).toBe(worker.nodeId);
+
+    // Admin principal submits its own job so get() authorization succeeds.
+    const adminSubmit = await fetch(service.address + "/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer " + adminScoped,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "bridge/default",
+        messages: [{ role: "user", content: "admin sees nodes" }],
+        bridge: { execution: "agent", background: true },
+      }),
+    });
+    const adminJobId = ((await adminSubmit.json()) as { id: string }).id;
+    const adminClaimed = await claim(service.address, worker);
+    expect(adminClaimed.claims).toHaveLength(1);
+    const adminAttempt = adminClaimed.claims[0]!.attempt;
+    await workerPost(
+      service.address,
+      worker,
+      `/v1/cluster/attempts/${adminAttempt.id}/events`,
+      {
+        owner: adminAttempt.owner,
+        fence: adminAttempt.fence,
+        events: [
+          { kind: "session", text: "", data: { sessionId: "admin-sess" } },
+        ],
+      },
+    );
+    const adminJob = await (
+      await fetch(service.address + "/v1/bridge/jobs/" + adminJobId, {
+        headers: { authorization: "Bearer " + adminScoped },
+      })
+    ).json();
+    expect(adminJob.assignedNodeId).toBe(worker.nodeId);
+    expect(adminJob.sessionNodeId).toBe(worker.nodeId);
+  });
+
+  it("enqueues pause controls for siblings when heartbeat reports limited", async () => {
+    const { token: joinToken } = new ClusterAuth(service.store).createJoinToken({
+      createdBy: "owner",
+      ttlMs: 60_000,
+    });
+    const worker = await joinWorker(service.address, joinToken, "desk-limited");
+    await heartbeat(service.address, worker);
+
+    const ids: string[] = [];
+    for (const prompt of ["sib-a", "sib-b"]) {
+      const submit = await fetch(service.address + "/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer " + service.ownerToken,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "bridge/default",
+          messages: [{ role: "user", content: prompt }],
+          bridge: { execution: "agent", background: true },
+        }),
+      });
+      ids.push(((await submit.json()) as { id: string }).id);
+    }
+
+    const claimed = await claim(service.address, worker, 2);
+    expect(claimed.claims).toHaveLength(2);
+    const attempts = claimed.claims.map((c) => c.attempt);
+
+    const hb = await heartbeat(
+      service.address,
+      worker,
+      capacity({
+        freeSlots: 0,
+        active: 2,
+        quota: {
+          state: "limited",
+          resetAt: Date.now() + 60_000,
+          windowStartedAt: "2026-10-27T00:00:00.000Z",
+          estimatedUsedUnits: 100,
+          estimatedCapacityUnits: 100,
+        },
+      }),
+    );
+    expect(hb.controls).toHaveLength(2);
+    expect(hb.controls).toEqual(
+      expect.arrayContaining(
+        attempts.map((a) =>
+          expect.objectContaining({
+            attemptId: a.id,
+            action: "pause",
+            fence: a.fence,
+          }),
+        ),
+      ),
+    );
+
+    for (const id of ids) {
+      const job = await (
+        await fetch(service.address + "/v1/bridge/jobs/" + id, {
+          headers: { authorization: "Bearer " + service.ownerToken },
+        })
+      ).json();
+      expect(job.status).toBe("pause_requested");
+    }
+  });
+
+  it("validates profile before claim so missing profile does not orphan a running attempt", async () => {
+    const { token: joinToken } = new ClusterAuth(service.store).createJoinToken({
+      createdBy: "owner",
+      ttlMs: 60_000,
+    });
+    const worker = await joinWorker(service.address, joinToken, "desk-profile");
+    await heartbeat(service.address, worker);
+
+    const submit = await fetch(service.address + "/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer " + service.ownerToken,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "bridge/default",
+        messages: [{ role: "user", content: "gone profile" }],
+        bridge: { execution: "agent", background: true },
+      }),
+    });
+    const job = (await submit.json()) as { id: string };
+
+    const row = service.store.db
+      .prepare("SELECT data FROM jobs WHERE id=?")
+      .get(job.id) as { data: string };
+    const data = JSON.parse(row.data) as { profile: string; status: string };
+    data.profile = "deleted_profile";
+    service.store.db
+      .prepare("UPDATE jobs SET data=? WHERE id=?")
+      .run(JSON.stringify(data), job.id);
+
+    const claimed = await claim(service.address, worker);
+    expect(claimed.claims).toHaveLength(0);
+
+    const attempts = service.store.db
+      .prepare("SELECT count(*) AS n FROM attempts WHERE job_id=?")
+      .get(job.id) as { n: number };
+    expect(attempts.n).toBe(0);
+
+    const done = await (
+      await fetch(service.address + "/v1/bridge/jobs/" + job.id, {
+        headers: { authorization: "Bearer " + service.ownerToken },
+      })
+    ).json();
+    expect(done.status).toBe("failed");
+    expect(done.error).toMatch(/profile_unknown/);
+  });
+
+  it("sets activity and retryAt when sticky home node is limited", async () => {
+    const auth = new ClusterAuth(service.store);
+    const { token: joinToken } = auth.createJoinToken({
+      createdBy: "owner",
+      ttlMs: 60_000,
+    });
+    const a = await joinWorker(service.address, joinToken, "home-limited");
+    await heartbeat(service.address, a);
+
+    const submit = await fetch(service.address + "/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer " + service.ownerToken,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "bridge/default",
+        messages: [{ role: "user", content: "sticky wait" }],
+        bridge: { execution: "agent", background: true },
+      }),
+    });
+    const job = (await submit.json()) as { id: string };
+    const first = await claim(service.address, a);
+    const attempt = first.claims[0]!.attempt;
+    await workerPost(
+      service.address,
+      a,
+      `/v1/cluster/attempts/${attempt.id}/events`,
+      {
+        owner: attempt.owner,
+        fence: attempt.fence,
+        events: [
+          { kind: "session", text: "", data: { sessionId: "wait-sess" } },
+        ],
+      },
+    );
+    await workerPost(
+      service.address,
+      a,
+      `/v1/cluster/attempts/${attempt.id}/finish`,
+      {
+        owner: attempt.owner,
+        fence: attempt.fence,
+        outcome: {
+          status: "paused",
+          error: "quota_exhausted",
+          sessionId: "wait-sess",
+        },
+      },
+    );
+    await fetch(service.address + "/v1/bridge/jobs/" + job.id + "/resume", {
+      method: "POST",
+      headers: { authorization: "Bearer " + service.ownerToken },
+    });
+
+    const resetAt = Date.now() + 120_000;
+    await heartbeat(
+      service.address,
+      a,
+      capacity({
+        quota: {
+          state: "limited",
+          resetAt,
+          windowStartedAt: "2026-10-27T00:00:00.000Z",
+          estimatedUsedUnits: 100,
+          estimatedCapacityUnits: 100,
+        },
+      }),
+    );
+
+    const { token: joinTokenB } = auth.createJoinToken({
+      createdBy: "owner",
+      ttlMs: 60_000,
+    });
+    const b = await joinWorker(service.address, joinTokenB, "other-node");
+    await heartbeat(service.address, b);
+
+    const stolen = await claim(service.address, b);
+    expect(stolen.claims).toHaveLength(0);
+    // Home also cannot claim while limited — still notes wait telemetry.
+    const homeClaim = await claim(service.address, a);
+    expect(homeClaim.claims).toHaveLength(0);
+
+    const waiting = await (
+      await fetch(service.address + "/v1/bridge/jobs/" + job.id, {
+        headers: { authorization: "Bearer " + service.ownerToken },
+      })
+    ).json();
+    expect(waiting.status).toBe("queued");
+    expect(waiting.activity).toBe("waiting_for_home_node_quota");
+    expect(waiting.retryAt).toBe(resetAt);
+  });
 });

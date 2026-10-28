@@ -70,6 +70,8 @@ export type WorkerAuthContext = {
  */
 export class ClusterCoordinator {
   private readonly nonceStore = new ReplayNonceStore();
+  /** Rate-limit sticky wait activity/retryAt writes (jobId → last update ms). */
+  private readonly stickyWaitUpdatedAt = new Map<string, number>();
 
   constructor(
     private store: QueueStore,
@@ -207,7 +209,31 @@ export class ClusterCoordinator {
     capacity: NodeCapacity,
   ): { node: ReturnType<ClusterRegistry["heartbeat"]>; controls: ClusterAttemptControl[] } {
     const node = this.registry.heartbeat(nodeId, capacity);
+    if (capacity.quota.state === "limited")
+      this.pauseRunningAttemptsOnNode(nodeId);
     return { node, controls: this.controlsForNode(nodeId) };
+  }
+
+  /**
+   * When a node reports quota limited, request pause for in-flight attempts
+   * on that node (parity with single-node scheduler gate, scoped to the node).
+   */
+  private pauseRunningAttemptsOnNode(nodeId: string): void {
+    const attemptRows = this.store.db
+      .prepare("SELECT data FROM attempts")
+      .all() as { data: string }[];
+    for (const row of attemptRows) {
+      const attempt = JSON.parse(row.data) as Attempt;
+      if (attempt.nodeId !== nodeId || attempt.status !== "running") continue;
+      let job: Job;
+      try {
+        job = this.store.get(attempt.jobId);
+      } catch {
+        continue;
+      }
+      if (job.status === "running")
+        this.store.pause(job.id, { id: "system", owner: true, profiles: [] });
+    }
   }
 
   private controlsForNode(nodeId: string): ClusterAttemptControl[] {
@@ -276,6 +302,60 @@ export class ClusterCoordinator {
       .run(LAST_ASSIGNED_PREFIX + nodeId, String(Date.now()));
   }
 
+  /**
+   * Surface sticky-home wait reason to clients (rate-limited per job).
+   */
+  private noteStickyWait(job: Job, nodes: RouterNode[], now: number): void {
+    const last = this.stickyWaitUpdatedAt.get(job.id) ?? 0;
+    if (now - last < 5_000) return;
+    this.stickyWaitUpdatedAt.set(job.id, now);
+
+    const home = nodes.find((n) => n.id === job.sessionNodeId);
+    const limited = home?.capacity.quota.state === "limited";
+    const activity = limited
+      ? "waiting_for_home_node_quota"
+      : "waiting_for_home_node";
+    const retryAt =
+      limited && typeof home?.capacity.quota.resetAt === "number"
+        ? home.capacity.quota.resetAt
+        : undefined;
+
+    this.store.atomic(() => {
+      const live = this.store.get(job.id);
+      if (live.status !== "queued") return;
+      if (live.activity === activity && live.retryAt === retryAt) return;
+      live.activity = activity;
+      if (retryAt != null) live.retryAt = retryAt;
+      else delete live.retryAt;
+      live.updatedAt = new Date().toISOString();
+      this.store.db
+        .prepare("UPDATE jobs SET status=?,data=? WHERE id=?")
+        .run(live.status, JSON.stringify(live), live.id);
+      this.store.addEvent(live, "job.activity", {
+        status: activity,
+        ...(retryAt != null ? { retryAt } : {}),
+      });
+    });
+  }
+
+  /**
+   * Fail a queued job without creating an attempt (misconfiguration path).
+   */
+  private failQueuedJob(jobId: string, error: string): void {
+    this.store.atomic(() => {
+      const job = this.store.get(jobId);
+      if (job.status !== "queued") return;
+      job.status = "failed";
+      job.error = error;
+      job.activity = "failed";
+      job.updatedAt = new Date().toISOString();
+      this.store.db
+        .prepare("UPDATE jobs SET status=?,data=? WHERE id=?")
+        .run(job.status, JSON.stringify(job), job.id);
+      this.store.addEvent(job, "job.failed", { error });
+    });
+  }
+
   claim(
     nodeId: string,
     input: { freeSlots: number; worker?: "claude" | "codex" },
@@ -289,31 +369,46 @@ export class ClusterCoordinator {
     if (freeSlots <= 0) return { claims: [] };
 
     const claims: ClusterClaimEntry[] = [];
+    const now = Date.now();
+    const nodes = this.routerNodes();
     const pending = this.store.pending("cli");
     for (const job of pending) {
       if (claims.length >= freeSlots) break;
+
+      // Validate profile before claim so a missing profile cannot orphan a running attempt.
+      const profile = this.config.profiles[job.profile];
+      if (!profile) {
+        this.failQueuedJob(
+          job.id,
+          "profile_unknown: Claimed job references an unknown profile",
+        );
+        continue;
+      }
+
       const selected = selectNode(
-        this.routerNodes(),
+        nodes,
         {
           sessionNodeId: job.sessionNodeId,
           worker: input.worker ?? this.config.worker,
         },
-        Date.now(),
+        now,
         this.scheduling,
       );
+      if (
+        job.sessionNodeId &&
+        selected === null &&
+        nodes.some((n) => n.id === job.sessionNodeId)
+      ) {
+        this.noteStickyWait(job, nodes, now);
+        continue;
+      }
       if (selected !== nodeId) continue;
       const owner = `${nodeId}:${randomUUID()}`;
       const attempt = this.store.claim(owner, "cli", job.id, { nodeId });
       if (!attempt) continue;
       this.markAssigned(nodeId);
+      this.stickyWaitUpdatedAt.delete(job.id);
       const live = this.store.get(job.id);
-      const profile = this.config.profiles[live.profile];
-      if (!profile)
-        throw new BridgeError(
-          "profile_unknown",
-          "Claimed job references an unknown profile",
-          500,
-        );
       claims.push({
         attempt,
         job: live,

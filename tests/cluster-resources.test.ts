@@ -143,6 +143,29 @@ it("fails closed with usedRatio/busyRatio 1 when probes throw", () => {
   expect(logged.length).toBeGreaterThan(0);
 });
 
+it("fails closed busyRatio when loadavg-only path fails without prior CPU sample", () => {
+  const resources = collectNodeResources("/workspace", {
+    platform: "linux",
+    now: () => new Date("2026-10-27T12:00:00.000Z"),
+    totalmem: () => 8_000_000_000,
+    freemem: () => 4_000_000_000,
+    cpus: () => [{ times: idle }, { times: idle }],
+    loadavg: () => {
+      throw new Error("loadavg unavailable");
+    },
+    // No previousCpuTimes: would previously use load[0]/cores → 0 (fail open).
+    statfsSync: () => ({
+      bsize: 4096,
+      blocks: 1_000_000,
+      bavail: 500_000,
+    }),
+    logError: () => {},
+  });
+  expect(resources.cpu.cores).toBe(2);
+  expect(resources.cpu.busyRatio).toBe(1);
+  expect(resources.cpu.load1).toBe(0);
+});
+
 it("nodeCapacitySchema requires resources", () => {
   expect(() =>
     nodeCapacitySchema.parse({

@@ -160,6 +160,7 @@ export function collectNodeResources(
   const logError = options.logError;
 
   let load: [number, number, number] = [0, 0, 0];
+  let loadavgFailed = false;
   if (platform === "win32") {
     load = [0, 0, 0];
   } else {
@@ -168,6 +169,7 @@ export function collectNodeResources(
       load = [avg[0] ?? 0, avg[1] ?? 0, avg[2] ?? 0];
     } catch (error) {
       logOnce("loadavg", "cluster resource probe: loadavg failed", error, logError);
+      loadavgFailed = true;
       load = [0, 0, 0];
     }
   }
@@ -212,7 +214,8 @@ export function collectNodeResources(
     let busyRatio: number;
     if (options.previousCpuTimes != null && options.previousCpuTimes.length > 0) {
       busyRatio = busyRatioFromCpuTimes(options.previousCpuTimes, currentTimes);
-    } else if (platform !== "win32" && cores > 0) {
+    } else if (platform !== "win32" && cores > 0 && !loadavgFailed) {
+      // loadavg-only path: fail closed when loadavg itself failed (else idle=0).
       busyRatio = clamp01(load[0] / cores);
     } else {
       busyRatio = 1;
