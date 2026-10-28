@@ -43,20 +43,24 @@ afterEach(() => {
 it("resolves only the requested CLI from PATH", () => {
   const bin = mkdtempSync(join(tmpdir(), "bridge-only-codex-"));
   scratch.push(bin);
-  const codex = join(bin, "codex");
+  const binary = process.platform === "win32" ? "codex.exe" : "codex";
+  const codex = join(bin, binary);
   writeFileSync(codex, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
   chmodSync(codex, 0o755);
   const previous = process.env.PATH;
   const previousHome = process.env.HOME;
+  const previousProfile = process.env.USERPROFILE;
   try {
     process.env.PATH = bin;
     process.env.HOME = bin;
+    process.env.USERPROFILE = bin;
     expect(resolveCodingAgentExecutable("codex")).toBe(codex);
     expect(() => resolveCodingAgentExecutable("claude")).toThrow(/claude/);
     expect(() => resolveCodingAgentExecutable("claude")).not.toThrow(/codex/);
   } finally {
     process.env.PATH = previous;
     process.env.HOME = previousHome;
+    process.env.USERPROFILE = previousProfile;
   }
 });
 
