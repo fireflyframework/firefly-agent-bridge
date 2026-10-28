@@ -6,9 +6,9 @@
 
 Run local coding jobs and resumable workflows through your signed-in Codex or Claude Code CLI. Firefly Agent Bridge connects [firefly forge](https://github.com/fireflyframework/firefly-forge), application SDKs and coding-agent hosts to that worker through scoped HTTP APIs and MCP tools.
 
-The bridge keeps a durable queue, execution attempts, conversation references, workflow checkpoints and activity records. The official CLI owns provider login and native context. Each bridge instance uses one configured worker; its profiles choose models and limits supported by that worker.
+The bridge keeps a durable queue, execution attempts, conversation references, workflow checkpoints and activity records. The official CLI owns provider login and native context. Each bridge instance uses one configured worker; its profiles choose models and limits supported by that worker. Optional **[cluster mode](docs/cluster.md)** runs a headless coordinator plus many workers (one CLI type per pool) with fair-share quotas and signed worker traffic.
 
-[Documentation site](https://fireflyframework.github.io/firefly-agent-bridge/) · [Installation](docs/installation.md) · [Guided console tour](docs/dashboard.md) · [Releases](https://github.com/fireflyframework/firefly-agent-bridge/releases)
+[Documentation site](https://fireflyframework.github.io/firefly-agent-bridge/) · [Installation](docs/installation.md) · [Cluster quota pool](docs/cluster.md) · [Guided console tour](docs/dashboard.md) · [Releases](https://github.com/fireflyframework/firefly-agent-bridge/releases)
 
 ![Local bridge console with deterministic sample jobs](assets/screenshots/dashboard-desktop.png)
 
@@ -38,7 +38,7 @@ node dist/cli.cjs init --worker codex
 node dist/cli.cjs serve
 ```
 
-The native executable exposes the same commands as `firefly-bridge` (`firefly-bridge.exe` on Windows). Choose `init --worker claude` for a new Claude-backed instance. Initialization preserves existing configuration; change an existing worker through the documented [stop, configure and restart procedure](docs/configuration.md).
+Prefer the **`bridge`** binary name (`firefly-bridge` / `firefly-bridge.exe` remain compatibility aliases). Choose `init --worker claude` for a new Claude-backed instance. Initialization preserves existing configuration; change an existing worker through the documented [stop, configure and restart procedure](docs/configuration.md). For a multi-node pool, follow the [cluster guide](docs/cluster.md) (`bridge cluster init-coordinator`, `join`, `serve --cluster-*` or `daemon start`).
 
 Open [http://127.0.0.1:8766](http://127.0.0.1:8766), or run `firefly-bridge panel` to locate the actual address and owner token file. Connect with the owner token, then follow **Providers & setup → Provider → Login → Profile → Tools**. The wizard inspects configuration; official login and worker-file changes happen on the host.
 

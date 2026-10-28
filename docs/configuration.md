@@ -22,8 +22,8 @@ See the [console tour](dashboard.md#appearance-and-provider-setup) for the four 
 
 ```json
 {
-  "dataDir": "/absolute/firefly-bridge-state",
-  "workspace": "/absolute/firefly-bridge-jobs",
+  "dataDir": "/absolute/bridge-state",
+  "workspace": "/absolute/bridge-jobs",
   "worker": "codex",
   "codexPath": "/absolute/path/to/codex",
   "host": "127.0.0.1",
@@ -61,21 +61,21 @@ Default permissions stay enabled. Bypass needs a trusted host and workspace. A j
 
 ## Service settings
 
-| Setting                        | Default                    | Constraint or effect                                                                       |
-| ------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------ |
-| `worker`                       | Codex on initial CLI setup | `codex` or `claude`; saved configuration chooses subsequent starts                         |
-| `host`                         | `127.0.0.1`                | Loopback only                                                                              |
-| `port`                         | 8766                       | 0 to 65535; 0 requests a free port                                                         |
-| `concurrency`                  | 1                          | 1 to 8 owned jobs                                                                          |
-| `queueCapacity`                | 1000                       | 1 to 10000 admitted queue entries                                                          |
-| `idleMs`                       | 30000                      | 1000 to 3600000 milliseconds; managed lifecycle only                                       |
-| `allowedHosts`                 | localhost, 127.0.0.1       | Exact accepted request hostnames                                                           |
-| `allowedOrigins`               | Empty                      | Additional browser origins; authentication still required                                  |
-| `openai.timeoutMs`             | 300000                     | 100 to 3600000 milliseconds including queue wait                                           |
-| `openai.maxConnections`        | 16                         | 1 to 64 service-wide waiting connections                                                   |
-| `openai.maxRequestBytes`       | `null`                     | Optional positive safe integer; complete Chat Completions HTTP body in bytes               |
-| `openai.maxExpandedCharacters` | `null`                     | Optional positive safe integer; expanded completion prompt in JavaScript UTF-16 code units |
-| `openai.maxMessages`           | `null`                     | Optional positive safe integer; complete Chat Completions message count                    |
+| Setting                        | Default                    | Constraint or effect                                                                                                                                      |
+| ------------------------------ | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `worker`                       | Codex on initial CLI setup | `codex` or `claude`; saved configuration chooses subsequent starts. Cluster mode keeps **one** worker type per coordinator ([cluster guide](cluster.md)). |
+| `host`                         | `127.0.0.1`                | Loopback only                                                                                                                                             |
+| `port`                         | 8766                       | 0 to 65535; 0 requests a free port                                                                                                                        |
+| `concurrency`                  | 1                          | 1 to 8 owned jobs                                                                                                                                         |
+| `queueCapacity`                | 1000                       | 1 to 10000 admitted queue entries                                                                                                                         |
+| `idleMs`                       | 30000                      | 1000 to 3600000 milliseconds; managed lifecycle only                                                                                                      |
+| `allowedHosts`                 | localhost, 127.0.0.1       | Exact accepted request hostnames                                                                                                                          |
+| `allowedOrigins`               | Empty                      | Additional browser origins; authentication still required                                                                                                 |
+| `openai.timeoutMs`             | 300000                     | 100 to 3600000 milliseconds including queue wait                                                                                                          |
+| `openai.maxConnections`        | 16                         | 1 to 64 service-wide waiting connections                                                                                                                  |
+| `openai.maxRequestBytes`       | `null`                     | Optional positive safe integer; complete Chat Completions HTTP body in bytes                                                                              |
+| `openai.maxExpandedCharacters` | `null`                     | Optional positive safe integer; expanded completion prompt in JavaScript UTF-16 code units                                                                |
+| `openai.maxMessages`           | `null`                     | Optional positive safe integer; complete Chat Completions message count                                                                                   |
 
 Keep `127.0.0.1` in the host allowlist when using Streamable HTTP MCP: management tools call the same service over its loopback listener. A remote gateway needs its exact hostname and browser origin configured as applicable.
 

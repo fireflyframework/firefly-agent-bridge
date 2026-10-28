@@ -83,6 +83,19 @@ A workflow snapshots its template and inputs. A successful current job creates i
 
 External effects are outside database atomicity. A command can write a file or call a remote service before its result is lost. Crash recovery marks lost attempts interrupted and retains their evidence; the operator reconciles effects before retrying.
 
+## Cluster mode (optional)
+
+By default the bridge remains a single local process with one CLI login. **Cluster mode** is opt-in when you need several company machines (or several logins) behind one public URL.
+
+| Role            | Owns                                                                                                          | Does not own           |
+| --------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| **Coordinator** | Durable SQLite queue, client tokens, fair-share router, node registry, public HTTP/MCP/OpenAI-compatible APIs | Provider CLI processes |
+| **Worker**      | One official Claude or Codex login, claim loop, per-job workspace                                             | Public client API      |
+
+Clients always call the coordinator. Workers enroll with a join token, then authenticate with a node credential (`ffn_…`) **plus** Ed25519-signed requests. Internet coordinators require TLS; private labs may use loopback HTTP with `--allow-insecure` on join. One worker type per coordinator. Native sessions stick to the node that created them. Ops use `bridge serve --cluster-*`, `bridge daemon …`, and `bridge cluster …` (JSON). The diagnostic panel is never required for the worker contract.
+
+Operator guide with real CLI output: [Cluster quota pool](cluster.md).
+
 ## Documentation illustration
 
 The documentation home shows an original Bridge span and two-way packet motion. It is a local Three.js illustration: it does not read queue state, connect to a worker or make model calls. The pause control, reduced-motion preference and static fallback change only that illustration. Provider readiness and job state come from the authenticated console and API described above.

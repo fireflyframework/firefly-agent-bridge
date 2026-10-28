@@ -13,6 +13,7 @@
     "node": ">=24"
   },
   "bin": {
+    "bridge": "dist/cli.cjs",
     "firefly-bridge": "dist/cli.cjs"
   },
   "files": [

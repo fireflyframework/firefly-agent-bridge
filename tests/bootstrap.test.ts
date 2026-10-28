@@ -27,17 +27,15 @@ beforeEach(() => {
   mkdirSync(commands);
   mkdirSync(source);
   writeFileSync(
-    join(source, "firefly-bridge"),
+    join(source, "bridge"),
     '#!/usr/bin/env bash\nprintf "fixture-ready:%s\\n" "$1"\n',
     { mode: 0o755 },
   );
   archive = join(directory, asset);
   checksums = join(directory, "SHA256SUMS");
-  const packed = spawnSync(
-    "tar",
-    ["-czf", asset, "-C", "source", "firefly-bridge"],
-    { cwd: directory },
-  );
+  const packed = spawnSync("tar", ["-czf", asset, "-C", "source", "bridge"], {
+    cwd: directory,
+  });
   expect(packed.status, packed.stderr?.toString()).toBe(0);
   writeFileSync(
     checksums,

@@ -20,9 +20,9 @@
   "screenshots": ["assets/dashboard.png"],
   "server": {
     "type": "binary",
-    "entry_point": "server/firefly-bridge",
+    "entry_point": "server/bridge",
     "mcp_config": {
-      "command": "${__dirname}/server/firefly-bridge",
+      "command": "${__dirname}/server/bridge",
       "args": ["mcp"]
     }
   },

@@ -64,8 +64,8 @@ Extract the complete archive into a new directory. Keep all included license and
 mkdir firefly-bridge-local
 tar -xzf firefly-agent-bridge-0.2.21-darwin-arm64.tar.gz -C firefly-bridge-local
 cd firefly-bridge-local
-./firefly-bridge init --worker codex
-./firefly-bridge serve
+./bridge init --worker codex
+./bridge serve
 ```
 
 On Windows, run the matching executable:
@@ -74,8 +74,8 @@ On Windows, run the matching executable:
 New-Item -ItemType Directory firefly-bridge-local
 tar -xzf .\firefly-agent-bridge-0.2.21-win32-x64.tar.gz -C firefly-bridge-local
 Set-Location firefly-bridge-local
-.\firefly-bridge.exe init --worker codex
-.\firefly-bridge.exe serve
+.\bridge.exe init --worker codex
+.\bridge.exe serve
 ```
 
 Use `init --worker claude` to select Claude before first startup. If configuration already exists, initialization preserves it; change the saved `worker` and executable path using the [configuration procedure](configuration.md).
@@ -93,11 +93,22 @@ node dist/cli.cjs init --worker codex
 node dist/cli.cjs serve
 ```
 
-The source entry point and the native `firefly-bridge` executable expose the same commands. A terminal running `serve` keeps the service available; MCP adapters can also start a managed service when they connect.
+The source entry point and the native `bridge` executable (`firefly-bridge` remains a compatibility alias) expose the same commands. A terminal running `serve` keeps the service available; MCP adapters can also start a managed service when they connect.
+
+## Optional: company pool (cluster mode)
+
+Single-node `bridge serve` is enough for one developer machine. To share several Claude or Codex logins behind one URL, initialize a **coordinator**, join **workers**, and keep one worker type per pool. Walkthrough with real CLI JSON: [Cluster quota pool](cluster.md).
+
+```sh
+bridge init --worker codex --data-dir /var/lib/bridge-coordinator
+bridge cluster init-coordinator --data-dir /var/lib/bridge-coordinator \
+  --exposure private --bind 127.0.0.1 --port 8787 --reserve-percent 10
+bridge serve --cluster-coordinator --data-dir /var/lib/bridge-coordinator
+```
 
 ## Open the console
 
-Open [http://127.0.0.1:8766](http://127.0.0.1:8766), or run `firefly-bridge panel` to locate the actual address and owner token file. Paste the local owner token into the console. The console clears the input after connection and retains the token only in tab memory.
+Open [http://127.0.0.1:8766](http://127.0.0.1:8766), or run `bridge panel` to locate the actual address and owner token file. Paste the local owner token into the console. The console clears the input after connection and retains the token only in tab memory.
 
 | Platform | Default data directory                                    |
 | -------- | --------------------------------------------------------- |

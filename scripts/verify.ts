@@ -39,6 +39,8 @@ function inventory(directory = "."): string[] {
         "playwright-report",
         ".client-venv",
         ".venv",
+        ".superpowers",
+        "docs/superpowers",
       ].includes(entry.name)
     )
       return [];
@@ -110,7 +112,12 @@ for (const file of ["src/cli.ts", "src/http.ts", "src/mcp.ts"])
     read(file).includes('from "./release-version.js"'),
     file + " canonical version import",
   );
-assert(read("src/cli.ts").includes("console.log(releaseVersion)"));
+assert(
+  /console\.log\(releaseVersion\)|streams\.stdout\.write\(releaseVersion/.test(
+    read("src/cli.ts"),
+  ),
+  "src/cli.ts must print releaseVersion",
+);
 assert(read("src/http.ts").includes("version: releaseVersion"));
 assert(read("src/mcp.ts").includes("version: releaseVersion"));
 assert(read("src/ui/index.html").includes("v__BRIDGE_RELEASE_VERSION__"));

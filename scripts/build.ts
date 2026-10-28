@@ -136,7 +136,7 @@ writeFileSync(
     main: "dist/cli.cjs",
     output: resolve(
       "dist",
-      process.platform === "win32" ? "firefly-bridge.exe" : "firefly-bridge",
+      process.platform === "win32" ? "bridge.exe" : "bridge",
     ),
     disableExperimentalSEAWarning: true,
     useCodeCache: false,

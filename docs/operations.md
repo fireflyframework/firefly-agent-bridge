@@ -10,7 +10,9 @@ description: Manage bridge execution, queue dispatch, service lifecycle and inte
 
     Firefly Agent Bridge is intended for local development and testing. It uses your signed-in coding CLI subscription rather than a separately billed model API; subscription quotas still apply. We advise against using it for production workloads: provider license and usage restrictions, local security boundaries, and performance limits may make it unsuitable. Check the terms of your plan and provider before connecting an application. See [OpenAI's terms](https://openai.com/policies/terms-of-use/) and [Anthropic's consumer terms](https://www.anthropic.com/legal/consumer-terms).
 
-[README](../README.md) · [Architecture](architecture.md) · [Configuration](configuration.md)
+[README](../README.md) · [Architecture](architecture.md) · [Configuration](configuration.md) · [Cluster quota pool](cluster.md)
+
+Single-node lifecycle below still applies to every bridge data directory. For a multi-node pool, the **coordinator** data directory is the one clients and backups treat as the queue of record; each **worker** has its own data directory and workspace. Use `bridge daemon start|status|stop --cluster-coordinator|--cluster-worker` when you want pidfile-supervised cluster processes instead of an external unit manager.
 
 ![Job execution lifecycle](../assets/diagrams/lifecycle.svg)
 
@@ -99,7 +101,7 @@ Stop the service before making a filesystem backup of SQLite and its sidecars. P
 
 Use the same `--data-dir` as the running instance on every CLI command. `status` confirms which service is available; `panel` locates its console and owner-token file without printing the token.
 
-1. Stop managed hosts and close connected consoles so they do not restart or keep the service alive. Request graceful shutdown with `firefly-bridge stop --data-dir /absolute/path/to/state` and wait for that instance to exit.
+1. Stop managed hosts and close connected consoles so they do not restart or keep the service alive. Request graceful shutdown with `bridge stop --data-dir /absolute/path/to/state` and wait for that instance to exit.
 2. Copy the stopped data directory and configured job workspace to private backup storage. Include `queue.sqlite` and any remaining `queue.sqlite-wal` and `queue.sqlite-shm` sidecars together. SQLite uses WAL mode; copying only its main file during execution can omit committed observations.
 3. Retain the matching configuration, owner token and workspace paths. Native coding-agent transcripts and subscription login belong to the official CLI's separate storage and need that provider's own recovery procedure.
 4. Restore to a separate local test location while the original instance stays stopped. Review the copied `config.json` so its data and workspace paths identify only the restored test directories. Do not start two services against the same queue or job workspace.

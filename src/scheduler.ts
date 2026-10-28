@@ -185,6 +185,8 @@ export class Scheduler {
     private workerFor: (job: Job) => Worker,
     private workspace: string,
     private concurrency: number,
+    /** When false (cluster coordinator), skip local CLI claim/run. */
+    private claimLocalCli = true,
   ) {}
   start(): void {
     this.stopped = false;
@@ -262,6 +264,7 @@ export class Scheduler {
       }
       this.workflows.advance();
       while (
+        this.claimLocalCli &&
         !this.stopped &&
         !this.controlState.paused &&
         this.active.size < this.concurrency

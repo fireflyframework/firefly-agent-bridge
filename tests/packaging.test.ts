@@ -37,7 +37,7 @@ beforeEach(() => {
     readFileSync("integrations/desktop/manifest.json", "utf8"),
   );
   writeFileSync(join(dir, "manifest.json"), JSON.stringify(manifest));
-  writeFileSync(join(dir, "server/firefly-bridge"), "#!/bin/sh\n", {
+  writeFileSync(join(dir, "server/bridge"), "#!/bin/sh\n", {
     mode: 0o755,
   });
   copyFileSync("assets/logo.png", join(dir, "assets/logo.png"));
@@ -64,7 +64,7 @@ it("rejects malformed manifests before creating a desktop archive", async () => 
   expect(() => builder(dir, join(dir, "output.mcpb"))).toThrow(/manifest/i);
 });
 it("requires the declared native binary and bundled image resources", async () => {
-  rmSync(join(dir, "server/firefly-bridge"));
+  rmSync(join(dir, "server/bridge"));
   const builder = await pack();
   expect(() => builder(dir, join(dir, "output.mcpb"))).toThrow(/entry|binary/i);
 });
@@ -82,7 +82,7 @@ it("creates deterministic ZIP bundles containing the actual manifest, runtime an
     expect(Object.keys(files)).toEqual(
       expect.arrayContaining([
         "manifest.json",
-        "server/firefly-bridge",
+        "server/bridge",
         "LICENSE",
         "assets/logo.png",
       ]),
@@ -110,7 +110,7 @@ it("packages a Codex plugin using a root-contained native command, operation ski
     () => undefined,
   );
   expect(module?.assembleCodexPlugin).toBeDefined();
-  module!.assembleCodexPlugin(dir, "server/firefly-bridge");
+  module!.assembleCodexPlugin(dir, "server/bridge");
   const manifest = JSON.parse(
     readFileSync(join(dir, ".codex-plugin/plugin.json"), "utf8"),
   );
@@ -118,7 +118,7 @@ it("packages a Codex plugin using a root-contained native command, operation ski
   expect(manifest.skills).toBe("./skills/");
   const mcp = JSON.parse(readFileSync(join(dir, ".mcp.json"), "utf8"));
   expect(mcp.mcpServers["firefly-agent-bridge"].command).toBe(
-    "${PLUGIN_ROOT}/server/firefly-bridge",
+    "${PLUGIN_ROOT}/server/bridge",
   );
   expect(readFileSync(join(dir, "skills/bridge/SKILL.md"), "utf8")).toContain(
     "bridge_status",

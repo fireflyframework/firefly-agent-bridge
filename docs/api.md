@@ -139,6 +139,17 @@ For host-conversation execution: list `GET /v1/bridge/channel/pending`, then `PO
 
 A lost lease interrupts the attempt and rejects late completion. The operator must reconcile external actions before retrying.
 
+## Cluster administration and worker plane
+
+When the service runs as a **coordinator**, additional routes manage the pool. Prefer the `bridge cluster` CLI for day-to-day ops; the HTTP surface is for automation. Semantics and examples: [Cluster quota pool](cluster.md). Machine-readable paths: [OpenAPI](openapi.json) (tags `Administration` and `Cluster`).
+
+| Audience      | Prefix                       | Auth                                                                                    |
+| ------------- | ---------------------------- | --------------------------------------------------------------------------------------- |
+| Owner / admin | `/v1/bridge/admin/cluster/…` | Bridge bearer with owner (join tokens, verify-node, drain/remove)                       |
+| Workers       | `/v1/cluster/…`              | Join token at `POST /v1/cluster/join`; then node credential + Ed25519 signature headers |
+
+`GET /v1/bridge/status` includes a `cluster` object (`mode`, `dispatch`, `pool`, optional `nodes`) when cluster mode is enabled.
+
 ## Streamable HTTP MCP
 
 `/mcp` accepts the official Streamable HTTP protocol with a bridge bearer token. It uses stateless JSON responses and the job, workflow, dispatch, and configuration tools shared with stdio. A connection requires `read`; each tool retains its caller's scopes and resource ownership. Admin operations still require owner authentication. Revocation applies to the next request.

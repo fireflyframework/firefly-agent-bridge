@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "firefly-agent-bridge": {
-      "command": "${PLUGIN_ROOT}/firefly-bridge",
+      "command": "${PLUGIN_ROOT}/bridge",
       "args": ["mcp"]
     }
   }

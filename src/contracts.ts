@@ -79,10 +79,32 @@ export type Job = JobInput & {
   result?: string;
   error?: string;
   sessionId?: string;
+  sessionNodeId?: string;
+  assignedNodeId?: string;
   workflowRunId?: string;
   stepId?: string;
   messages: Message[];
 };
+
+/** Owner or `admin` scope may see internal cluster routing fields on jobs. */
+export function canSeeClusterNodeFields(p: Principal): boolean {
+  return p.owner || Boolean(p.scopes?.includes("admin"));
+}
+
+/**
+ * Default client job view: omit internal node routing fields unless
+ * the principal is owner or has `admin` scope.
+ */
+export function jobForClient(job: Job, p: Principal): Job {
+  if (canSeeClusterNodeFields(p)) return job;
+  if (job.sessionNodeId === undefined && job.assignedNodeId === undefined)
+    return job;
+  const view = { ...job };
+  delete view.sessionNodeId;
+  delete view.assignedNodeId;
+  return view;
+}
+
 export type Attempt = {
   id: string;
   jobId: string;
@@ -91,6 +113,7 @@ export type Attempt = {
   status: JobStatus;
   createdAt: string;
   updatedAt: string;
+  nodeId?: string;
 };
 export type Outcome = {
   usage?: TokenUsage;

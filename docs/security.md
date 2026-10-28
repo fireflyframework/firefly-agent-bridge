@@ -26,6 +26,10 @@ The selected official CLI owns its Codex ChatGPT or Claude subscription login. T
 
 Provider requests leave the local machine according to that CLI's operation. The queue, audit, and configuration stay local. Prompts and files passed to the provider remain subject to the developer's account and organizational policy.
 
+## Cluster coordinator and workers
+
+In [cluster mode](cluster.md), clients authenticate to the **coordinator** with ordinary bridge bearer tokens (`ffb_…`) over HTTPS. Workers authenticate with a separate node credential (`ffn_…`) **and** Ed25519 signatures (`X-Bridge-Timestamp`, `X-Bridge-Nonce`, `X-Bridge-Signature`) on mutating requests. Join uses a short-lived token (`ffj_…`); enrollment stores the worker public key. Protect coordinator `owner.token` and each worker's `cluster.json` (mode `0600`, includes `nodePrivateKey`). Do not expose worker `--health-port` beyond loopback. Internet coordinators require listener TLS unless TLS terminates at a reverse proxy with a private bind.
+
 ## Native execution
 
 Default Codex jobs use `workspace-write` and noninteractive approval. Default Claude jobs use `acceptEdits` with unapproved interactive prompts denied. Claude tool allowlists and native agent definitions apply to Claude profiles. They do not restrict the Codex adapter; Codex uses its own sandbox and thread protocol.

@@ -6,7 +6,7 @@ description: Diagnose bridge installation, provider login, job execution, native
 
 # Troubleshoot a local bridge
 
-Start with `firefly-bridge status` or the console's Diagnostics view. Inspect the selected worker's readiness reason, dispatch state, profile, and job error before retrying work. `panel` prints the actual address and owner token file path without printing the token.
+Start with `bridge status` or the console's Diagnostics view. Inspect the selected worker's readiness reason, dispatch state, profile, and job error before retrying work. `panel` prints the actual address and owner token file path without printing the token.
 
 ## Installation and startup
 
@@ -30,6 +30,17 @@ Start with `firefly-bridge status` or the console's Diagnostics view. Inspect th
 | Dispatch is quota-paused        | Provider reset timestamp and affected job                            | Wait for a reported reset or explicitly resume after checking account availability. Unknown reset times remain paused. |
 
 The bridge starts Codex with user configuration ignored while preserving its official authentication. A personal CLI model setting is not applied to the worker; the bridge profile's configured model is the deliberate override.
+
+## Cluster pool
+
+| Symptom                                     | Check                                                                                 | Action                                                                                                                  |
+| ------------------------------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `eligibleNodes` is 0 while nodes are online | `bridge cluster status` → each node's `authentication`, memory/disk/CPU, `quotaState` | Sign in the official CLI on that host; free RAM/disk or lower floors; wait out `limited` or resume after provider reset |
+| Join fails against `http://`                | Worker refuses cleartext coordinator                                                  | Use `https://`, or lab-only `--allow-insecure`                                                                          |
+| Join rejected for worker type               | Coordinator `config.worker` vs join worker                                            | Keep one CLI type per coordinator; run a second pool for the other CLI                                                  |
+| Worker starts then exits on missing key     | `cluster.json` without `nodePrivateKey`                                               | Re-run `bridge cluster join`                                                                                            |
+| Jobs stay queued                            | `dispatch`, `eligibleNodes`, worker logs                                              | Confirm workers are serving (`--cluster-worker`) and heartbeating; see [Cluster quota pool](cluster.md)                 |
+| Sticky follow-up never moves                | Expected: session bound to home node                                                  | Wait for that node, or `retry` to clear sticky binding                                                                  |
 
 ## Requests and application access
 

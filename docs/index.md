@@ -117,11 +117,11 @@ inputs, results and known file changes before retrying interrupted work.
 
 ### Operate the service
 
-Manage lifecycle, paused dispatch and backups. Resolve access, profile or provider
-readiness failures using the reported state.
+Manage lifecycle, paused dispatch and backups. Optionally pool several CLI logins
+behind one coordinator with headless cluster mode.
 
-[Recovery and operations](operations.md) · [Troubleshooting](troubleshooting.md) ·
-[Security boundaries](security.md)
+[Recovery and operations](operations.md) · [Cluster quota pool](cluster.md) ·
+[Troubleshooting](troubleshooting.md) · [Security boundaries](security.md)
 
 </div>
 

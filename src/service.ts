@@ -42,6 +42,10 @@ import { Scheduler } from "./scheduler.js";
 import { CodexWorker } from "./codex.js";
 import { ClaudeWorker } from "./claude.js";
 import { createHttpService } from "./http.js";
+import { ClusterAuth } from "./cluster-auth.js";
+import { ClusterCoordinator } from "./cluster-coordinator.js";
+import { ClusterRegistry } from "./cluster-registry.js";
+import { startClusterWorker } from "./cluster-worker.js";
 import type { BridgeConfig } from "./config.js";
 import type { Worker } from "./worker.js";
 import type { Job } from "./contracts.js";
@@ -50,11 +54,36 @@ export function privateWrite(path: string, value: string): void {
   writeFileSync(temporary, value, { mode: 0o600 });
   renameSync(temporary, path);
 }
+
+function loadCoordinatorTls(
+  config: BridgeConfig,
+): { key: Buffer; cert: Buffer } | undefined {
+  const cluster = config.cluster;
+  if (!cluster || cluster.mode !== "coordinator") return undefined;
+  const requireTls = cluster.requireTls || cluster.exposure === "internet";
+  if (!requireTls) return undefined;
+  const certPath = cluster.tlsCertPath;
+  const keyPath = cluster.tlsKeyPath;
+  if (!certPath || !keyPath)
+    throw new Error(
+      "TLS is required (exposure=internet or requireTls); set cluster.tlsCertPath and cluster.tlsKeyPath",
+    );
+  if (!existsSync(certPath) || !existsSync(keyPath))
+    throw new Error(
+      "TLS cert/key files are missing; refuse to start internet-exposed coordinator",
+    );
+  return {
+    cert: readFileSync(certPath),
+    key: readFileSync(keyPath),
+  };
+}
 export async function startService(
   config: BridgeConfig,
   options: {
     managed?: boolean;
     worker?: (job: Job, imageExecution?: ImageExecution) => Worker;
+    /** Worker-only: optional JSON health on 127.0.0.1 (Task 6 wires --health-port). */
+    healthPort?: number;
   } = {},
 ) {
   mkdirSync(config.dataDir, { recursive: true, mode: 0o700 });
@@ -127,55 +156,142 @@ export async function startService(
         },
       };
     };
+    const isCoordinator = config.cluster?.mode === "coordinator";
+    const isWorker = config.cluster?.mode === "worker";
     const scheduler = new Scheduler(
       store,
       flows,
       workerFor,
       config.workspace,
       config.concurrency,
+      !isCoordinator && !isWorker,
     );
     scheduler.readiness = options.worker
       ? { ready: true }
-      : {
-          ready: false,
-          reason:
-            "Checking the official " + config.worker + " subscription login",
-        };
+      : isCoordinator
+        ? { ready: true, reason: "cluster_coordinator" }
+        : isWorker
+          ? { ready: true, reason: "cluster_worker" }
+          : {
+              ready: false,
+              reason:
+                "Checking the official " +
+                config.worker +
+                " subscription login",
+            };
+    const cluster = isCoordinator
+      ? new ClusterCoordinator(
+          store,
+          new ClusterRegistry(store, new ClusterAuth(store), {
+            worker: config.worker,
+            reservePercent: config.cluster!.reservePercent,
+            heartbeatStaleMs: config.cluster!.heartbeatStaleMs,
+            heartbeatOfflineMs: config.cluster!.heartbeatOfflineMs,
+          }),
+          new ClusterAuth(store),
+          config,
+        )
+      : undefined;
     const instanceId = randomUUID(),
       hosts = new Map<string, number>();
     let closing: Promise<void> | undefined,
       timer: ReturnType<typeof setInterval> | undefined,
       idleSince = Date.now();
-    const app = createHttpService({
-      store,
-      auth,
-      scheduler,
-      flows,
-      config,
-      persistConfig: (next) =>
+    let clusterWorker:
+      Awaited<ReturnType<typeof startClusterWorker>> | undefined;
+
+    if (isWorker) {
+      function close(): Promise<void> {
+        return (closing ??= (async () => {
+          if (timer) clearInterval(timer);
+          try {
+            await clusterWorker?.stop();
+          } finally {
+            try {
+              await scheduler.stop();
+            } finally {
+              try {
+                store.close();
+              } finally {
+                await release().catch(() => {});
+              }
+            }
+          }
+        })());
+      }
+      closeService = close;
+      try {
+        clusterWorker = await startClusterWorker(config, {
+          healthPort: options.healthPort,
+          ...(options.worker
+            ? {
+                workerFactory: (claim) =>
+                  options.worker!(claim.job, claim.imageExecution),
+              }
+            : {}),
+        });
+        const address =
+          clusterWorker.address ??
+          "cluster-worker://" +
+            JSON.parse(
+              readFileSync(join(config.dataDir, "cluster.json"), "utf8"),
+            ).nodeId;
         privateWrite(
-          join(config.dataDir, "config.json"),
-          JSON.stringify(next, null, 2) + "\n",
-        ),
-      diagnostics: () => ({
-        instanceId,
-        pid: process.pid,
-        managed: Boolean(options.managed),
-        hosts: hosts.size,
-        dataDir: config.dataDir,
-        workspace: config.workspace,
-      }),
-      heartbeat: (id) => {
-        hosts.set(id, Date.now());
-        idleSince = Date.now();
+          join(config.dataDir, "service.json"),
+          JSON.stringify({
+            address,
+            instanceId,
+            protocolVersion: 2,
+            pid: process.pid,
+            clusterMode: "worker",
+          }),
+        );
+        timer = setInterval(() => {
+          if (compromised) void close();
+        }, 1000);
+        timer.unref();
+        return { address, ownerToken, instanceId, store, scheduler, close };
+      } catch (error) {
+        await close();
+        throw error;
+      }
+    }
+
+    const tls = isCoordinator ? loadCoordinatorTls(config) : undefined;
+    const app = createHttpService(
+      {
+        store,
+        auth,
+        scheduler,
+        flows,
+        config,
+        cluster,
+        persistConfig: (next) =>
+          privateWrite(
+            join(config.dataDir, "config.json"),
+            JSON.stringify(next, null, 2) + "\n",
+          ),
+        diagnostics: () => ({
+          instanceId,
+          pid: process.pid,
+          managed: Boolean(options.managed),
+          hosts: hosts.size,
+          dataDir: config.dataDir,
+          workspace: config.workspace,
+        }),
+        heartbeat: (id) => {
+          hosts.set(id, Date.now());
+          idleSince = Date.now();
+        },
+        disconnect: (id) => {
+          hosts.delete(id);
+        },
+        shutdown: () => {
+          setTimeout(() => void close(), 50);
+        },
       },
-      disconnect: (id) => {
-        hosts.delete(id);
-      },
-      shutdown: () => {
-        setTimeout(() => void close(), 50);
-      },
-    });
+      tls ? { https: tls } : {},
+    );
     function close(): Promise<void> {
       return (closing ??= (async () => {
         if (timer) clearInterval(timer);
@@ -198,7 +314,11 @@ export async function startService(
     closeService = close;
     let address: string;
     try {
-      address = await app.listen({ host: config.host, port: config.port });
+      const listenHost =
+        isCoordinator && config.cluster?.bindHost
+          ? config.cluster.bindHost
+          : config.host;
+      address = await app.listen({ host: listenHost, port: config.port });
       // A port collision must not mark another instance's work as interrupted.
       const recovering = store.db
         .prepare(
@@ -224,6 +344,7 @@ export async function startService(
       timer = setInterval(() => {
         for (const [id, seen] of hosts)
           if (Date.now() - seen > 7000) hosts.delete(id);
+        cluster?.tick();
         const newest = store.db
           .prepare("SELECT MAX(id) AS id FROM events")
           .get() as { id: number | null };
@@ -238,7 +359,7 @@ export async function startService(
           void close();
       }, 1000);
       timer.unref();
-      if (!options.worker)
+      if (!options.worker && !isCoordinator)
         void new (config.worker === "codex" ? CodexWorker : ClaudeWorker)({
           path: (config.worker === "codex"
             ? config.codexPath
