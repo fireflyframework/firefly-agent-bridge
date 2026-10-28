@@ -33,8 +33,9 @@ import {
 import { startService } from "./service.js";
 import { createAdapter } from "./mcp.js";
 import {
-  BRIDGE_BANNER,
+  formatBannerHeader,
   formatWelcome,
+  QUICK_START_FOOTER,
   shouldShowBanner,
 } from "./cli-banner.js";
 import {
@@ -48,9 +49,12 @@ export type RunCliOptions = {
   env?: NodeJS.ProcessEnv;
 };
 
-function helpText(version: string, showBanner: boolean): string {
-  const header = showBanner
-    ? `${BRIDGE_BANNER}\nFirefly Agent Bridge ${version}\n\n`
+function helpText(
+  version: string,
+  options: { banner?: boolean; color?: boolean } = {},
+): string {
+  const header = options.banner
+    ? formatBannerHeader(version, { color: options.color }) + "\n\n"
     : `Firefly Agent Bridge ${version}\n`;
   return `${header}Usage: bridge <command> [--data-dir PATH]
   (firefly-bridge remains a compatibility alias; prefer bridge)
@@ -72,13 +76,7 @@ function helpText(version: string, showBanner: boolean): string {
   daemon      start|status|stop — coming in a later release; use serve for now
   --version   Print the release version
 
-Quick start
-  bridge init --worker claude
-  bridge serve
-  bridge cluster init-coordinator --exposure internet …
-  bridge serve --cluster-coordinator
-
-Docs: https://fireflyframework.github.io/firefly-agent-bridge/
+${QUICK_START_FOOTER}
 `;
 }
 
@@ -128,7 +126,9 @@ export async function runCli(
     });
     if (values.version) {
       if (values.banner && shouldShowBanner(streams.stdout, streams.env))
-        streams.stdout.write(formatWelcome(releaseVersion) + "\n");
+        streams.stdout.write(
+          formatWelcome(releaseVersion, { color: true }) + "\n",
+        );
       else streams.stdout.write(releaseVersion + "\n");
       return 0;
     }
@@ -137,10 +137,11 @@ export async function runCli(
         (values["data-dir"] as string | undefined) ?? defaultDataDir(),
       );
     if (command === "help" || values.help || positionals.length === 0) {
-      const show =
-        shouldShowBanner(streams.stdout, streams.env) ||
-        Boolean(values.banner);
-      streams.stdout.write(helpText(releaseVersion, show));
+      const color = shouldShowBanner(streams.stdout, streams.env);
+      const banner = color || Boolean(values.banner);
+      streams.stdout.write(
+        helpText(releaseVersion, { banner, color }),
+      );
       return 0;
     }
     if (command === "cluster") {

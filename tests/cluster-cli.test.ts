@@ -75,7 +75,35 @@ describe("cluster CLI help and banner", () => {
     expect(stdout).toContain("--cluster-coordinator");
     expect(stdout).toContain("--cluster-worker");
     expect(stdout).toContain("Quick start");
+    expect(stdout).toContain("bridge daemon start --cluster-worker");
     expect(stdout).toMatch(/firefly-bridge.*alias|alias.*firefly-bridge/i);
+  });
+
+  it("colors the TTY help banner with amber ANSI", async () => {
+    delete process.env.BRIDGE_NO_BANNER;
+    delete process.env.NO_COLOR;
+    delete process.env.CI;
+    const out: string[] = [];
+    const code = await runCli(["help"], {
+      stdout: {
+        isTTY: true,
+        write(chunk: string) {
+          out.push(chunk);
+          return true;
+        },
+      },
+      stderr: {
+        isTTY: false,
+        write() {
+          return true;
+        },
+      },
+      env: process.env,
+    });
+    expect(code).toBe(0);
+    const stdout = out.join("");
+    expect(stdout).toContain("\u001b[38;2;255;179;74m");
+    expect(stdout).toContain("bridge daemon start --cluster-worker");
   });
 
   it("does not print banner for JSON cluster status help path when non-TTY", async () => {

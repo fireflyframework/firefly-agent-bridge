@@ -27,6 +27,15 @@ export const BRIDGE_BANNER = `        ·----·
         BRIDGE
    Firefly Agent Bridge`;
 
+/** Locked quick-start + docs footer (cli-polish-brief). Shared by welcome and help. */
+export const QUICK_START_FOOTER = `Quick start
+  bridge init --worker claude
+  bridge serve
+  bridge cluster init-coordinator --exposure internet …
+  bridge daemon start --cluster-worker
+
+Docs: https://fireflyframework.github.io/firefly-agent-bridge/`;
+
 const AMBER = "\u001b[38;2;255;179;74m";
 const RESET = "\u001b[0m";
 
@@ -45,7 +54,8 @@ export function shouldShowBanner(
   return true;
 }
 
-export function formatWelcome(
+/** Span art (+ optional amber) and product/version line — no quick-start. */
+export function formatBannerHeader(
   version: string,
   options: { color?: boolean } = {},
 ): string {
@@ -53,15 +63,16 @@ export function formatWelcome(
     ? AMBER + BRIDGE_BANNER + RESET
     : BRIDGE_BANNER;
   return `${art}
-Firefly Agent Bridge ${version}
+Firefly Agent Bridge ${version}`;
+}
 
-Quick start
-  bridge init --worker claude
-  bridge serve
-  bridge cluster init-coordinator --exposure internet …
-  bridge daemon start --cluster-worker
+export function formatWelcome(
+  version: string,
+  options: { color?: boolean } = {},
+): string {
+  return `${formatBannerHeader(version, options)}
 
-Docs: https://fireflyframework.github.io/firefly-agent-bridge/
+${QUICK_START_FOOTER}
 `;
 }
 

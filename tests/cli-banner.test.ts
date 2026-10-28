@@ -58,14 +58,22 @@ describe("cli-banner", () => {
     expect(shouldShowBanner({ isTTY: true })).toBe(false);
   });
 
-  it("formatWelcome includes version and quick-start with bridge name", () => {
+  it("formatWelcome includes version and locked quick-start with bridge name", () => {
     const text = formatWelcome("0.2.21");
     expect(text).toContain("BRIDGE");
     expect(text).toContain("0.2.21");
     expect(text).toContain("Quick start");
-    expect(text).toContain("bridge init");
+    expect(text).toContain("bridge init --worker claude");
     expect(text).toContain("bridge serve");
-    expect(text).toContain("bridge cluster init-coordinator");
+    expect(text).toContain("bridge cluster init-coordinator --exposure internet");
+    expect(text).toContain("bridge daemon start --cluster-worker");
     expect(text).not.toMatch(/[\u{1F300}-\u{1FAFF}]/u);
+  });
+
+  it("applies amber ANSI when color is requested", () => {
+    const colored = formatWelcome("0.2.21", { color: true });
+    expect(colored).toContain("\u001b[38;2;255;179;74m");
+    expect(colored).toContain("\u001b[0m");
+    expect(formatWelcome("0.2.21", { color: false })).not.toContain("\u001b[");
   });
 });
