@@ -12,16 +12,17 @@ description: Run a headless company pool of Claude or Codex subscription workers
 
 Cluster mode turns many headless bridge **workers** (each with one Claude Code or Codex login) into one logical bridge behind a **coordinator**. Clients keep using the same HTTP, MCP, and OpenAI-compatible APIs. The coordinator fair-shares new work, keeps a configurable **reserve** of each node’s estimated quota unused (default 10%), and sticks native sessions to the node that created them.
 
-The coordinator is intended to run on an **internet-reachable host** (or private network). Workers join over **HTTPS**, enroll an **Ed25519** key so every claim/heartbeat is signed, and run as **daemons** without a UI.
+The coordinator is intended to run on an **internet-reachable host** (or private network). Workers call the coordinator over **HTTPS** (usually TLS at a reverse proxy) and stay headless with **`bridge serve --cluster-*`** — no UI required. See [Architecture — Cluster mode](architecture.md#cluster-mode-optional) for how this fits the single-node model; [Service lifecycle](operations.md) covers graceful stop and backups for any data directory.
 
-Design reference: [cluster quota pool design](superpowers/specs/2026-10-27-cluster-quota-pool-design.md).
+!!! note "Supported run path today"
+
+    **`bridge serve --cluster-coordinator`** and **`bridge serve --cluster-worker`** are the supported way to run pool processes. **`bridge daemon start|status|stop`**, **listener TLS certificate CLI flags**, and **Ed25519-signed** worker heartbeats/claims are part of the intended internet-hardening model but are **not fully available yet** — workers enroll with a node **credential** today. Use **`serve`** under systemd, Docker, or a process supervisor until daemon support ships.
 
 ## Headless first
 
 | You need | Use |
 |----------|-----|
-| Run coordinator / worker (foreground) | `bridge serve --cluster-coordinator` / `--cluster-worker` |
-| Run as daemon | `bridge daemon start --cluster-coordinator\|--cluster-worker` then `daemon status` / `daemon stop` |
+| Run coordinator / worker | `bridge serve --cluster-coordinator` / `--cluster-worker` (foreground or under a supervisor) |
 | Join, drain, leave, tokens, status, verify | `bridge cluster …` (JSON on stdout) |
 | Automate / CI | Same CLI + HTTP; set tokens via flags or env |
 | Watch capacity | `cluster status` or `GET /v1/bridge/status` → `cluster` |
@@ -41,7 +42,7 @@ Native `sessionId` values stay on the worker that created them. Follow-ups stick
 
 ## Bootstrap (internet coordinator)
 
-TLS certs required when `exposure=internet` (default for public VMs):
+`cluster init-coordinator --exposure internet` sets **`requireTls: true`** in configuration so operators treat the public URL as HTTPS. Terminate TLS at a reverse proxy (or use `--exposure private` on a trusted network) — **built-in `--tls-cert` / `--tls-key` on the bridge listener are not available yet.**
 
 ```bash
 bridge init --worker claude --data-dir /var/lib/bridge-coordinator
@@ -49,10 +50,8 @@ bridge cluster init-coordinator \
   --data-dir /var/lib/bridge-coordinator \
   --exposure internet \
   --bind 0.0.0.0 --port 8787 \
-  --tls-cert /etc/ffb/fullchain.pem \
-  --tls-key /etc/ffb/privkey.pem \
   --reserve-percent 10
-bridge daemon start --cluster-coordinator --data-dir /var/lib/bridge-coordinator
+bridge serve --cluster-coordinator --data-dir /var/lib/bridge-coordinator
 ```
 
 Create a short-lived join token (printed once); revoke after the fleet enrolls:
@@ -64,7 +63,7 @@ bridge cluster join-token create --data-dir /var/lib/bridge-coordinator --ttl 2h
 
 Private lab alternative: `--exposure private`, terminate TLS at a reverse proxy, bind coordinator to localhost. Single-node loopback-only binding does not apply to cluster coordinators that intentionally expose a port.
 
-## Join a worker (headless + verifiable)
+## Join a worker (headless)
 
 On each agent host, after `claude auth login` (or Codex equivalent):
 
@@ -75,26 +74,18 @@ bridge cluster join \
   --coordinator https://bridge.company.example:8787 \
   --token "$BRIDGE_JOIN_TOKEN" \
   --name "$(hostname -s)"
-bridge daemon start --cluster-worker --data-dir /var/lib/bridge-worker
+bridge serve --cluster-worker --data-dir /var/lib/bridge-worker
 ```
 
-Join generates an Ed25519 keypair, enrolls the public key on the coordinator, and writes `cluster.json` (`credential`, `nodePrivateKey`, URL). Every heartbeat/claim is signed; a stolen bearer credential without the private key cannot act as the node.
+Join writes **`cluster.json`** with the coordinator URL, **`nodeId`**, and a node **credential** (`ffn_…`). Workers send that credential on coordinator requests today. **Ed25519 enrollment and signed heartbeats/claims** are planned hardening on top of the credential and are not active yet.
 
-Verify enrollment from the coordinator:
+Inspect a node from the coordinator:
 
 ```bash
 bridge cluster verify-node --data-dir /var/lib/bridge-coordinator --id node_…
 ```
 
-### Daemon without systemd
-
-```bash
-bridge daemon start --cluster-worker --data-dir /var/lib/bridge-worker
-bridge daemon status --data-dir /var/lib/bridge-worker
-bridge daemon stop --data-dir /var/lib/bridge-worker
-```
-
-### systemd example (foreground under supervisor)
+### systemd example (supervised `serve`)
 
 ```ini
 [Unit]
@@ -124,13 +115,13 @@ Mount `/data` with `config.json` + `cluster.json`. Run `cluster join` as an init
 
 ## Secure communication (summary)
 
-| Plane | Auth |
-|-------|------|
-| Clients → coordinator | Existing bridge bearer tokens (`ffb_…`) over TLS |
-| Workers → coordinator | Node credential (`ffn_…`) + Ed25519 signature headers + replay window |
-| Join | Short-lived join token → credential + pubkey enrollment |
+| Plane | Auth (today) |
+|-------|----------------|
+| Clients → coordinator | Bridge bearer tokens (`ffb_…`); use HTTPS to the public URL |
+| Workers → coordinator | Node credential (`ffn_…`) on worker API requests |
+| Join | Short-lived join token → node credential enrollment |
 
-Optional `allowedWorkerCidrs` and join rate limits harden the public join endpoint. See the design spec threat model for details.
+**Planned hardening:** Ed25519 signature headers on worker requests (credential plus enrolled key), stricter replay windows, optional **`bridge daemon`**, and listener TLS flags. Until then, protect join tokens, restrict network paths, and terminate TLS in front of the coordinator. See [Security boundaries](security.md).
 
 ## Reserve, resources, and fair-share
 

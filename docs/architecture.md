@@ -85,7 +85,7 @@ External effects are outside database atomicity. A command can write a file or c
 
 ## Cluster mode (optional)
 
-By default the bridge remains a single local process with one CLI login. **Cluster mode** is opt-in: a headless **coordinator** owns the durable queue and public APIs; headless **workers** join with a token, each carrying its own Claude or Codex subscription. The coordinator fair-shares new jobs, keeps a configurable quota reserve on each node, and sticks native sessions to the worker that created them. Clients do not choose nodes. Cluster join, drain, status, and pause are CLI/HTTP only — the diagnostic panel is never required. See [Cluster quota pool](cluster.md) and the [design spec](superpowers/specs/2026-10-27-cluster-quota-pool-design.md).
+By default the bridge remains a single local process with one CLI login. **Cluster mode** is opt-in: a headless **coordinator** owns the durable queue and public APIs; headless **workers** join with a token, each carrying its own Claude or Codex subscription. The coordinator fair-shares new jobs, keeps a configurable quota reserve on each node, and sticks native sessions to the worker that created them. Clients do not choose nodes. Cluster join, drain, status, and pause are CLI/HTTP only — the diagnostic panel is never required. See [Cluster quota pool](cluster.md).
 
 ## Documentation illustration
 
