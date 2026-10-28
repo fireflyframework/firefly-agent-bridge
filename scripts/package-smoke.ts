@@ -33,7 +33,7 @@ const binary = resolve(
       process.platform +
       "-" +
       process.arch +
-      "/portable/firefly-bridge" +
+      "/portable/bridge" +
       (process.platform === "win32" ? ".exe" : ""),
 );
 const pluginRoot = dirname(binary);

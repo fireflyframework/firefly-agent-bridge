@@ -585,6 +585,69 @@ export function createHttpService(d: HttpDependencies) {
     d.auth.revoke(input.id);
     return { revoked: true };
   });
+  app.post("/v1/bridge/admin/cluster/join-tokens", async (req) => {
+    const principal = owner(req);
+    const cluster = requireCluster();
+    const input = z
+      .strictObject({
+        ttlMs: z.number().int().min(1000).max(30 * 24 * 60 * 60 * 1000).optional(),
+      })
+      .parse(req.body ?? {});
+    const created = cluster.createJoinToken({
+      createdBy: principal.id,
+      ttlMs: input.ttlMs,
+    });
+    return {
+      id: created.id,
+      token: created.token,
+      expiresAt: created.expiresAt,
+    };
+  });
+  app.post("/v1/bridge/admin/cluster/join-tokens/revoke", async (req) => {
+    owner(req);
+    const cluster = requireCluster();
+    const input = z.strictObject({ id: z.string().min(1) }).parse(req.body);
+    return cluster.revokeJoinToken(input.id);
+  });
+  app.get("/v1/bridge/admin/cluster/nodes/:id", async (req) => {
+    owner(req);
+    const cluster = requireCluster();
+    const nodeId = z
+      .strictObject({ id: z.string().min(1).max(128) })
+      .parse(req.params).id;
+    const node = cluster.getNode(nodeId);
+    return {
+      id: node.id,
+      name: node.name,
+      worker: node.worker,
+      status: node.status,
+      concurrency: node.concurrency,
+      reservePercent: node.reservePercent,
+      lastHeartbeatAt: node.lastHeartbeatAt,
+      capacity: node.capacity,
+      createdAt: node.createdAt,
+      updatedAt: node.updatedAt,
+      // Enrollment fingerprint / lastSignedAt arrive with Task 8 Ed25519.
+    };
+  });
+  app.post("/v1/bridge/admin/cluster/nodes/:id/drain", async (req) => {
+    owner(req);
+    const cluster = requireCluster();
+    const nodeId = z
+      .strictObject({ id: z.string().min(1).max(128) })
+      .parse(req.params).id;
+    const node = cluster.drain(nodeId);
+    return { id: node.id, status: node.status };
+  });
+  app.delete("/v1/bridge/admin/cluster/nodes/:id", async (req) => {
+    owner(req);
+    const cluster = requireCluster();
+    const nodeId = z
+      .strictObject({ id: z.string().min(1).max(128) })
+      .parse(req.params).id;
+    const node = cluster.leave(nodeId);
+    return { id: node.id, status: node.status };
+  });
   app.post("/v1/bridge/hosts/heartbeat", async (req) => {
     owner(req);
     const input = z

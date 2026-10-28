@@ -33,7 +33,8 @@ import { assembleCodexPlugin } from "./codex-plugin.js";
 import { packDesktopBundle } from "./desktop-bundle.js";
 const version = JSON.parse(readFileSync("package.json", "utf8"))
   .version as string;
-const binaryName =
+const binaryName = "bridge" + (process.platform === "win32" ? ".exe" : "");
+const aliasName =
   "firefly-bridge" + (process.platform === "win32" ? ".exe" : "");
 const builder = process.env.BRIDGE_SEA_NODE ?? process.execPath;
 const bundledRuntime = process.platform === "darwin" && process.arch === "x64";
@@ -55,6 +56,8 @@ if (bundledRuntime) {
     });
 }
 chmodSync("dist/" + binaryName, 0o755);
+copyFileSync("dist/" + binaryName, "dist/" + aliasName);
+chmodSync("dist/" + aliasName, 0o755);
 if (
   execFileSync(resolve("dist", binaryName), ["--version"], {
     encoding: "utf8",
@@ -75,7 +78,9 @@ mkdirSync(join(desktop, "server"), { recursive: true });
 mkdirSync(join(desktop, "assets"), { recursive: true });
 mkdirSync(portable, { recursive: true });
 copyFileSync("dist/" + binaryName, join(desktop, "server", binaryName));
+copyFileSync("dist/" + binaryName, join(desktop, "server", aliasName));
 copyFileSync("dist/" + binaryName, join(portable, binaryName));
+copyFileSync("dist/" + binaryName, join(portable, aliasName));
 if (bundledRuntime) {
   cpSync("dist/runtime", join(desktop, "server", "runtime"), {
     recursive: true,

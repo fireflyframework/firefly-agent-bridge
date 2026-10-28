@@ -57,7 +57,7 @@ try {
   await client.connect(
     new StdioClientTransport({
       command: resolve(
-        "dist/firefly-bridge" + (process.platform === "win32" ? ".exe" : ""),
+        "dist/bridge" + (process.platform === "win32" ? ".exe" : ""),
       ),
       args: ["mcp", "--data-dir", directory],
       stderr: "pipe",

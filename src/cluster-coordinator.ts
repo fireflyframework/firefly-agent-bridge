@@ -338,6 +338,18 @@ export class ClusterCoordinator {
     return this.registry.remove(nodeId);
   }
 
+  createJoinToken(input: { createdBy: string; ttlMs?: number }) {
+    return this.auth.createJoinToken(input);
+  }
+
+  revokeJoinToken(id: string) {
+    return this.auth.revokeJoinToken(id);
+  }
+
+  getNode(nodeId: string) {
+    return this.registry.get(nodeId);
+  }
+
   /**
    * When a node flips to offline, interrupt its running attempts (sticky
    * sessionNodeId retained via store.finish — same spirit as recover()).

@@ -36,7 +36,7 @@ if [ "$platform" = "win32" ] && [ "$architecture" != "x64" ]; then
 fi
 asset="firefly-agent-bridge-$version-$platform-$architecture"
 target="$cache/$version-$build-$platform-$architecture"
-executable="firefly-bridge"
+executable="bridge"
 [ "$platform" != "win32" ] || executable="$executable.exe"
 mkdir -p "$cache"
 if [ ! -x "$target/$executable" ]; then
