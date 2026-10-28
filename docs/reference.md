@@ -10,21 +10,50 @@ Run `bridge help` for the installed version (`firefly-bridge` remains a compatib
 
 ## Commands
 
-| Command     | Behavior                                                      | Options                                                                |
-| ----------- | ------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `init`      | Create local configuration, preserving an existing file       | `--worker codex` or `--worker claude`; default initial worker is Codex |
-| `serve`     | Run the HTTP service and worker scheduler                     | `--managed` follows host/work idle lifecycle                           |
-| `mcp`       | Start the stdio MCP adapter and discover or start its service | `--channel` enables Code channel notifications                         |
-| `status`    | Return authenticated service status                           | `--data-dir PATH`                                                      |
-| `panel`     | Print console URL and owner token path, then open the browser | `--data-dir PATH`                                                      |
-| `pause`     | Pause dispatch and request pauses for active CLI jobs         | `--data-dir PATH`                                                      |
-| `resume`    | Clear the global dispatch pause when eligible                 | Resume individual paused jobs separately                               |
-| `stop`      | Gracefully stop the local service                             | `--data-dir PATH`                                                      |
-| `token`     | Create an application token                                   | `--id NAME --profiles default --scopes read,submit,control,workflows`  |
-| `revoke`    | Revoke all tokens for a principal                             | `--id NAME`                                                            |
-| `--version` | Print the release version                                     | No service required                                                    |
+| Command     | Behavior                                                      | Options                                                                             |
+| ----------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `init`      | Create local configuration, preserving an existing file       | `--worker codex` or `--worker claude`; default initial worker is Codex              |
+| `serve`     | Run the HTTP service and worker scheduler                     | `--managed`; `--cluster-coordinator` / `--cluster-worker`; worker `--health-port N` |
+| `mcp`       | Start the stdio MCP adapter and discover or start its service | `--channel` enables Code channel notifications                                      |
+| `status`    | Return authenticated service status                           | `--data-dir PATH`                                                                   |
+| `panel`     | Print console URL and owner token path, then open the browser | `--data-dir PATH`                                                                   |
+| `pause`     | Pause dispatch and request pauses for active CLI jobs         | `--data-dir PATH`                                                                   |
+| `resume`    | Clear the global dispatch pause when eligible                 | Resume individual paused jobs separately                                            |
+| `stop`      | Gracefully stop the local service                             | `--data-dir PATH`                                                                   |
+| `token`     | Create an application token                                   | `--id NAME --profiles default --scopes read,submit,control,workflows`               |
+| `revoke`    | Revoke all tokens for a principal                             | `--id NAME`                                                                         |
+| `cluster`   | Headless pool ops (JSON on stdout)                            | See [Cluster and daemon](#cluster-and-daemon)                                       |
+| `daemon`    | Background start/status/stop for cluster roles                | `--cluster-coordinator` or `--cluster-worker`                                       |
+| `--version` | Print the release version                                     | No service required                                                                 |
 
-The CLI prints a new application token once. Keep that output private. `panel` returns the console URL and owner token file location. The MCP `bridge_panel` tool returns the URL and instructions to locate that file through the CLI.
+The CLI prints a new application token once. Keep that output private. `panel` returns the console URL and owner token file location. The MCP `bridge_panel` tool returns the URL and instructions to locate that file through the CLI. Prefer the binary name **`bridge`**; `firefly-bridge` remains a compatibility alias. Set `BRIDGE_NO_BANNER=1` to suppress the TTY welcome in scripts.
+
+## Cluster and daemon
+
+Cluster mode is documented end-to-end in [Cluster quota pool](cluster.md), including a private-lab walkthrough with real JSON samples. Summary of JSON subcommands:
+
+| Subcommand                             | Role                              | Notes                                                                                               |
+| -------------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `cluster init-coordinator`             | Prepare coordinator config        | `--exposure internet\|private`, `--bind`, `--port`, `--tls-cert` / `--tls-key`, `--reserve-percent` |
+| `cluster join-token create`            | Mint a one-time join secret       | `--ttl` (for example `1h`); also prints `id` / `expiresAt`                                          |
+| `cluster join-token revoke`            | Invalidate a token                | `--id`                                                                                              |
+| `cluster join`                         | Enroll this data dir as a worker  | `--coordinator`, `--token` or `BRIDGE_JOIN_TOKEN`, `--name`, `--allow-insecure` (lab HTTP only)     |
+| `cluster status`                       | Pool + node summary               | Coordinator or worker data dir                                                                      |
+| `cluster nodes`                        | Node list                         | Coordinator                                                                                         |
+| `cluster verify-node`                  | Enrollment fingerprint + capacity | `--id NODE`                                                                                         |
+| `cluster drain` / `leave`              | Worker self-service               | Finish in-flight / leave pool                                                                       |
+| `cluster pause` / `resume`             | Pool-wide dispatch gate           | Coordinator                                                                                         |
+| `cluster nodes drain` / `nodes remove` | Operator controls by id           | Coordinator                                                                                         |
+| `daemon start\|status\|stop`           | Pidfile + logfile under data dir  | Pass `--cluster-coordinator` or `--cluster-worker`                                                  |
+
+```text
+$ bridge cluster
+cluster commands (JSON on stdout):
+  init-coordinator [--exposure internet|private] [--bind HOST] [--port N]
+                   [--tls-cert PATH] [--tls-key PATH] [--reserve-percent N]
+  join-token create [--ttl DURATION]
+  …
+```
 
 ## MCP tools
 

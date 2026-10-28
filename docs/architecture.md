@@ -85,7 +85,16 @@ External effects are outside database atomicity. A command can write a file or c
 
 ## Cluster mode (optional)
 
-By default the bridge remains a single local process with one CLI login. **Cluster mode** is opt-in: a headless **coordinator** owns the durable queue and public APIs; headless **workers** join with a token, each carrying its own Claude or Codex subscription. The coordinator fair-shares new jobs, keeps a configurable quota reserve on each node, and sticks native sessions to the worker that created them. Clients do not choose nodes. Workers authenticate with a node credential plus Ed25519-signed requests; internet coordinators require TLS. Run via `serve` or `daemon start|status|stop`. Cluster join, drain, status, verify-node, and pause are CLI/HTTP only - the diagnostic panel is never required. See [Cluster quota pool](cluster.md).
+By default the bridge remains a single local process with one CLI login. **Cluster mode** is opt-in when you need several company machines (or several logins) behind one public URL.
+
+| Role            | Owns                                                                                                          | Does not own           |
+| --------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| **Coordinator** | Durable SQLite queue, client tokens, fair-share router, node registry, public HTTP/MCP/OpenAI-compatible APIs | Provider CLI processes |
+| **Worker**      | One official Claude or Codex login, claim loop, per-job workspace                                             | Public client API      |
+
+Clients always call the coordinator. Workers enroll with a join token, then authenticate with a node credential (`ffn_…`) **plus** Ed25519-signed requests. Internet coordinators require TLS; private labs may use loopback HTTP with `--allow-insecure` on join. One worker type per coordinator. Native sessions stick to the node that created them. Ops use `bridge serve --cluster-*`, `bridge daemon …`, and `bridge cluster …` (JSON). The diagnostic panel is never required for the worker contract.
+
+Operator guide with real CLI output: [Cluster quota pool](cluster.md).
 
 ## Documentation illustration
 
