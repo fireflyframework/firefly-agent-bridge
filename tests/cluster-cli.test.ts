@@ -27,6 +27,19 @@ let dir: string;
 let service: Service | undefined;
 const savedJoin = process.env.BRIDGE_JOIN_TOKEN;
 
+function removeTree(path: string): void {
+  try {
+    rmSync(path, {
+      recursive: true,
+      force: true,
+      maxRetries: 10,
+      retryDelay: 50,
+    });
+  } catch {
+    // Windows runners can hold locks briefly after Fastify close.
+  }
+}
+
 afterEach(async () => {
   if (savedJoin === undefined) delete process.env.BRIDGE_JOIN_TOKEN;
   else process.env.BRIDGE_JOIN_TOKEN = savedJoin;
@@ -34,7 +47,7 @@ afterEach(async () => {
     await service.close();
     service = undefined;
   }
-  if (dir) rmSync(dir, { recursive: true, force: true });
+  if (dir) removeTree(dir);
 });
 
 async function captureCli(argv: string[]): Promise<{
@@ -257,7 +270,7 @@ describe("cluster init-coordinator and join", () => {
       );
       expect(workerConfig.cluster?.mode).toBe("worker");
     } finally {
-      rmSync(coordDir, { recursive: true, force: true });
+      removeTree(coordDir);
     }
   });
 
