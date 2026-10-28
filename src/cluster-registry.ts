@@ -288,7 +288,12 @@ export class ClusterRegistry {
              enrollment_fingerprint=NULL, updated_at=?
          WHERE id=?`,
       )
-      .run("removed", "revoked:" + randomBytes(16).toString("hex"), now, nodeId);
+      .run(
+        "removed",
+        "revoked:" + randomBytes(16).toString("hex"),
+        now,
+        nodeId,
+      );
     return this.mapRow(this.getRow(nodeId));
   }
 

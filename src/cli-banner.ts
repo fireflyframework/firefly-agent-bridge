@@ -59,9 +59,7 @@ export function formatBannerHeader(
   version: string,
   options: { color?: boolean } = {},
 ): string {
-  const art = options.color
-    ? AMBER + BRIDGE_BANNER + RESET
-    : BRIDGE_BANNER;
+  const art = options.color ? AMBER + BRIDGE_BANNER + RESET : BRIDGE_BANNER;
   return `${art}
 Firefly Agent Bridge ${version}`;
 }

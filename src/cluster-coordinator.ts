@@ -21,14 +21,8 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { BridgeConfig } from "./config.js";
 import { ClusterAuth } from "./cluster-auth.js";
-import {
-  ReplayNonceStore,
-  verifyWorkerRequest,
-} from "./cluster-crypto.js";
-import {
-  headroom,
-  usableCapacity,
-} from "./cluster-quota.js";
+import { ReplayNonceStore, verifyWorkerRequest } from "./cluster-crypto.js";
+import { headroom, usableCapacity } from "./cluster-quota.js";
 import { DEFAULT_SCHEDULING } from "./cluster-config.js";
 import { ClusterRegistry } from "./cluster-registry.js";
 import { exhaustedNodeResources } from "./cluster-resources.js";
@@ -182,7 +176,11 @@ export class ClusterCoordinator {
         .prepare("INSERT OR REPLACE INTO metadata VALUES(?,?)")
         .run(
           DISPATCH_KEY,
-          JSON.stringify({ paused: true, reason, at: new Date().toISOString() }),
+          JSON.stringify({
+            paused: true,
+            reason,
+            at: new Date().toISOString(),
+          }),
         );
       const rows = this.store.db
         .prepare(
@@ -199,15 +197,16 @@ export class ClusterCoordinator {
   }
 
   resumeDispatch(): void {
-    this.store.db
-      .prepare("DELETE FROM metadata WHERE key=?")
-      .run(DISPATCH_KEY);
+    this.store.db.prepare("DELETE FROM metadata WHERE key=?").run(DISPATCH_KEY);
   }
 
   heartbeat(
     nodeId: string,
     capacity: NodeCapacity,
-  ): { node: ReturnType<ClusterRegistry["heartbeat"]>; controls: ClusterAttemptControl[] } {
+  ): {
+    node: ReturnType<ClusterRegistry["heartbeat"]>;
+    controls: ClusterAttemptControl[];
+  } {
     const node = this.registry.heartbeat(nodeId, capacity);
     if (capacity.quota.state === "limited")
       this.pauseRunningAttemptsOnNode(nodeId);
@@ -423,8 +422,7 @@ export class ClusterCoordinator {
     const row = this.store.db
       .prepare("SELECT data FROM attempts WHERE id=?")
       .get(attemptId) as { data: string } | undefined;
-    if (!row)
-      throw new BridgeError("not_found", "Attempt not found", 404);
+    if (!row) throw new BridgeError("not_found", "Attempt not found", 404);
     return JSON.parse(row.data) as Attempt;
   }
 
@@ -502,9 +500,9 @@ export class ClusterCoordinator {
    * sessionNodeId retained via store.finish — same spirit as recover()).
    */
   private interruptOfflineNode(nodeId: string): void {
-    const rows = this.store.db
-      .prepare("SELECT data FROM attempts")
-      .all() as { data: string }[];
+    const rows = this.store.db.prepare("SELECT data FROM attempts").all() as {
+      data: string;
+    }[];
     for (const row of rows) {
       const attempt = JSON.parse(row.data) as Attempt;
       if (attempt.nodeId !== nodeId || attempt.status !== "running") continue;
@@ -544,9 +542,7 @@ export class ClusterCoordinator {
         : 0;
       const room = cap ? headroom(cap) : 0;
       const usedPct =
-        usable > 0 && cap
-          ? (cap.quota.estimatedUsedUnits / usable) * 100
-          : 0;
+        usable > 0 && cap ? (cap.quota.estimatedUsedUnits / usable) * 100 : 0;
       return {
         id: n.id,
         name: n.name,

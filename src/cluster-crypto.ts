@@ -33,8 +33,7 @@ export type NodeKeyPair = {
 };
 
 export type VerifyWorkerRequestResult =
-  | { ok: true }
-  | { ok: false; reason: string };
+  { ok: true } | { ok: false; reason: string };
 
 export function generateNodeKeyPair(): NodeKeyPair {
   const { privateKey, publicKey } = generateKeyPairSync("ed25519");
@@ -138,16 +137,14 @@ export function verifyWorkerRequest(input: {
 }): VerifyWorkerRequestResult {
   const now = input.now ?? Date.now();
   const ts = Number(input.timestamp);
-  if (!Number.isFinite(ts))
-    return { ok: false, reason: "Invalid timestamp" };
+  if (!Number.isFinite(ts)) return { ok: false, reason: "Invalid timestamp" };
   if (Math.abs(now - ts) > input.skewMs)
     return { ok: false, reason: "Request timestamp outside skew window" };
   if (!input.nonce || input.nonce.length < 16)
     return { ok: false, reason: "Nonce is required" };
   if (input.nonceStore.has(input.nonce, now))
     return { ok: false, reason: "Replay rejected: nonce already used" };
-  if (!input.signature)
-    return { ok: false, reason: "Signature is required" };
+  if (!input.signature) return { ok: false, reason: "Signature is required" };
   let ok = false;
   try {
     const payload = canonicalWorkerPayload(input);

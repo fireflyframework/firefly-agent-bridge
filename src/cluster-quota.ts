@@ -53,8 +53,7 @@ export function recordUsage(
   usage: UsageRecord = {},
 ): NodeCapacity {
   const turnUnits = usage.turns ?? 1;
-  const tokenUnits =
-    usage.totalTokens != null ? usage.totalTokens / 1000 : 0;
+  const tokenUnits = usage.totalTokens != null ? usage.totalTokens / 1000 : 0;
   const delta = turnUnits + tokenUnits;
   return {
     ...capacity,

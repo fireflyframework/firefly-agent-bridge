@@ -151,8 +151,11 @@ it("migrates to user_version 4 with cluster tables and enrollment columns", () =
     "2026-01-02T00:00:00.000Z",
   );
   expect(
-    (db.prepare("SELECT COUNT(*) AS n FROM cluster_nodes").get() as { n: number })
-      .n,
+    (
+      db.prepare("SELECT COUNT(*) AS n FROM cluster_nodes").get() as {
+        n: number;
+      }
+    ).n,
   ).toBe(1);
   expect(
     (

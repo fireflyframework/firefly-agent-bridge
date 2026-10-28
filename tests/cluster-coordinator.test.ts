@@ -183,11 +183,7 @@ async function heartbeat(
   };
 }
 
-async function claim(
-  address: string,
-  worker: WorkerCreds,
-  freeSlots = 1,
-) {
+async function claim(address: string, worker: WorkerCreds, freeSlots = 1) {
   const path = `/v1/cluster/nodes/${worker.nodeId}/claim`;
   const res = await workerPost(address, worker, path, {
     freeSlots,
@@ -196,8 +192,19 @@ async function claim(
   expect(res.status).toBe(200);
   return (await res.json()) as {
     claims: Array<{
-      attempt: { id: string; jobId: string; owner: string; fence: string; nodeId?: string };
-      job: { id: string; prompt: string; profile: string; assignedNodeId?: string };
+      attempt: {
+        id: string;
+        jobId: string;
+        owner: string;
+        fence: string;
+        nodeId?: string;
+      };
+      job: {
+        id: string;
+        prompt: string;
+        profile: string;
+        assignedNodeId?: string;
+      };
       profile: Record<string, unknown>;
       imageExecution?: unknown;
     }>;
@@ -215,10 +222,12 @@ afterEach(async () => {
 
 describe("ClusterCoordinator protocol", () => {
   it("join → submit → claim → event → finish yields succeeded job", async () => {
-    const { token: joinToken } = new ClusterAuth(service.store).createJoinToken({
-      createdBy: "owner",
-      ttlMs: 60_000,
-    });
+    const { token: joinToken } = new ClusterAuth(service.store).createJoinToken(
+      {
+        createdBy: "owner",
+        ttlMs: 60_000,
+      },
+    );
     const worker = await joinWorker(service.address, joinToken, "desk-a");
     await heartbeat(service.address, worker);
 
@@ -351,22 +360,32 @@ describe("ClusterCoordinator protocol", () => {
     expect(first.claims).toHaveLength(1);
     const attempt = first.claims[0]!.attempt;
 
-    await workerPost(service.address, a, `/v1/cluster/attempts/${attempt.id}/events`, {
-      owner: attempt.owner,
-      fence: attempt.fence,
-      events: [
-        { kind: "session", text: "", data: { sessionId: "native-sess" } },
-      ],
-    });
-    await workerPost(service.address, a, `/v1/cluster/attempts/${attempt.id}/finish`, {
-      owner: attempt.owner,
-      fence: attempt.fence,
-      outcome: {
-        status: "paused",
-        error: "operator_pause",
-        sessionId: "native-sess",
+    await workerPost(
+      service.address,
+      a,
+      `/v1/cluster/attempts/${attempt.id}/events`,
+      {
+        owner: attempt.owner,
+        fence: attempt.fence,
+        events: [
+          { kind: "session", text: "", data: { sessionId: "native-sess" } },
+        ],
       },
-    });
+    );
+    await workerPost(
+      service.address,
+      a,
+      `/v1/cluster/attempts/${attempt.id}/finish`,
+      {
+        owner: attempt.owner,
+        fence: attempt.fence,
+        outcome: {
+          status: "paused",
+          error: "operator_pause",
+          sessionId: "native-sess",
+        },
+      },
+    );
 
     // Second node joins after sticky is established — must not steal.
     const { token: joinTokenB } = auth.createJoinToken({
@@ -392,10 +411,12 @@ describe("ClusterCoordinator protocol", () => {
   });
 
   it("admin pause blocks claims and returns pause controls on heartbeat", async () => {
-    const { token: joinToken } = new ClusterAuth(service.store).createJoinToken({
-      createdBy: "owner",
-      ttlMs: 60_000,
-    });
+    const { token: joinToken } = new ClusterAuth(service.store).createJoinToken(
+      {
+        createdBy: "owner",
+        ttlMs: 60_000,
+      },
+    );
     const worker = await joinWorker(service.address, joinToken, "desk-pause");
     await heartbeat(service.address, worker);
 
@@ -422,7 +443,11 @@ describe("ClusterCoordinator protocol", () => {
     });
     expect(pause.status).toBe(200);
 
-    const hb = await heartbeat(service.address, worker, capacity({ freeSlots: 1, active: 1 }));
+    const hb = await heartbeat(
+      service.address,
+      worker,
+      capacity({ freeSlots: 1, active: 1 }),
+    );
     expect(hb.controls).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -444,11 +469,16 @@ describe("ClusterCoordinator protocol", () => {
     expect(status.cluster.dispatch).toBe("paused");
 
     // Finish the in-flight attempt so a second job can prove the gate.
-    await workerPost(service.address, worker, `/v1/cluster/attempts/${attempt.id}/finish`, {
-      owner: attempt.owner,
-      fence: attempt.fence,
-      outcome: { status: "paused", error: "operator_pause" },
-    });
+    await workerPost(
+      service.address,
+      worker,
+      `/v1/cluster/attempts/${attempt.id}/finish`,
+      {
+        owner: attempt.owner,
+        fence: attempt.fence,
+        outcome: { status: "paused", error: "operator_pause" },
+      },
+    );
 
     await fetch(service.address + "/v1/chat/completions", {
       method: "POST",
@@ -468,10 +498,12 @@ describe("ClusterCoordinator protocol", () => {
   });
 
   it("hides node inventory from non-admin principals", async () => {
-    const { token: joinToken } = new ClusterAuth(service.store).createJoinToken({
-      createdBy: "owner",
-      ttlMs: 60_000,
-    });
+    const { token: joinToken } = new ClusterAuth(service.store).createJoinToken(
+      {
+        createdBy: "owner",
+        ttlMs: 60_000,
+      },
+    );
     const worker = await joinWorker(service.address, joinToken, "hidden");
     await heartbeat(service.address, worker);
 
@@ -494,10 +526,12 @@ describe("ClusterCoordinator protocol", () => {
   });
 
   it("omits sessionNodeId and assignedNodeId from non-admin client job views", async () => {
-    const { token: joinToken } = new ClusterAuth(service.store).createJoinToken({
-      createdBy: "owner",
-      ttlMs: 60_000,
-    });
+    const { token: joinToken } = new ClusterAuth(service.store).createJoinToken(
+      {
+        createdBy: "owner",
+        ttlMs: 60_000,
+      },
+    );
     const worker = await joinWorker(service.address, joinToken, "desk-opaque");
     await heartbeat(service.address, worker);
 
@@ -612,10 +646,12 @@ describe("ClusterCoordinator protocol", () => {
   });
 
   it("enqueues pause controls for siblings when heartbeat reports limited", async () => {
-    const { token: joinToken } = new ClusterAuth(service.store).createJoinToken({
-      createdBy: "owner",
-      ttlMs: 60_000,
-    });
+    const { token: joinToken } = new ClusterAuth(service.store).createJoinToken(
+      {
+        createdBy: "owner",
+        ttlMs: 60_000,
+      },
+    );
     const worker = await joinWorker(service.address, joinToken, "desk-limited");
     await heartbeat(service.address, worker);
 
@@ -679,10 +715,12 @@ describe("ClusterCoordinator protocol", () => {
   });
 
   it("validates profile before claim so missing profile does not orphan a running attempt", async () => {
-    const { token: joinToken } = new ClusterAuth(service.store).createJoinToken({
-      createdBy: "owner",
-      ttlMs: 60_000,
-    });
+    const { token: joinToken } = new ClusterAuth(service.store).createJoinToken(
+      {
+        createdBy: "owner",
+        ttlMs: 60_000,
+      },
+    );
     const worker = await joinWorker(service.address, joinToken, "desk-profile");
     await heartbeat(service.address, worker);
 

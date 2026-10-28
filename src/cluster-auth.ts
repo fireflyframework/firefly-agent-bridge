@@ -39,10 +39,11 @@ export class ClusterAuth {
     return createHash("sha256").update(value).digest("hex");
   }
 
-  createJoinToken(input: {
-    createdBy: string;
-    ttlMs?: number;
-  }): { id: string; token: string; expiresAt: string } {
+  createJoinToken(input: { createdBy: string; ttlMs?: number }): {
+    id: string;
+    token: string;
+    expiresAt: string;
+  } {
     const createdBy = input.createdBy.trim();
     if (!createdBy)
       throw new BridgeError("invalid_request", "createdBy is required");
@@ -70,18 +71,12 @@ export class ClusterAuth {
     if (!tokenId)
       throw new BridgeError("invalid_request", "Join token id is required");
     const row = this.store.db
-      .prepare(
-        "SELECT id,revoked_at FROM cluster_join_tokens WHERE id=?",
-      )
+      .prepare("SELECT id,revoked_at FROM cluster_join_tokens WHERE id=?")
       .get(tokenId) as { id: string; revoked_at: string | null } | undefined;
-    if (!row)
-      throw new BridgeError("not_found", "Join token not found", 404);
-    if (row.revoked_at)
-      return { revoked: true, id: row.id };
+    if (!row) throw new BridgeError("not_found", "Join token not found", 404);
+    if (row.revoked_at) return { revoked: true, id: row.id };
     this.store.db
-      .prepare(
-        "UPDATE cluster_join_tokens SET revoked_at=? WHERE id=?",
-      )
+      .prepare("UPDATE cluster_join_tokens SET revoked_at=? WHERE id=?")
       .run(new Date().toISOString(), row.id);
     return { revoked: true, id: row.id };
   }

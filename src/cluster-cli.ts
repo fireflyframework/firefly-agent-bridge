@@ -171,8 +171,7 @@ async function initCoordinator(
   await initialize(dataDir);
   const config = readConfig(dataDir);
   const exposure = (flagValue(args, "--exposure") ?? "internet") as
-    | "internet"
-    | "private";
+    "internet" | "private";
   if (exposure !== "internet" && exposure !== "private")
     throw new Error("--exposure must be internet or private");
   const bind = flagValue(args, "--bind") ?? "0.0.0.0";
@@ -182,7 +181,9 @@ async function initCoordinator(
     throw new Error("--port must be an integer 0–65535");
   const reserveRaw = flagValue(args, "--reserve-percent");
   const reservePercent =
-    reserveRaw != null ? Number(reserveRaw) : (config.cluster?.reservePercent ?? 10);
+    reserveRaw != null
+      ? Number(reserveRaw)
+      : (config.cluster?.reservePercent ?? 10);
   if (
     !Number.isInteger(reservePercent) ||
     reservePercent < 0 ||
@@ -226,8 +227,7 @@ async function joinTokenCreate(
 ): Promise<void> {
   const connection = await connectClusterAdmin(dataDir);
   const ttl = flagValue(args, "--ttl");
-  const body =
-    ttl != null ? { ttlMs: parseDurationMs(ttl) } : {};
+  const body = ttl != null ? { ttlMs: parseDurationMs(ttl) } : {};
   const result = await request(
     connection,
     "/v1/bridge/admin/cluster/join-tokens",
@@ -264,13 +264,10 @@ async function join(
   const token =
     flagValue(args, "--token") ?? streams.env.BRIDGE_JOIN_TOKEN ?? undefined;
   if (!token)
-    throw new Error(
-      "cluster join requires --token TOKEN or BRIDGE_JOIN_TOKEN",
-    );
+    throw new Error("cluster join requires --token TOKEN or BRIDGE_JOIN_TOKEN");
   const name = flagValue(args, "--name") ?? hostname();
   const reserveRaw = flagValue(args, "--reserve-percent");
-  const reservePercent =
-    reserveRaw != null ? Number(reserveRaw) : undefined;
+  const reservePercent = reserveRaw != null ? Number(reserveRaw) : undefined;
   if (
     reservePercent != null &&
     (!Number.isInteger(reservePercent) ||
@@ -324,8 +321,7 @@ async function join(
       cluster: {
         ...(config.cluster ?? {}),
         mode: "worker",
-        reservePercent:
-          reservePercent ?? config.cluster?.reservePercent ?? 10,
+        reservePercent: reservePercent ?? config.cluster?.reservePercent ?? 10,
       },
     }),
   );
@@ -421,8 +417,7 @@ async function adminNodeAction(
   const id = flagValue(args, "--id");
   if (!id) throw new Error(`nodes ${action} requires --id NODE`);
   const connection = await connectClusterAdmin(dataDir);
-  const path =
-    "/v1/bridge/admin/cluster/nodes/" + encodeURIComponent(id);
+  const path = "/v1/bridge/admin/cluster/nodes/" + encodeURIComponent(id);
   const result =
     action === "drain"
       ? await request(connection, path + "/drain", {})
@@ -436,11 +431,7 @@ async function pauseResume(
   streams: CliStreams,
 ): Promise<void> {
   const connection = await connectClusterAdmin(dataDir);
-  const result = await request(
-    connection,
-    "/v1/bridge/admin/" + action,
-    {},
-  );
+  const result = await request(connection, "/v1/bridge/admin/" + action, {});
   printJson(streams, result);
 }
 

@@ -23,7 +23,10 @@ import {
   collectNodeResources,
   type CpuTimesSample,
 } from "../src/cluster-resources.js";
-import { nodeCapacitySchema, nodeResourcesSchema } from "../src/cluster-types.js";
+import {
+  nodeCapacitySchema,
+  nodeResourcesSchema,
+} from "../src/cluster-types.js";
 
 const idle: CpuTimesSample = {
   user: 100,
@@ -67,7 +70,10 @@ it("darwin prefers reclaimable available memory over os.freemem()", () => {
     }),
   });
   expect(resources.memory.freeBytes).toBe(3_000_000_000);
-  expect(resources.memory.usedRatio).toBeCloseTo(1 - 3_000_000_000 / 8_000_000_000, 5);
+  expect(resources.memory.usedRatio).toBeCloseTo(
+    1 - 3_000_000_000 / 8_000_000_000,
+    5,
+  );
 });
 
 it("collectNodeResources probes memory, disk via statfs, and cpu times", () => {

@@ -40,7 +40,9 @@ function resources(
   const freeDisk = overrides.freeDisk ?? 50 * 1024 * 1024 * 1024;
   const memoryUsedRatio = overrides.memoryUsedRatio ?? 0.4;
   const diskUsedRatio = overrides.diskUsedRatio ?? 0.3;
-  const totalMemory = Math.round(freeMemory / Math.max(1 - memoryUsedRatio, 0.01));
+  const totalMemory = Math.round(
+    freeMemory / Math.max(1 - memoryUsedRatio, 0.01),
+  );
   const totalDisk = Math.round(freeDisk / Math.max(1 - diskUsedRatio, 0.01));
   return {
     platform: "darwin",
@@ -125,7 +127,10 @@ it("recordUsage accumulates turn and token units", () => {
 });
 
 it("markLimited fills used units to usable capacity", () => {
-  const base = capacity({ estimatedUsedUnits: 20, estimatedCapacityUnits: 100 });
+  const base = capacity({
+    estimatedUsedUnits: 20,
+    estimatedCapacityUnits: 100,
+  });
   const limited = markLimited(base, 1_700_000_000_000);
   expect(limited.quota.state).toBe("limited");
   expect(limited.quota.resetAt).toBe(1_700_000_000_000);

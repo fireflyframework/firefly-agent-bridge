@@ -60,8 +60,7 @@ function loadCoordinatorTls(
 ): { key: Buffer; cert: Buffer } | undefined {
   const cluster = config.cluster;
   if (!cluster || cluster.mode !== "coordinator") return undefined;
-  const requireTls =
-    cluster.requireTls || cluster.exposure === "internet";
+  const requireTls = cluster.requireTls || cluster.exposure === "internet";
   if (!requireTls) return undefined;
   const certPath = cluster.tlsCertPath;
   const keyPath = cluster.tlsKeyPath;
@@ -176,7 +175,9 @@ export async function startService(
           : {
               ready: false,
               reason:
-                "Checking the official " + config.worker + " subscription login",
+                "Checking the official " +
+                config.worker +
+                " subscription login",
             };
     const cluster = isCoordinator
       ? new ClusterCoordinator(
@@ -196,7 +197,8 @@ export async function startService(
     let closing: Promise<void> | undefined,
       timer: ReturnType<typeof setInterval> | undefined,
       idleSince = Date.now();
-    let clusterWorker: Awaited<ReturnType<typeof startClusterWorker>> | undefined;
+    let clusterWorker:
+      Awaited<ReturnType<typeof startClusterWorker>> | undefined;
 
     if (isWorker) {
       function close(): Promise<void> {

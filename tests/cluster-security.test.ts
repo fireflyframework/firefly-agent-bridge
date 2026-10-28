@@ -382,8 +382,7 @@ describe("cluster security plane", () => {
     const store = new QueueStore(join(dir, "queue.sqlite"));
     const auth = new ClusterAuth(store);
     const tokens = [0, 1, 2].map(
-      () =>
-        auth.createJoinToken({ createdBy: "owner", ttlMs: 60_000 }).token,
+      () => auth.createJoinToken({ createdBy: "owner", ttlMs: 60_000 }).token,
     );
     store.close();
 

@@ -198,10 +198,10 @@ async function runDaemonCommand(
     } catch {
       const configPath = join(dataDir, "config.json");
       if (!existsSync(configPath))
-        throw new Error("daemon status requires a role or initialized data dir");
-      const config = parseConfig(
-        JSON.parse(readFileSync(configPath, "utf8")),
-      );
+        throw new Error(
+          "daemon status requires a role or initialized data dir",
+        );
+      const config = parseConfig(JSON.parse(readFileSync(configPath, "utf8")));
       if (config.cluster?.mode === "coordinator") role = "coordinator";
       else if (config.cluster?.mode === "worker") role = "worker";
       else
@@ -259,13 +259,7 @@ async function runDaemonCommand(
     pidFile,
     logFile,
     command: process.execPath,
-    args: [
-      ...cliArgs,
-      "serve",
-      serveFlag,
-      "--data-dir",
-      dataDir,
-    ],
+    args: [...cliArgs, "serve", serveFlag, "--data-dir", dataDir],
     ready: () => waitForDaemonReady(dataDir, role),
     timeoutMs: 20_000,
   });
@@ -323,9 +317,7 @@ export async function runCli(
     if (command === "help" || values.help || positionals.length === 0) {
       const color = shouldShowBanner(streams.stdout, streams.env);
       const banner = color || Boolean(values.banner);
-      streams.stdout.write(
-        helpText(releaseVersion, { banner, color }),
-      );
+      streams.stdout.write(helpText(releaseVersion, { banner, color }));
       return 0;
     }
     if (command === "cluster") {
@@ -399,9 +391,7 @@ export async function runCli(
           : config.cluster?.mode === "worker"
             ? "worker"
             : "bridge";
-      streams.stderr.write(
-        `bridge ${role} listening at ${service.address}\n`,
-      );
+      streams.stderr.write(`bridge ${role} listening at ${service.address}\n`);
       const close = () => {
         void service.close().then(() => process.exit(0));
       };

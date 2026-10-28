@@ -163,10 +163,7 @@ async function runPool(opts: {
   const coordDir = join(rootDir, `${worker}-coord`);
   log(`\n=== Pool ${worker} @ :${basePort} (${workers} workers) ===`);
 
-  mustOk(
-    "init",
-    bridge(["init", "--worker", worker, "--data-dir", coordDir]),
-  );
+  mustOk("init", bridge(["init", "--worker", worker, "--data-dir", coordDir]));
   mustOk(
     "init-coordinator",
     bridge([
@@ -208,7 +205,10 @@ async function runPool(opts: {
 
   for (let i = 0; i < workers; i++) {
     const wDir = join(rootDir, `${worker}-w${i}`);
-    mustOk("init-worker", bridge(["init", "--worker", worker, "--data-dir", wDir]));
+    mustOk(
+      "init-worker",
+      bridge(["init", "--worker", worker, "--data-dir", wDir]),
+    );
     // Workspace must exist before resource probe (statfs); init only writes config.
     mkdirSync(join(wDir, "jobs"), { recursive: true });
     mustOk(
@@ -348,10 +348,9 @@ async function main(): Promise<void> {
   if (!existsSync(cli)) throw new Error("Build first: npm run build");
 
   const both = process.argv.includes("--both");
-  const workerArg = process.argv.find((a) => a.startsWith("--worker="))?.slice(9) as
-    | "claude"
-    | "codex"
-    | undefined;
+  const workerArg = process.argv
+    .find((a) => a.startsWith("--worker="))
+    ?.slice(9) as "claude" | "codex" | undefined;
   const workers = Number(
     process.argv.find((a) => a.startsWith("--workers="))?.slice(10) ?? "2",
   );

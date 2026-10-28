@@ -99,9 +99,7 @@ function clamp01(value: number): number {
   return value;
 }
 
-function normalizePlatform(
-  platform: string,
-): NodeResources["platform"] {
+function normalizePlatform(platform: string): NodeResources["platform"] {
   if (platform === "darwin" || platform === "linux" || platform === "win32")
     return platform;
   return "unknown";
@@ -206,7 +204,12 @@ export function collectNodeResources(
       const avg = loadavg();
       load = [avg[0] ?? 0, avg[1] ?? 0, avg[2] ?? 0];
     } catch (error) {
-      logOnce("loadavg", "cluster resource probe: loadavg failed", error, logError);
+      logOnce(
+        "loadavg",
+        "cluster resource probe: loadavg failed",
+        error,
+        logError,
+      );
       loadavgFailed = true;
       load = [0, 0, 0];
     }
@@ -228,8 +231,7 @@ export function collectNodeResources(
     memory = {
       totalBytes,
       freeBytes,
-      usedRatio:
-        totalBytes > 0 ? clamp01(1 - freeBytes / totalBytes) : 1,
+      usedRatio: totalBytes > 0 ? clamp01(1 - freeBytes / totalBytes) : 1,
     };
   } catch (error) {
     logOnce("memory", "cluster resource probe: memory failed", error, logError);
@@ -253,8 +255,7 @@ export function collectNodeResources(
       path: workspace,
       totalBytes,
       freeBytes,
-      usedRatio:
-        totalBytes > 0 ? clamp01(1 - freeBytes / totalBytes) : 1,
+      usedRatio: totalBytes > 0 ? clamp01(1 - freeBytes / totalBytes) : 1,
     };
   } catch (error) {
     logOnce("disk", "cluster resource probe: disk failed", error, logError);
@@ -267,7 +268,10 @@ export function collectNodeResources(
     const cores = Math.max(1, list.length);
     const currentTimes = list.map((cpuInfo) => ({ ...cpuInfo.times }));
     let busyRatio: number;
-    if (options.previousCpuTimes != null && options.previousCpuTimes.length > 0) {
+    if (
+      options.previousCpuTimes != null &&
+      options.previousCpuTimes.length > 0
+    ) {
       busyRatio = busyRatioFromCpuTimes(options.previousCpuTimes, currentTimes);
     } else if (platform !== "win32" && cores > 0 && !loadavgFailed) {
       // loadavg-only path: fail closed when loadavg itself failed (else idle=0).

@@ -109,9 +109,7 @@ export type ClusterPoolSummary = z.infer<typeof clusterPoolSummarySchema>;
 export const clusterStatusSchema = z.strictObject({
   mode: z.enum(["off", "coordinator", "worker"]),
   reservePercent: z.number().int().min(0).max(90),
-  dispatch: z
-    .enum(["ready", "paused", "waiting_for_capacity"])
-    .optional(),
+  dispatch: z.enum(["ready", "paused", "waiting_for_capacity"]).optional(),
   nodes: z.array(clusterNodeSummarySchema).default([]),
   pool: clusterPoolSummarySchema.optional(),
 });

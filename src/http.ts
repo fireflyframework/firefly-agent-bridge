@@ -231,7 +231,11 @@ export function createHttpService(
         rate.set(bucket, entry);
       }
       if (++entry.count > 240)
-        throw new BridgeError("rate_limited", "Request rate limit reached", 429);
+        throw new BridgeError(
+          "rate_limited",
+          "Request rate limit reached",
+          429,
+        );
       return;
     }
     const match = req.headers.authorization?.match(
@@ -641,7 +645,12 @@ export function createHttpService(
     const cluster = requireCluster();
     const input = z
       .strictObject({
-        ttlMs: z.number().int().min(1000).max(30 * 24 * 60 * 60 * 1000).optional(),
+        ttlMs: z
+          .number()
+          .int()
+          .min(1000)
+          .max(30 * 24 * 60 * 60 * 1000)
+          .optional(),
       })
       .parse(req.body ?? {});
     const created = cluster.createJoinToken({
@@ -881,11 +890,7 @@ export function createHttpService(
       joinRate.set(remote, entry);
     }
     if (++entry.count > limit)
-      throw new BridgeError(
-        "rate_limited",
-        "Join rate limit reached",
-        429,
-      );
+      throw new BridgeError("rate_limited", "Join rate limit reached", 429);
     const body = clusterJoinBodySchema.parse(req.body);
     return cluster.join(body);
   });

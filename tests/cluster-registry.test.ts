@@ -114,7 +114,10 @@ describe("ClusterAuth", () => {
 
 describe("ClusterRegistry", () => {
   it("join returns nodeId and credential after validating join token", () => {
-    const { token } = auth.createJoinToken({ createdBy: "owner", ttlMs: 60_000 });
+    const { token } = auth.createJoinToken({
+      createdBy: "owner",
+      ttlMs: 60_000,
+    });
     const joined = registry.join({
       token,
       name: "desk-12",
@@ -135,7 +138,10 @@ describe("ClusterRegistry", () => {
   });
 
   it("heartbeat updates capacity and moves joining to online", () => {
-    const { token } = auth.createJoinToken({ createdBy: "owner", ttlMs: 60_000 });
+    const { token } = auth.createJoinToken({
+      createdBy: "owner",
+      ttlMs: 60_000,
+    });
     const { nodeId } = registry.join({
       token,
       name: "desk-12",
@@ -164,7 +170,10 @@ describe("ClusterRegistry", () => {
   });
 
   it("markStale sets stale after heartbeatStaleMs", () => {
-    const { token } = auth.createJoinToken({ createdBy: "owner", ttlMs: 60_000 });
+    const { token } = auth.createJoinToken({
+      createdBy: "owner",
+      ttlMs: 60_000,
+    });
     const { nodeId } = registry.join({
       token,
       name: "desk-12",
@@ -187,7 +196,10 @@ describe("ClusterRegistry", () => {
   });
 
   it("rejects join when worker type differs from coordinator worker", () => {
-    const { token } = auth.createJoinToken({ createdBy: "owner", ttlMs: 60_000 });
+    const { token } = auth.createJoinToken({
+      createdBy: "owner",
+      ttlMs: 60_000,
+    });
     expect(() =>
       registry.join({
         token,
@@ -213,7 +225,10 @@ describe("ClusterRegistry", () => {
   });
 
   it("drain and remove update node status", () => {
-    const { token } = auth.createJoinToken({ createdBy: "owner", ttlMs: 60_000 });
+    const { token } = auth.createJoinToken({
+      createdBy: "owner",
+      ttlMs: 60_000,
+    });
     const { nodeId } = registry.join({
       token,
       name: "desk-12",
@@ -240,7 +255,11 @@ describe("cluster config bounds (cheap T1 follow-ups)", () => {
     expect(
       parseConfig({
         ...base,
-        cluster: { mode: "coordinator", bindHost: "0.0.0.0", reservePercent: 0 },
+        cluster: {
+          mode: "coordinator",
+          bindHost: "0.0.0.0",
+          reservePercent: 0,
+        },
       }).cluster?.reservePercent,
     ).toBe(0);
     expect(

@@ -65,7 +65,9 @@ describe("cli-banner", () => {
     expect(text).toContain("Quick start");
     expect(text).toContain("bridge init --worker claude");
     expect(text).toContain("bridge serve");
-    expect(text).toContain("bridge cluster init-coordinator --exposure internet");
+    expect(text).toContain(
+      "bridge cluster init-coordinator --exposure internet",
+    );
     expect(text).toContain("bridge daemon start --cluster-worker");
     expect(text).not.toMatch(/[\u{1F300}-\u{1FAFF}]/u);
   });

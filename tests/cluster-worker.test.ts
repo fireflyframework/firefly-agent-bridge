@@ -64,7 +64,12 @@ type FakeClaim = {
   attempt: Attempt;
   job: Job;
   profile: Record<string, unknown>;
-  imageExecution?: { worker: "claude" | "codex"; path: string; options: Record<string, unknown>; revision: string };
+  imageExecution?: {
+    worker: "claude" | "codex";
+    path: string;
+    options: Record<string, unknown>;
+    revision: string;
+  };
 };
 
 function healthyResources(): NodeResources {
@@ -86,10 +91,7 @@ function healthyResources(): NodeResources {
   };
 }
 
-function waitFor(
-  predicate: () => boolean,
-  timeoutMs = 3000,
-): Promise<void> {
+function waitFor(predicate: () => boolean, timeoutMs = 3000): Promise<void> {
   const started = Date.now();
   return new Promise((resolve, reject) => {
     const tick = () => {
@@ -493,7 +495,10 @@ describe("cluster worker pull loop", () => {
     expect(previousArgs[0]).toBeNull();
     expect(previousArgs[1]).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ user: expect.any(Number), idle: expect.any(Number) }),
+        expect.objectContaining({
+          user: expect.any(Number),
+          idle: expect.any(Number),
+        }),
       ]),
     );
   });
@@ -525,10 +530,12 @@ describe("cluster worker pull loop", () => {
     });
     cleanups.push(() => service.close());
 
-    const { token: joinToken } = new ClusterAuth(service.store).createJoinToken({
-      createdBy: "owner",
-      ttlMs: 60_000,
-    });
+    const { token: joinToken } = new ClusterAuth(service.store).createJoinToken(
+      {
+        createdBy: "owner",
+        ttlMs: 60_000,
+      },
+    );
     const keys = generateNodeKeyPair();
     const joinRes = await fetch(service.address + "/v1/cluster/join", {
       method: "POST",
@@ -636,7 +643,10 @@ describe("cluster worker pull loop", () => {
       .prepare("UPDATE cluster_nodes SET last_heartbeat_at=? WHERE id=?")
       .run(new Date(Date.now() - 5000).toISOString(), worker.nodeId);
 
-    await waitFor(() => service.store.get(job.id).status === "interrupted", 4000);
+    await waitFor(
+      () => service.store.get(job.id).status === "interrupted",
+      4000,
+    );
 
     const done = service.store.get(job.id);
     expect(done.status).toBe("interrupted");

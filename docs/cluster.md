@@ -8,7 +8,7 @@ description: Run a headless company pool of Claude or Codex subscription workers
 
 !!! warning "Subscriptions and terms"
 
- Each worker uses its own signed-in coding CLI subscription. Pooling does not create extra provider capacity beyond those subscriptions. Confirm your plan and company policy before joining company machines to a shared coordinator. The diagnostic dashboard is optional and never required for cluster operations.
+Each worker uses its own signed-in coding CLI subscription. Pooling does not create extra provider capacity beyond those subscriptions. Confirm your plan and company policy before joining company machines to a shared coordinator. The diagnostic dashboard is optional and never required for cluster operations.
 
 Cluster mode turns many headless bridge **workers** (each with one Claude Code or Codex login) into one logical bridge behind a **coordinator**. Clients keep using the same HTTP, MCP, and OpenAI-compatible APIs. The coordinator fair-shares new work, keeps a configurable **reserve** of each node’s estimated quota unused (default 10%), and sticks native sessions to the node that created them.
 
@@ -16,17 +16,17 @@ The coordinator is intended to run on an **internet-reachable host** (or private
 
 !!! note "How to run the pool"
 
- Use **`bridge serve --cluster-coordinator`** / **`--cluster-worker`** under systemd, Docker, or another supervisor, **or** **`bridge daemon start|status|stop`** with pidfile/logfile for bare VMs. Internet coordinators require listener TLS (`--tls-cert` / `--tls-key`). Workers enroll an Ed25519 key at join and sign every mutating coordinator request.
+Use **`bridge serve --cluster-coordinator`** / **`--cluster-worker`** under systemd, Docker, or another supervisor, **or** **`bridge daemon start|status|stop`** with pidfile/logfile for bare VMs. Internet coordinators require listener TLS (`--tls-cert` / `--tls-key`). Workers enroll an Ed25519 key at join and sign every mutating coordinator request.
 
 ## Headless first
 
-| You need | Use |
-|----------|-----|
-| Run coordinator / worker | `bridge serve --cluster-*` or `bridge daemon start --cluster-*` |
-| Join, drain, leave, tokens, status, verify | `bridge cluster …` (JSON on stdout) |
-| Automate / CI | Same CLI + HTTP; set tokens via flags or env |
-| Watch capacity | `cluster status` or `GET /v1/bridge/status` → `cluster` |
-| Browser dashboard | Optional only; **not** part of the worker contract |
+| You need                                   | Use                                                             |
+| ------------------------------------------ | --------------------------------------------------------------- |
+| Run coordinator / worker                   | `bridge serve --cluster-*` or `bridge daemon start --cluster-*` |
+| Join, drain, leave, tokens, status, verify | `bridge cluster …` (JSON on stdout)                             |
+| Automate / CI                              | Same CLI + HTTP; set tokens via flags or env                    |
+| Watch capacity                             | `cluster status` or `GET /v1/bridge/status` → `cluster`         |
+| Browser dashboard                          | Optional only; **not** part of the worker contract              |
 
 The CLI binary is **`bridge`** (`firefly-bridge` remains a compatibility alias). `bridge` / `bridge help` shows a short ASCII span banner on a TTY; JSON commands never print it.
 
@@ -119,11 +119,11 @@ Mount `/data` with `config.json` + `cluster.json`. Run `cluster join` as an init
 
 ## Secure communication (summary)
 
-| Plane | Auth |
-|-------|------|
-| Clients → coordinator | Bridge bearer tokens (`ffb_…`) over HTTPS |
-| Workers → coordinator | Node credential (`ffn_…`) **plus** Ed25519 request signatures (timestamp + nonce, replay-protected) |
-| Join | Short-lived join token → credential + public-key enrollment (rate-limited; optional `allowedWorkerCidrs`) |
+| Plane                 | Auth                                                                                                      |
+| --------------------- | --------------------------------------------------------------------------------------------------------- |
+| Clients → coordinator | Bridge bearer tokens (`ffb_…`) over HTTPS                                                                 |
+| Workers → coordinator | Node credential (`ffn_…`) **plus** Ed25519 request signatures (timestamp + nonce, replay-protected)       |
+| Join                  | Short-lived join token → credential + public-key enrollment (rate-limited; optional `allowedWorkerCidrs`) |
 
 Internet exposure requires in-process TLS on the coordinator listener. Private lab may use `--exposure private` with optional cleartext or a reverse proxy. Daemon mode (`bridge daemon start|status|stop`) writes pidfile + logfile under the data directory by default. See [Security boundaries](security.md).
 

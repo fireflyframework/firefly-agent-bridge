@@ -34,10 +34,7 @@ import {
   type CollectNodeResourcesOptions,
   type CpuTimesSample,
 } from "./cluster-resources.js";
-import type {
-  ClusterAttemptControl,
-  NodeCapacity,
-} from "./cluster-types.js";
+import type { ClusterAttemptControl, NodeCapacity } from "./cluster-types.js";
 import { ClaudeWorker } from "./claude.js";
 import { CodexWorker } from "./codex.js";
 import type { BridgeConfig } from "./config.js";
@@ -135,9 +132,7 @@ export async function startClusterWorker(
     );
   const doFetch = options.fetch ?? fetch;
   const intervalMs =
-    options.heartbeatIntervalMs ??
-    config.cluster?.heartbeatIntervalMs ??
-    2000;
+    options.heartbeatIntervalMs ?? config.cluster?.heartbeatIntervalMs ?? 2000;
   const failureLimit =
     options.heartbeatFailureLimit ??
     Math.max(
@@ -309,12 +304,9 @@ export async function startClusterWorker(
   function workerFor(claim: ClusterClaimSnapshot): Worker {
     if (options.workerFactory) return options.workerFactory(claim);
     const selected =
-      claim.imageExecution?.worker ??
-      claim.job.worker ??
-      config.worker;
+      claim.imageExecution?.worker ?? claim.job.worker ?? config.worker;
     const frozen = claim.imageExecution?.options ?? claim.profile;
-    const path =
-      selected === "codex" ? config.codexPath : config.claudePath;
+    const path = selected === "codex" ? config.codexPath : config.claudePath;
     return new (selected === "codex" ? CodexWorker : ClaudeWorker)({
       path: path!,
       ...frozen,
@@ -432,7 +424,10 @@ export async function startClusterWorker(
           sibling.control = "pause";
           sibling.controller.abort("pause");
         }
-      } else if (outcome.status === "succeeded" || outcome.status === "failed") {
+      } else if (
+        outcome.status === "succeeded" ||
+        outcome.status === "failed"
+      ) {
         estimatedUsedUnits += 1;
         if (quotaState === "unknown") quotaState = "ok";
       }
@@ -475,8 +470,7 @@ export async function startClusterWorker(
         heartbeatFailures += 1;
         console.error("cluster worker heartbeat failed", error);
         if (heartbeatFailures >= failureLimit) {
-          for (const entry of active.values())
-            entry.controller.abort("cancel");
+          for (const entry of active.values()) entry.controller.abort("cancel");
         }
         return;
       }
