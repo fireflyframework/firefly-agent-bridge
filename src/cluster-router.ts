@@ -24,6 +24,8 @@ export type RouterNode = {
   id: string;
   status: ClusterNodeStatus;
   capacity: NodeCapacity;
+  /** Epoch ms of last successful claim assignment; older preferred on ties. */
+  lastAssignedAt?: number | null;
 };
 
 export type RouterJob = {
@@ -79,7 +81,7 @@ function score(node: RouterNode): number {
 /**
  * Fair-share pick: maximize normalized headroom among eligible nodes.
  * Sticky jobs only consider `sessionNodeId`; if that node is ineligible, return null.
- * Tie-break: lower active, then lower nodeId.
+ * Tie-break: lower active, then older lastAssignedAt, then lower nodeId.
  */
 export function selectNode(
   nodes: RouterNode[],
@@ -99,6 +101,9 @@ export function selectNode(
     if (scoreDiff !== 0) return scoreDiff;
     const activeDiff = a.capacity.active - b.capacity.active;
     if (activeDiff !== 0) return activeDiff;
+    const aAssigned = a.lastAssignedAt ?? 0;
+    const bAssigned = b.lastAssignedAt ?? 0;
+    if (aAssigned !== bAssigned) return aAssigned - bAssigned;
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
 

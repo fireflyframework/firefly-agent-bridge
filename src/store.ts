@@ -237,7 +237,12 @@ export class QueueStore {
         .all(mode) as { data: string }[]
     ).map((r) => JSON.parse(r.data) as Job);
   }
-  claim(owner: string, mode: JobInput["mode"], jobId?: string): Attempt | null {
+  claim(
+    owner: string,
+    mode: JobInput["mode"],
+    jobId?: string,
+    options?: { nodeId?: string },
+  ): Attempt | null {
     return this.atomic(() => {
       const row = this.db
         .prepare(
@@ -256,8 +261,10 @@ export class QueueStore {
         status: "running",
         createdAt: now,
         updatedAt: now,
+        ...(options?.nodeId ? { nodeId: options.nodeId } : {}),
       };
       job.status = "running";
+      if (options?.nodeId) job.assignedNodeId = options.nodeId;
       this.save(job);
       this.db
         .prepare("INSERT INTO attempts VALUES(?,?,?)")
@@ -306,8 +313,18 @@ export class QueueStore {
         return;
       }
       const data = event.data ?? {};
-      if (event.kind === "session" && typeof data.sessionId === "string")
+      if (event.kind === "session" && typeof data.sessionId === "string") {
         job.sessionId = data.sessionId;
+        // Prefer durable attempt.nodeId (cluster) so sticky binding survives reconnect.
+        const attemptRow = this.db
+          .prepare("SELECT data FROM attempts WHERE id=?")
+          .get(attempt.id) as { data: string } | undefined;
+        const nodeId =
+          (attemptRow
+            ? (JSON.parse(attemptRow.data) as Attempt).nodeId
+            : undefined) ?? attempt.nodeId;
+        if (nodeId && !job.sessionNodeId) job.sessionNodeId = nodeId;
+      }
       if (event.kind === "compaction") {
         job.compactions = (job.compactions ?? 0) + 1;
         job.activity = "running";
@@ -489,6 +506,8 @@ export class QueueStore {
       delete job.usage;
       delete job.error;
       delete job.sessionId;
+      delete job.sessionNodeId;
+      delete job.assignedNodeId;
       delete job.resumePending;
       delete job.resumedTurns;
       delete job.retryAt;

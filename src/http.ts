@@ -34,12 +34,21 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { createAdapter } from "./mcp.js";
 import { RECOVERY_LIMITS } from "./completion-recovery.js";
 import { registerOpenAI, CompletionError, openAIError } from "./openai.js";
+import {
+  ClusterCoordinator,
+  clusterClaimBodySchema,
+  clusterEventsBodySchema,
+  clusterFinishBodySchema,
+  clusterJoinBodySchema,
+  nodeCapacitySchema,
+} from "./cluster-coordinator.js";
 export type HttpDependencies = {
   store: QueueStore;
   auth: Tokens;
   scheduler: Scheduler;
   flows: Workflows;
   config: BridgeConfig;
+  cluster?: ClusterCoordinator;
   diagnostics?: () => Record<string, unknown>;
   heartbeat?: (id: string) => void;
   disconnect?: (id: string) => void;
@@ -175,6 +184,40 @@ export function createHttpService(d: HttpDependencies) {
         "invalid_auth",
         "Query-string tokens are not accepted",
       );
+    const path = req.url.split("?")[0]!;
+    // Cluster join exchanges a join token in the body (no bearer yet).
+    if (req.method === "POST" && path === "/v1/cluster/join") return;
+    // Worker plane: ffn_ bearer today; Task 8 adds Ed25519 headers on top.
+    if (path.startsWith("/v1/cluster/")) {
+      if (!d.cluster)
+        throw new BridgeError(
+          "not_found",
+          "Cluster coordinator is not enabled",
+          404,
+        );
+      const nodeMatch = req.headers.authorization?.match(
+        /^Bearer (ffn_[A-Za-z0-9_-]+)$/,
+      );
+      if (!nodeMatch)
+        throw new BridgeError(
+          "unauthorized",
+          "Bearer node authentication is required",
+          401,
+        );
+      // Authenticate early so rate limits key on nodeId; handlers re-check path binding.
+      const worker = d.cluster.authenticateWorker(nodeMatch[1]!);
+      bearers.set(req, nodeMatch[1]!);
+      const bucket = "node:" + worker.nodeId + ":cluster";
+      const now = Date.now();
+      let entry = rate.get(bucket);
+      if (!entry || now - entry.since >= 60000) {
+        entry = { count: 0, since: now };
+        rate.set(bucket, entry);
+      }
+      if (++entry.count > 240)
+        throw new BridgeError("rate_limited", "Request rate limit reached", 429);
+      return;
+    }
     const match = req.headers.authorization?.match(
       /^Bearer (ffb_[A-Za-z0-9_-]+)$/,
     );
@@ -187,7 +230,6 @@ export function createHttpService(d: HttpDependencies) {
     const principal = d.auth.verify(match[1]!);
     bearers.set(req, match[1]!);
     // Polling must never starve leases or an operator's stop request.
-    const path = req.url.split("?")[0]!;
     const traffic =
       req.method === "POST" && path.startsWith("/v1/bridge/hosts/")
         ? "lease"
@@ -315,6 +357,21 @@ export function createHttpService(d: HttpDependencies) {
           }
         : {}),
       ...(p.owner ? d.diagnostics?.() : {}),
+      ...(d.cluster
+        ? {
+            cluster: d.cluster.status(
+              p.owner || Boolean(p.scopes?.includes("admin")),
+            ),
+          }
+        : d.config.cluster?.mode
+          ? {
+              cluster: {
+                mode: d.config.cluster.mode,
+                reservePercent: d.config.cluster.reservePercent,
+                nodes: [],
+              },
+            }
+          : {}),
     };
   });
   app.get("/v1/bridge/jobs", async (req) => {
@@ -472,7 +529,11 @@ export function createHttpService(d: HttpDependencies) {
   app.post("/v1/bridge/admin/pause", async (req) => {
     owner(req);
     d.scheduler.pause();
-    return d.scheduler.controlState;
+    d.cluster?.pauseDispatch();
+    return {
+      ...d.scheduler.controlState,
+      ...(d.cluster ? { clusterDispatch: "paused" } : {}),
+    };
   });
   app.post("/v1/bridge/admin/resume", async (req) => {
     owner(req);
@@ -483,7 +544,11 @@ export function createHttpService(d: HttpDependencies) {
         409,
       );
     d.scheduler.resume();
-    return d.scheduler.controlState;
+    d.cluster?.resumeDispatch();
+    return {
+      ...d.scheduler.controlState,
+      ...(d.cluster ? { clusterDispatch: "ready" } : {}),
+    };
   });
   app.post("/v1/bridge/admin/stop", async (req) => {
     owner(req);
@@ -657,6 +722,94 @@ export function createHttpService(d: HttpDependencies) {
   app.get("/navigation.js", async (_req, reply) =>
     reply.type("application/javascript").send(uiAssets.navigationJs),
   );
+  const clusterNodeId = (req: FastifyRequest) =>
+    z.strictObject({ id: z.string().min(1).max(128) }).parse(req.params).id;
+  const clusterAttemptId = (req: FastifyRequest) =>
+    z.strictObject({ id: z.string().uuid() }).parse(req.params).id;
+  const requireCluster = () => {
+    if (!d.cluster)
+      throw new BridgeError(
+        "not_found",
+        "Cluster coordinator is not enabled",
+        404,
+      );
+    return d.cluster;
+  };
+  const workerAuth = (req: FastifyRequest) => {
+    const cluster = requireCluster();
+    const credential = bearers.get(req);
+    if (!credential)
+      throw new BridgeError(
+        "unauthorized",
+        "Bearer node authentication is required",
+        401,
+      );
+    return cluster.authenticateWorker(credential);
+  };
+
+  app.post("/v1/cluster/join", async (req) => {
+    const cluster = requireCluster();
+    const body = clusterJoinBodySchema.parse(req.body);
+    return cluster.join(body);
+  });
+  app.post("/v1/cluster/nodes/:id/heartbeat", async (req) => {
+    const cluster = requireCluster();
+    const auth = workerAuth(req);
+    const nodeId = clusterNodeId(req);
+    cluster.assertNodePath(auth, nodeId);
+    const capacity = nodeCapacitySchema.parse(req.body);
+    const { node, controls } = cluster.heartbeat(nodeId, capacity);
+    return {
+      id: node.id,
+      status: node.status,
+      controls,
+    };
+  });
+  app.post("/v1/cluster/nodes/:id/claim", async (req) => {
+    const cluster = requireCluster();
+    const auth = workerAuth(req);
+    const nodeId = clusterNodeId(req);
+    cluster.assertNodePath(auth, nodeId);
+    const body = clusterClaimBodySchema.parse(req.body);
+    return cluster.claim(nodeId, body);
+  });
+  app.post("/v1/cluster/attempts/:id/events", async (req) => {
+    const cluster = requireCluster();
+    const auth = workerAuth(req);
+    const body = clusterEventsBodySchema.parse(req.body);
+    return cluster.events(clusterAttemptId(req), auth, {
+      owner: body.owner,
+      fence: body.fence,
+      events: body.events as import("./worker.js").WorkerEvent[],
+    });
+  });
+  app.post("/v1/cluster/attempts/:id/finish", async (req) => {
+    const cluster = requireCluster();
+    const auth = workerAuth(req);
+    const body = clusterFinishBodySchema.parse(req.body);
+    return cluster.finish(clusterAttemptId(req), auth, {
+      owner: body.owner,
+      fence: body.fence,
+      outcome: body.outcome as import("./contracts.js").Outcome,
+    });
+  });
+  app.post("/v1/cluster/nodes/:id/drain", async (req) => {
+    const cluster = requireCluster();
+    const auth = workerAuth(req);
+    const nodeId = clusterNodeId(req);
+    cluster.assertNodePath(auth, nodeId);
+    const node = cluster.drain(nodeId);
+    return { id: node.id, status: node.status };
+  });
+  app.delete("/v1/cluster/nodes/:id", async (req) => {
+    const cluster = requireCluster();
+    const auth = workerAuth(req);
+    const nodeId = clusterNodeId(req);
+    cluster.assertNodePath(auth, nodeId);
+    const node = cluster.leave(nodeId);
+    return { id: node.id, status: node.status };
+  });
+
   app.get("/job-wizard.js", async (_req, reply) =>
     reply.type("application/javascript").send(uiAssets.jobWizardJs),
   );

@@ -42,6 +42,9 @@ import { Scheduler } from "./scheduler.js";
 import { CodexWorker } from "./codex.js";
 import { ClaudeWorker } from "./claude.js";
 import { createHttpService } from "./http.js";
+import { ClusterAuth } from "./cluster-auth.js";
+import { ClusterCoordinator } from "./cluster-coordinator.js";
+import { ClusterRegistry } from "./cluster-registry.js";
 import type { BridgeConfig } from "./config.js";
 import type { Worker } from "./worker.js";
 import type { Job } from "./contracts.js";
@@ -127,20 +130,37 @@ export async function startService(
         },
       };
     };
+    const isCoordinator = config.cluster?.mode === "coordinator";
     const scheduler = new Scheduler(
       store,
       flows,
       workerFor,
       config.workspace,
       config.concurrency,
+      !isCoordinator,
     );
     scheduler.readiness = options.worker
       ? { ready: true }
-      : {
-          ready: false,
-          reason:
-            "Checking the official " + config.worker + " subscription login",
-        };
+      : isCoordinator
+        ? { ready: true, reason: "cluster_coordinator" }
+        : {
+            ready: false,
+            reason:
+              "Checking the official " + config.worker + " subscription login",
+          };
+    const cluster = isCoordinator
+      ? new ClusterCoordinator(
+          store,
+          new ClusterRegistry(store, new ClusterAuth(store), {
+            worker: config.worker,
+            reservePercent: config.cluster!.reservePercent,
+            heartbeatStaleMs: config.cluster!.heartbeatStaleMs,
+            heartbeatOfflineMs: config.cluster!.heartbeatOfflineMs,
+          }),
+          new ClusterAuth(store),
+          config,
+        )
+      : undefined;
     const instanceId = randomUUID(),
       hosts = new Map<string, number>();
     let closing: Promise<void> | undefined,
@@ -152,6 +172,7 @@ export async function startService(
       scheduler,
       flows,
       config,
+      cluster,
       persistConfig: (next) =>
         privateWrite(
           join(config.dataDir, "config.json"),
@@ -198,7 +219,11 @@ export async function startService(
     closeService = close;
     let address: string;
     try {
-      address = await app.listen({ host: config.host, port: config.port });
+      const listenHost =
+        isCoordinator && config.cluster?.bindHost
+          ? config.cluster.bindHost
+          : config.host;
+      address = await app.listen({ host: listenHost, port: config.port });
       // A port collision must not mark another instance's work as interrupted.
       const recovering = store.db
         .prepare(
@@ -224,6 +249,7 @@ export async function startService(
       timer = setInterval(() => {
         for (const [id, seen] of hosts)
           if (Date.now() - seen > 7000) hosts.delete(id);
+        cluster?.tick();
         const newest = store.db
           .prepare("SELECT MAX(id) AS id FROM events")
           .get() as { id: number | null };
@@ -238,7 +264,7 @@ export async function startService(
           void close();
       }, 1000);
       timer.unref();
-      if (!options.worker)
+      if (!options.worker && !isCoordinator)
         void new (config.worker === "codex" ? CodexWorker : ClaudeWorker)({
           path: (config.worker === "codex"
             ? config.codexPath
