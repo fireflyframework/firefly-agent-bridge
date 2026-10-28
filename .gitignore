@@ -49,6 +49,7 @@ CLAUDE.local.md
 
 # Python SDK compatibility tests
 .venv/
+.venv-docs/
 .client-venv/
 __pycache__/
 *.py[cod]

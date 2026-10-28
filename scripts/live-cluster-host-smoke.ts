@@ -373,7 +373,7 @@ async function main(): Promise<void> {
   try {
     if (both) {
       log(
-        "Note: v1 allows one worker type per coordinator. Running two pools on one host (Claude + Codex).",
+        "Note: mixed Claude+Codex on one coordinator is supported; --both still runs two pools so each live CLI login is exercised in isolation.",
       );
       await runPool({
         worker: "codex",

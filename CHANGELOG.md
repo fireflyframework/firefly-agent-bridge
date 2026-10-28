@@ -2,6 +2,15 @@
 
 # Changelog
 
+## 0.2.23 - 2026-10-28
+
+- Allow Claude and Codex workers on one coordinator. Jobs stay provider-agnostic; fair-share dispatches by quota and capacity across CLI types. Cross-CLI failover uses the existing handoff brief.
+- Add `bridge cluster init-local-worker` so the coordinator host runs a separate worker process. Pool status includes `eligibleByProvider`; heartbeats may advertise an optional model for observability.
+- Keep the diagnostic console optional: register UI routes in a separate module, gate them with `serveUi` / `serve --no-ui`, and drive job pause/resume/cancel/retry plus `token list` from headless CLI JSON commands.
+- Resolve only the selected coding CLI on each host. `init-local-worker` defaults to the coordinator's worker; a Codex-only or Claude-only machine never needs the other binary.
+- Print the span ASCII banner on TTY `serve` / `daemon start` (still suppressed for JSON cluster commands and `BRIDGE_NO_BANNER`). Refresh cluster docs and quick-start for mixed pools.
+- Bump installation, plugin, desktop and OpenAPI metadata to 0.2.23.
+
 ## 0.2.22 - 2026-10-28
 
 - Ship the multi-node cluster quota pool: coordinator queue of record, signed worker enrollment, fair-share routing with reserve and RAM/CPU/disk floors, headless `bridge cluster` ops, and didactic cluster documentation.

@@ -29,10 +29,15 @@ export const BRIDGE_BANNER = `        ·----·
 
 /** Locked quick-start + docs footer (cli-polish-brief). Shared by welcome and help. */
 export const QUICK_START_FOOTER = `Quick start
-  bridge init --worker claude
+  bridge init --worker claude   # or: --worker codex (only that CLI is required)
   bridge serve
-  bridge cluster init-coordinator --exposure internet …
-  bridge daemon start --cluster-worker
+  bridge cluster init-coordinator --exposure private --bind 127.0.0.1
+  bridge serve --cluster-coordinator
+  bridge cluster init-local-worker --worker-data-dir ~/bridge-worker
+  bridge daemon start --cluster-worker --data-dir ~/bridge-worker
+
+Mixed Claude + Codex workers join the same coordinator; jobs dispatch by capacity.
+Each host needs only the CLI for its worker process.
 
 Docs: https://fireflyframework.github.io/firefly-agent-bridge/`;
 

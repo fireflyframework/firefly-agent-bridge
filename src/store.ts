@@ -243,7 +243,7 @@ export class QueueStore {
     owner: string,
     mode: JobInput["mode"],
     jobId?: string,
-    options?: { nodeId?: string },
+    options?: { nodeId?: string; worker?: "claude" | "codex" },
   ): Attempt | null {
     return this.atomic(() => {
       const row = this.db
@@ -267,6 +267,7 @@ export class QueueStore {
       };
       job.status = "running";
       if (options?.nodeId) job.assignedNodeId = options.nodeId;
+      if (options?.worker) job.worker = options.worker;
       this.save(job);
       this.db
         .prepare("INSERT INTO attempts VALUES(?,?,?)")

@@ -45,6 +45,8 @@ export type NodeResources = z.infer<typeof nodeResourcesSchema>;
 
 export const nodeCapacitySchema = z.strictObject({
   worker: z.enum(["claude", "codex"]),
+  /** Optional advertised default model for observability (not a hard claim filter). */
+  model: z.string().min(1).max(100).nullable().optional(),
   concurrency: z.number().int().min(0),
   active: z.number().int().min(0),
   freeSlots: z.number().int().min(0),
@@ -90,12 +92,19 @@ export const clusterNodeSummarySchema = z.strictObject({
   memoryFreeBytes: z.number().min(0).nullable().default(null),
   diskFreeBytes: z.number().min(0).nullable().default(null),
   cpuBusyRatio: z.number().min(0).max(1).nullable().default(null),
+  model: z.string().min(1).max(100).nullable().default(null),
 });
 export type ClusterNodeSummary = z.infer<typeof clusterNodeSummarySchema>;
 
 export const clusterPoolSummarySchema = z.strictObject({
   onlineNodes: z.number().int().min(0),
   eligibleNodes: z.number().int().min(0),
+  eligibleByProvider: z
+    .strictObject({
+      claude: z.number().int().min(0),
+      codex: z.number().int().min(0),
+    })
+    .optional(),
   totalHeadroom: z.number().min(0),
   fairnessSkew: z.number().min(0),
   queuedJobs: z.number().int().min(0),

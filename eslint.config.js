@@ -27,6 +27,8 @@ export default tseslint.config(
       "node_modules/**",
       "work/**",
       ".client-venv/**",
+      ".venv/**",
+      ".venv-docs/**",
       "test-results/**",
       "playwright-report/**",
     ],

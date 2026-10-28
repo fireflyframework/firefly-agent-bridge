@@ -42,27 +42,27 @@ The bridge uses that CLI's existing login. Do not copy its credentials into the 
 
 ## Install a native archive
 
-Download the platform archive and its checksum list over HTTPS. These examples select version 0.2.22; confirm it is available on the [release page](https://github.com/fireflyframework/firefly-agent-bridge/releases) before downloading:
+Download the platform archive and its checksum list over HTTPS. These examples select version 0.2.23; confirm it is available on the [release page](https://github.com/fireflyframework/firefly-agent-bridge/releases) before downloading:
 
 ```sh
 curl --fail --location --remote-name \
-  https://github.com/fireflyframework/firefly-agent-bridge/releases/download/v0.2.22/firefly-agent-bridge-0.2.22-darwin-arm64.tar.gz
+  https://github.com/fireflyframework/firefly-agent-bridge/releases/download/v0.2.23/firefly-agent-bridge-0.2.23-darwin-arm64.tar.gz
 curl --fail --location --remote-name \
-  https://github.com/fireflyframework/firefly-agent-bridge/releases/download/v0.2.22/SHA256SUMS
-shasum -a 256 firefly-agent-bridge-0.2.22-darwin-arm64.tar.gz
+  https://github.com/fireflyframework/firefly-agent-bridge/releases/download/v0.2.23/SHA256SUMS
+shasum -a 256 firefly-agent-bridge-0.2.23-darwin-arm64.tar.gz
 ```
 
 Compare the digest with that archive's entry in `SHA256SUMS` before extracting. On Linux, choose the `linux-x64` archive and use `sha256sum`. On Windows, choose `win32-x64` and use PowerShell:
 
 ```powershell
-Get-FileHash .\firefly-agent-bridge-0.2.22-win32-x64.tar.gz -Algorithm SHA256
+Get-FileHash .\firefly-agent-bridge-0.2.23-win32-x64.tar.gz -Algorithm SHA256
 ```
 
 Extract the complete archive into a new directory. Keep all included license and runtime files together. For macOS or Linux:
 
 ```sh
 mkdir firefly-bridge-local
-tar -xzf firefly-agent-bridge-0.2.22-darwin-arm64.tar.gz -C firefly-bridge-local
+tar -xzf firefly-agent-bridge-0.2.23-darwin-arm64.tar.gz -C firefly-bridge-local
 cd firefly-bridge-local
 ./bridge init --worker codex
 ./bridge serve
@@ -72,7 +72,7 @@ On Windows, run the matching executable:
 
 ```powershell
 New-Item -ItemType Directory firefly-bridge-local
-tar -xzf .\firefly-agent-bridge-0.2.22-win32-x64.tar.gz -C firefly-bridge-local
+tar -xzf .\firefly-agent-bridge-0.2.23-win32-x64.tar.gz -C firefly-bridge-local
 Set-Location firefly-bridge-local
 .\bridge.exe init --worker codex
 .\bridge.exe serve
@@ -97,7 +97,7 @@ The source entry point and the native `bridge` executable (`firefly-bridge` rema
 
 ## Optional: company pool (cluster mode)
 
-Single-node `bridge serve` is enough for one developer machine. To share several Claude or Codex logins behind one URL, initialize a **coordinator**, join **workers**, and keep one worker type per pool. Walkthrough with real CLI JSON: [Cluster quota pool](cluster.md).
+Single-node `bridge serve` is enough for one developer machine. To share several Claude or Codex logins behind one URL, initialize a **coordinator** and join **workers** of either CLI type into the same pool; jobs dispatch by capacity. On the coordinator host, use a separate worker data-dir (`bridge cluster init-local-worker`). Walkthrough with real CLI JSON: [Cluster quota pool](cluster.md).
 
 ```sh
 bridge init --worker codex --data-dir /var/lib/bridge-coordinator
@@ -106,9 +106,9 @@ bridge cluster init-coordinator --data-dir /var/lib/bridge-coordinator \
 bridge serve --cluster-coordinator --data-dir /var/lib/bridge-coordinator
 ```
 
-## Open the console
+## Optional diagnostic console
 
-Open [http://127.0.0.1:8766](http://127.0.0.1:8766), or run `bridge panel` to locate the actual address and owner token file. Paste the local owner token into the console. The console clears the input after connection and retains the token only in tab memory.
+CLI, HTTP API, MCP, and `bridge cluster` cover day-to-day ops. The browser console is optional diagnostics: open [http://127.0.0.1:8766](http://127.0.0.1:8766), or run `bridge panel` to locate the address and owner token file. Paste the local owner token into the console. The console clears the input after connection and retains the token only in tab memory. For API-only listeners set `"serveUi": false` in `config.json` or pass `bridge serve --no-ui`.
 
 | Platform | Default data directory                                    |
 | -------- | --------------------------------------------------------- |

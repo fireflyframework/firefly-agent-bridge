@@ -27,6 +27,8 @@ const config = {
 };
 it("validates local paths, limits and the default bypass configuration", () => {
   expect(parseConfig(config).profiles.default?.tools).toContain("Bash");
+  expect(parseConfig(config).serveUi).toBe(true);
+  expect(parseConfig({ ...config, serveUi: false }).serveUi).toBe(false);
   expect(() => parseConfig({ ...config, claudePath: "relative" })).toThrow();
   expect(() => parseConfig({ ...config, concurrency: 0 })).toThrow();
   expect(() => parseConfig({ ...config, port: 70000 })).toThrow();

@@ -14,7 +14,7 @@ Firefly Agent Bridge runs on a trusted developer machine. An execution-capable t
 
 ## Authentication
 
-Every `/v1/` request needs a bearer token, except an approved browser preflight. Host and origin allowlists also apply. The console's static shell is public on loopback; job data, execution controls, profiles, and token administration require authentication.
+Every `/v1/` request needs a bearer token, except an approved browser preflight. Host and origin allowlists also apply. When `serveUi` is enabled (default), the console's static shell is public on loopback; job data, execution controls, profiles, and token administration still require authentication. Set `serveUi` to `false` or pass `serve --no-ui` to omit console routes on API-only hosts.
 
 The owner token administers every principal and job. Application tokens restrict profiles, operations, and resource ownership. A client can inspect its own jobs; the owner can inspect all jobs. The database keeps token hashes, while the owner token file remains on the local filesystem. Revocation invalidates future requests and closes the client's event streams.
 

@@ -128,6 +128,8 @@ export const configSchema = z.strictObject({
     .record(identifier, profileSchema)
     .default({ default: profileSchema.parse({}) }),
   workflows: z.array(templateSchema).max(100).default([]),
+  /** When false, HTTP serves API/cluster routes only (no diagnostic console). */
+  serveUi: z.boolean().default(true),
   cluster: clusterConfigSchema.optional(),
 });
 export type BridgeConfig = z.infer<typeof configSchema>;

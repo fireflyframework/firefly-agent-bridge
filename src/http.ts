@@ -35,7 +35,7 @@ import { Scheduler } from "./scheduler.js";
 import { Workflows } from "./workflows.js";
 import { EventStreams } from "./events.js";
 import { Channels } from "./channels.js";
-import { uiAssets } from "./ui-assets.js";
+import { registerUiRoutes } from "./http-ui.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createAdapter } from "./mcp.js";
 import { RECOVERY_LIMITS } from "./completion-recovery.js";
@@ -64,11 +64,14 @@ export type HttpDependencies = {
 };
 export type HttpServiceOptions = {
   https?: { key: Buffer | string; cert: Buffer | string };
+  /** When false, skip diagnostic console static routes (API-only). Default true. */
+  serveUi?: boolean;
 };
 export function createHttpService(
   d: HttpDependencies,
   options: HttpServiceOptions = {},
 ) {
+  const serveUi = options.serveUi !== false;
   const app = Fastify({
     logger: false,
     bodyLimit: 120000,
@@ -815,37 +818,6 @@ export function createHttpService(
     const b = z.strictObject(receipt).parse(req.body);
     return channels.acknowledgeStop(b.hostId, b.attemptId, b.fence);
   });
-  app.get("/", async (_req, reply) =>
-    reply.type("text/html; charset=utf-8").send(uiAssets.html),
-  );
-  for (const [path, asset, type] of [
-    ["/brand-dark.svg", uiAssets.brandDark, "image/svg+xml"],
-    ["/brand-light.svg", uiAssets.brandLight, "image/svg+xml"],
-    ["/bridge-mark.svg", uiAssets.mark, "image/svg+xml"],
-    ["/bridge-mark-light.svg", uiAssets.markLight, "image/svg+xml"],
-    ["/fonts/manrope.woff2", uiAssets.font, "font/woff2"],
-  ])
-    app.get(path!, async (_req, reply) =>
-      reply.type(type!).send(Buffer.from(asset!, "base64")),
-    );
-  app.get("/theme.js", async (_req, reply) =>
-    reply.type("text/javascript; charset=utf-8").send(uiAssets.themeJs),
-  );
-  app.get("/brand.png", async (_req, reply) =>
-    reply.type("image/png").send(Buffer.from(uiAssets.brand, "base64")),
-  );
-  app.get("/app.css", async (_req, reply) =>
-    reply.type("text/css; charset=utf-8").send(uiAssets.css),
-  );
-  app.get("/audit.js", async (_req, reply) =>
-    reply.type("text/javascript; charset=utf-8").send(uiAssets.auditJs),
-  );
-  app.get("/setup.js", async (_req, reply) =>
-    reply.type("text/javascript; charset=utf-8").send(uiAssets.setupJs),
-  );
-  app.get("/navigation.js", async (_req, reply) =>
-    reply.type("application/javascript").send(uiAssets.navigationJs),
-  );
   const clusterNodeId = (req: FastifyRequest) =>
     z.strictObject({ id: z.string().min(1).max(128) }).parse(req.params).id;
   const clusterAttemptId = (req: FastifyRequest) =>
@@ -952,25 +924,7 @@ export function createHttpService(
     return { id: node.id, status: node.status };
   });
 
-  app.get("/job-wizard.js", async (_req, reply) =>
-    reply.type("application/javascript").send(uiAssets.jobWizardJs),
-  );
-  app.get("/image-input.js", async (_req, reply) =>
-    reply.type("application/javascript").send(uiAssets.imageInputJs),
-  );
-  app.get("/bridge-emblem-dark.svg", async (_req, reply) =>
-    reply
-      .type("image/svg+xml")
-      .send(Buffer.from(uiAssets.emblemDark, "base64")),
-  );
-  app.get("/bridge-emblem-light.svg", async (_req, reply) =>
-    reply
-      .type("image/svg+xml")
-      .send(Buffer.from(uiAssets.emblemLight, "base64")),
-  );
-  app.get("/app.js", async (_req, reply) =>
-    reply.type("text/javascript; charset=utf-8").send(uiAssets.js),
-  );
+  if (serveUi) registerUiRoutes(app);
   return app;
 }
 

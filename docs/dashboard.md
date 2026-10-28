@@ -8,7 +8,7 @@ description: Follow bridge setup, jobs, workflows and execution evidence with cu
 
 [README](../README.md) · [Install](installation.md) · [Operations](operations.md)
 
-Open the local console URL returned by `bridge_panel` and authenticate with a bridge token. It submits through `/v1/chat/completions` and uses the same `/v1/bridge` management and notification extensions as other applications.
+The console is optional diagnostics. Day-to-day ops use `bridge`, HTTP `/v1`, MCP, and `bridge cluster` / `bridge jobs`. Open the local console URL returned by `bridge_panel` and authenticate with a bridge token when you want the browser UI. It submits through `/v1/chat/completions` and uses the same `/v1/bridge` management and notification extensions as other applications.
 
 Select any screenshot to open its full capture. Images follow the page's light or dark appearance.
 

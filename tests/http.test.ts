@@ -523,6 +523,45 @@ it("serves one package release version in root HTML and authenticated API", asyn
   );
 });
 
+it("omits diagnostic console routes when serveUi is false", async () => {
+  await app.close();
+  const flows = new Workflows(store, []);
+  const scheduler = new Scheduler(
+    store,
+    flows,
+    () => {
+      throw new Error("not started");
+    },
+    dir,
+    1,
+  );
+  app = createHttpService(
+    {
+      store,
+      auth,
+      flows,
+      scheduler,
+      config: parseConfig({
+        dataDir: dir,
+        workspace: dir,
+        claudePath: process.execPath,
+        serveUi: false,
+      }),
+    },
+    { serveUi: false },
+  );
+  const page = await app.inject({ method: "GET", url: "/" });
+  const script = await app.inject({ method: "GET", url: "/app.js" });
+  const status = await app.inject({
+    method: "GET",
+    url: "/v1/bridge/status",
+    headers: headers(),
+  });
+  expect(page.statusCode).toBe(404);
+  expect(script.statusCode).toBe(404);
+  expect(status.statusCode).toBe(200);
+});
+
 it("requires exactly one dashboard version marker before rendering", () => {
   expect(releaseHtml("v__BRIDGE_RELEASE_VERSION__")).toBe("v" + releaseVersion);
   expect(() => releaseHtml("v0.0.0")).toThrow("exactly one");

@@ -43,10 +43,14 @@ export function imageExecutionRevision(
 export function currentImageExecution(
   config: BridgeConfig,
   profile: string,
+  worker: BridgeConfig["worker"] = config.worker,
 ): ImageExecution {
+  const path = worker === "codex" ? config.codexPath : config.claudePath;
+  if (!path)
+    throw new Error("Config is missing the absolute path for worker " + worker);
   const execution = {
-    worker: config.worker,
-    path: (config.worker === "codex" ? config.codexPath : config.claudePath)!,
+    worker,
+    path,
     options: config.profiles[profile]!,
   };
   return { ...execution, revision: imageExecutionRevision(execution) };
@@ -56,12 +60,13 @@ export function freezeImageExecution(
   jobId: string,
   config: BridgeConfig,
   profile: string,
+  worker: BridgeConfig["worker"] = config.worker,
 ): void {
   store.db
-    .prepare("INSERT INTO metadata(key,value) VALUES(?,?)")
+    .prepare("INSERT OR REPLACE INTO metadata(key,value) VALUES(?,?)")
     .run(
       "image-execution:" + jobId,
-      JSON.stringify(currentImageExecution(config, profile)),
+      JSON.stringify(currentImageExecution(config, profile, worker)),
     );
 }
 export function loadImageExecution(

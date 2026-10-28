@@ -36,10 +36,10 @@ See [Architecture - Cluster mode](architecture.md#cluster-mode-optional) for how
 
 ## Rules you should know first
 
-1. **One worker type per coordinator.** A Claude coordinator rejects Codex joins (and the reverse). For both CLIs on one host, run **two pools** (two coordinators, two ports).
+1. **Provider-agnostic jobs.** Clients do not pick Claude vs Codex. Each worker process still runs one CLI; Claude and Codex workers may join the **same** coordinator. Fresh work is fair-shared by quota and capacity across eligible nodes of either type.
 2. **Reserve (default 10%).** That slice of each node's estimated quota is kept unused for spikes and sticky follow-ups.
-3. **Sticky while healthy.** Native `sessionId` values prefer the worker that created them. When that home is limited, unhealthy, draining, or offline, the coordinator **failovers** the bridge job: pause in-flight work, clear sticky binding, attach a bounded handoff brief from durable coordinator memory, and requeue for any eligible peer. There is no native CLI session transfer: the next claim starts a new CLI session with the handoff as context. After `maxFailovers` (default 3) without a successful reassignment path, the job fails with `cluster_failover_exhausted`.
-4. **Headless first.** Ops use `bridge serve`, `bridge daemon`, and `bridge cluster …` (JSON on stdout). The panel is optional diagnostics only.
+3. **Sticky while healthy.** Native `sessionId` values prefer the worker that created them. When that home is limited, unhealthy, draining, or offline, the coordinator **failovers** the bridge job: pause in-flight work, clear sticky binding, attach a bounded handoff brief from durable coordinator memory, and requeue for any eligible peer (including the other CLI). There is no native CLI session transfer: the next claim starts a new CLI session with the handoff as context. After `maxFailovers` (default 3) without a successful reassignment path, the job fails with `cluster_failover_exhausted`.
+4. **Headless first.** Ops use `bridge serve`, `bridge daemon`, and `bridge cluster …` (JSON on stdout). The panel is optional diagnostics only. On the coordinator host, run a **separate** worker process (`bridge cluster init-local-worker`) so the coordinator does not claim CLI work in-process.
 5. **Workers authenticate twice.** Bearer node credential (`ffn_…`) **plus** Ed25519 signatures on mutating requests. A stolen credential without the private key cannot claim work.
 
 ## The `bridge` CLI surface
@@ -48,7 +48,7 @@ The product binary is **`bridge`** (`firefly-bridge` remains a compatibility ali
 
 ```text
 $ bridge help
-Firefly Agent Bridge 0.2.22
+Firefly Agent Bridge 0.2.23
 Usage: bridge <command> [--data-dir PATH]
   (firefly-bridge remains a compatibility alias; prefer bridge)
 
@@ -208,7 +208,25 @@ bridge cluster join \
 
 Join writes **`cluster.json`** (mode `0600`) with coordinator URL, `nodeId`, credential (`ffn_…`), and **`nodePrivateKey`**. Missing `nodePrivateKey` fails fast at worker start - re-run `cluster join`.
 
-Repeat for a second worker (`w1`, `--name docs-w1`), then start both:
+To mix Claude and Codex in one pool, init each worker data-dir with the matching `--worker` and join both to the same coordinator URL. Jobs do not name a provider; fair-share picks any eligible node.
+
+### Coordinator host worker (separate process)
+
+The coordinator process never claims CLI work. On the same machine, provision a second data-dir and join it while the coordinator is serving:
+
+```bash
+bridge cluster init-local-worker \
+  --data-dir /tmp/bridge-lab/coord \
+  --worker-data-dir /tmp/bridge-lab/host-worker \
+  --worker claude \
+  --name host-claude \
+  --allow-insecure
+bridge daemon start --cluster-worker --data-dir /tmp/bridge-lab/host-worker
+```
+
+The JSON reply includes `next.workerDaemon` / `next.coordinatorDaemon` command lines.
+
+Repeat for a second remote worker (`w1`, `--name docs-w1`), then start both:
 
 ```bash
 bridge serve --cluster-worker --data-dir /tmp/bridge-lab/w0 --health-port 19001
@@ -264,6 +282,7 @@ Abbreviated real shape from a lab run (two online, authenticated, eligible Codex
   "pool": {
     "onlineNodes": 2,
     "eligibleNodes": 2,
+    "eligibleByProvider": { "claude": 0, "codex": 2 },
     "totalHeadroom": 180,
     "fairnessSkew": 0,
     "queuedJobs": 0,
@@ -492,4 +511,4 @@ More context: [Security boundaries](security.md).
 
 ## Non-goals (v1)
 
-No multi-account login in one OS user, no native CLI session transfer between hosts (bridge-job failover with a coordinator handoff brief is supported), no UI-required ops path, and no mixed Claude+Codex workers on one coordinator.
+No multi-account login in one OS user, no native CLI session transfer between hosts (bridge-job failover with a coordinator handoff brief is supported, including Claude to Codex and the reverse), no UI-required ops path, and no dual CLI inside one worker process.
