@@ -40,7 +40,7 @@ import {
   type Job,
   type Outcome,
 } from "./contracts.js";
-import { loadImageExecution } from "./image-execution.js";
+import { freezeImageExecution, loadImageExecution } from "./image-execution.js";
 import { QueueStore } from "./store.js";
 import type { WorkerEvent } from "./worker.js";
 
@@ -450,12 +450,11 @@ export class ClusterCoordinator {
         continue;
       }
 
+      // Provider-agnostic: fair-share among all eligible CLI types.
+      // Sticky home (when set) still prefers that node for --resume.
       const selected = selectNode(
         nodes,
-        {
-          sessionNodeId: job.sessionNodeId,
-          worker: input.worker ?? this.config.worker,
-        },
+        { sessionNodeId: job.sessionNodeId },
         now,
         this.scheduling,
       );
@@ -465,10 +464,24 @@ export class ClusterCoordinator {
         continue;
       }
       if (selected !== nodeId) continue;
+      const assignedWorker = node.worker;
+      // Claiming worker only runs its own CLI; skip if somehow mismatched.
+      if (input.worker && input.worker !== assignedWorker) continue;
       const owner = `${nodeId}:${randomUUID()}`;
-      const attempt = this.store.claim(owner, "cli", job.id, { nodeId });
+      const attempt = this.store.claim(owner, "cli", job.id, {
+        nodeId,
+        worker: assignedWorker,
+      });
       if (!attempt) continue;
       this.markAssigned(nodeId);
+      if (loadImageExecution(this.store, job.id))
+        freezeImageExecution(
+          this.store,
+          job.id,
+          this.config,
+          job.profile,
+          assignedWorker,
+        );
       const live = this.store.get(job.id);
       const handoff = live.clusterHandoff;
       const jobForWorker = structuredClone(live);
@@ -626,15 +639,15 @@ export class ClusterCoordinator {
     const nodes = this.registry.list(false);
     const online = nodes.filter((n) => n.status === "online");
     const router = this.routerNodes();
-    const eligibleCount = router.filter(
-      (n) =>
-        selectNode(
-          [n],
-          { worker: this.config.worker },
-          Date.now(),
-          this.scheduling,
-        ) === n.id,
-    ).length;
+    const now = Date.now();
+    const eligible = router.filter(
+      (n) => selectNode([n], {}, now, this.scheduling) === n.id,
+    );
+    const eligibleCount = eligible.length;
+    const eligibleByProvider = {
+      claude: eligible.filter((n) => n.capacity.worker === "claude").length,
+      codex: eligible.filter((n) => n.capacity.worker === "codex").length,
+    };
 
     const summaries = online.map((n) => {
       const cap = n.capacity;
@@ -661,6 +674,7 @@ export class ClusterCoordinator {
         memoryFreeBytes: cap?.resources.memory.freeBytes ?? null,
         diskFreeBytes: cap?.resources.disk.freeBytes ?? null,
         cpuBusyRatio: cap?.resources.cpu.busyRatio ?? null,
+        model: cap?.model ?? null,
       };
     });
 
@@ -718,6 +732,7 @@ export class ClusterCoordinator {
       pool: {
         onlineNodes: online.length,
         eligibleNodes: eligibleCount,
+        eligibleByProvider,
         totalHeadroom: summaries.reduce((n, s) => n + s.headroom, 0),
         fairnessSkew,
         queuedJobs,

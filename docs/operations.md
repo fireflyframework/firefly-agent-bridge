@@ -12,7 +12,7 @@ description: Manage bridge execution, queue dispatch, service lifecycle and inte
 
 [README](../README.md) · [Architecture](architecture.md) · [Configuration](configuration.md) · [Cluster quota pool](cluster.md)
 
-Single-node lifecycle below still applies to every bridge data directory. For a multi-node pool, the **coordinator** data directory is the one clients and backups treat as the queue of record; each **worker** has its own data directory and workspace. Use `bridge daemon start|status|stop --cluster-coordinator|--cluster-worker` when you want pidfile-supervised cluster processes instead of an external unit manager. Cluster failover keeps that coordinator queue as memory of record: when a worker home becomes limited, unhealthy, draining, or offline, the coordinator pauses or interrupts the attempt, clears sticky binding, attaches a handoff brief, and requeues the same `job.id` for any eligible peer (see [Cluster quota pool](cluster.md#job-failover-and-auto-rebalance)).
+Single-node lifecycle below still applies to every bridge data directory. For a multi-node pool, the **coordinator** data directory is the one clients and backups treat as the queue of record; each **worker** has its own data directory and workspace (including a separate worker on the coordinator host via `bridge cluster init-local-worker`). Claude and Codex workers share one pool; dispatch is by capacity. Use `bridge daemon start|status|stop --cluster-coordinator|--cluster-worker` when you want pidfile-supervised cluster processes. Cluster failover keeps that coordinator queue as memory of record: when a worker home becomes limited, unhealthy, draining, or offline, the coordinator pauses or interrupts the attempt, clears sticky binding, attaches a handoff brief, and requeues the same `job.id` for any eligible peer of either CLI (see [Cluster quota pool](cluster.md#job-failover-and-auto-rebalance)).
 
 ![Job execution lifecycle](../assets/diagrams/lifecycle.svg)
 
@@ -33,7 +33,7 @@ Single-node lifecycle below still applies to every bridge data directory. For a 
 | `canceled`         | The attempt acknowledged cancellation        | Retry only if intended                               |
 | `interrupted`      | Worker or host ownership was lost            | Reconcile effects before retrying                    |
 
-**Pause dispatch** stops new admissions to workers and requests pauses for active CLI jobs. It does not cancel the queue. **Resume dispatch** clears the global gate when the provider reset permits it; individual paused jobs remain explicit controls in the panel.
+**Pause dispatch** stops new admissions to workers and requests pauses for active CLI jobs. It does not cancel the queue. **Resume dispatch** clears the global gate when the provider reset permits it. Resume, pause, cancel, or retry one job with `bridge jobs resume|pause|cancel|retry <id>` (JSON on stdout); the optional console exposes the same controls.
 
 ## Authentication, quota and dispatch
 

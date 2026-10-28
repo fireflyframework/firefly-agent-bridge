@@ -274,8 +274,10 @@ export async function startClusterWorker(
     previousCpuTimes = cpuSample;
     const concurrency = config.concurrency;
     const activeCount = active.size;
+    const defaultModel = config.profiles.default?.model ?? null;
     return {
       worker: config.worker,
+      model: defaultModel,
       concurrency,
       active: activeCount,
       freeSlots: Math.max(0, concurrency - activeCount),

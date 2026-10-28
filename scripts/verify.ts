@@ -39,6 +39,7 @@ function inventory(directory = "."): string[] {
         "playwright-report",
         ".client-venv",
         ".venv",
+        ".venv-docs",
         ".superpowers",
         "docs/superpowers",
       ].includes(entry.name)

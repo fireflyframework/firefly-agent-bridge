@@ -31,8 +31,12 @@ export const BRIDGE_BANNER = `        ·----·
 export const QUICK_START_FOOTER = `Quick start
   bridge init --worker claude
   bridge serve
-  bridge cluster init-coordinator --exposure internet …
-  bridge daemon start --cluster-worker
+  bridge cluster init-coordinator --exposure private --bind 127.0.0.1
+  bridge serve --cluster-coordinator
+  bridge cluster init-local-worker --worker-data-dir ~/bridge-worker --worker claude
+  bridge daemon start --cluster-worker --data-dir ~/bridge-worker
+
+Mixed Claude + Codex workers join the same coordinator; jobs dispatch by capacity.
 
 Docs: https://fireflyframework.github.io/firefly-agent-bridge/`;
 

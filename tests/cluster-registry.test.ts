@@ -78,7 +78,6 @@ beforeEach(() => {
   store = new QueueStore(join(dir, "queue.sqlite"));
   auth = new ClusterAuth(store);
   registry = new ClusterRegistry(store, auth, {
-    worker: "claude",
     reservePercent: 10,
     heartbeatStaleMs: 10_000,
     heartbeatOfflineMs: 60_000,
@@ -195,33 +194,51 @@ describe("ClusterRegistry", () => {
     expect(registry.list()[0]?.status).toBe("offline");
   });
 
-  it("rejects join when worker type differs from coordinator worker", () => {
+  it("accepts mixed Claude and Codex workers on one coordinator", () => {
+    const { token: tokenA } = auth.createJoinToken({
+      createdBy: "owner",
+      ttlMs: 60_000,
+    });
+    const { token: tokenB } = auth.createJoinToken({
+      createdBy: "owner",
+      ttlMs: 60_000,
+    });
+    const claude = registry.join({
+      token: tokenA,
+      name: "claude-box",
+      worker: "claude",
+      concurrency: 1,
+      publicKey: testPublicKey(),
+    });
+    const codex = registry.join({
+      token: tokenB,
+      name: "codex-box",
+      worker: "codex",
+      concurrency: 1,
+      publicKey: testPublicKey(),
+    });
+    registry.heartbeat(claude.nodeId, capacity({ worker: "claude" }));
+    registry.heartbeat(codex.nodeId, capacity({ worker: "codex" }));
+    const nodes = registry.list(false);
+    expect(nodes).toHaveLength(2);
+    expect(nodes.map((n) => n.worker).sort()).toEqual(["claude", "codex"]);
+  });
+
+  it("rejects heartbeat when worker type differs from registered node", () => {
     const { token } = auth.createJoinToken({
       createdBy: "owner",
       ttlMs: 60_000,
     });
+    const { nodeId } = registry.join({
+      token,
+      name: "claude-box",
+      worker: "claude",
+      concurrency: 1,
+      publicKey: testPublicKey(),
+    });
     expect(() =>
-      registry.join({
-        token,
-        name: "codex-box",
-        worker: "codex",
-        concurrency: 1,
-        publicKey: testPublicKey(),
-      }),
+      registry.heartbeat(nodeId, capacity({ worker: "codex" })),
     ).toThrow(BridgeError);
-    try {
-      registry.join({
-        token,
-        name: "codex-box",
-        worker: "codex",
-        concurrency: 1,
-        publicKey: testPublicKey(),
-      });
-    } catch (error) {
-      expect(error).toBeInstanceOf(BridgeError);
-      expect((error as BridgeError).code).toMatch(/worker|mismatch|invalid/i);
-    }
-    expect(registry.list()).toHaveLength(0);
   });
 
   it("drain and remove update node status", () => {

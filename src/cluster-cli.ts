@@ -220,6 +220,99 @@ async function initCoordinator(
   });
 }
 
+/**
+ * Provision a separate worker data-dir on the coordinator host (or any host)
+ * and join the running coordinator pool. Coordinator process must already be
+ * serving (`bridge serve --cluster-coordinator` or daemon).
+ */
+async function initLocalWorker(
+  coordinatorDataDir: string,
+  args: string[],
+  streams: CliStreams,
+): Promise<void> {
+  const workerDataDir = flagValue(args, "--worker-data-dir");
+  if (!workerDataDir)
+    throw new Error("init-local-worker requires --worker-data-dir PATH");
+  const worker = (flagValue(args, "--worker") ?? "claude") as
+    "claude" | "codex";
+  if (worker !== "claude" && worker !== "codex")
+    throw new Error("--worker must be claude or codex");
+  const name =
+    flagValue(args, "--name") ?? hostname() + "-" + worker + "-local";
+  const allowInsecure = hasFlag(args, "--allow-insecure");
+  const reserveRaw = flagValue(args, "--reserve-percent");
+  const reservePercent = reserveRaw != null ? Number(reserveRaw) : undefined;
+  if (
+    reservePercent != null &&
+    (!Number.isInteger(reservePercent) ||
+      reservePercent < 0 ||
+      reservePercent > 90)
+  )
+    throw new Error("--reserve-percent must be an integer 0–90");
+
+  await initialize(workerDataDir, worker);
+  const connection = await connectClusterAdmin(coordinatorDataDir);
+  const tokenResult = (await request(
+    connection,
+    "/v1/bridge/admin/cluster/join-tokens",
+    { ttlMs: 3_600_000 },
+  )) as { token: string; id: string; expiresAt: string };
+
+  let coordinatorUrl = connection.address;
+  try {
+    const info = JSON.parse(
+      readFileSync(pathJoin(coordinatorDataDir, "service.json"), "utf8"),
+    ) as { address?: string };
+    if (info.address) {
+      const url = new URL(info.address);
+      if (url.hostname === "0.0.0.0" || url.hostname === "::")
+        url.hostname = "127.0.0.1";
+      coordinatorUrl = url.toString().replace(/\/$/, "");
+    }
+  } catch {
+    /* use connection.address */
+  }
+
+  const joinArgs = [
+    "--coordinator",
+    coordinatorUrl,
+    "--token",
+    tokenResult.token,
+    "--name",
+    name,
+    ...(reservePercent != null
+      ? ["--reserve-percent", String(reservePercent)]
+      : []),
+    ...(allowInsecure ? ["--allow-insecure"] : []),
+  ];
+  const joined = await join(workerDataDir, joinArgs, streams, {
+    silent: true,
+  });
+  printJson(streams, {
+    coordinatorDataDir,
+    workerDataDir,
+    worker,
+    name,
+    coordinatorUrl,
+    nodeId: joined.nodeId,
+    joinTokenId: tokenResult.id,
+    next: {
+      coordinatorDaemon:
+        "bridge daemon start --cluster-coordinator --data-dir " +
+        JSON.stringify(coordinatorDataDir),
+      workerDaemon:
+        "bridge daemon start --cluster-worker --data-dir " +
+        JSON.stringify(workerDataDir),
+      coordinatorServe:
+        "bridge serve --cluster-coordinator --data-dir " +
+        JSON.stringify(coordinatorDataDir),
+      workerServe:
+        "bridge serve --cluster-worker --data-dir " +
+        JSON.stringify(workerDataDir),
+    },
+  });
+}
+
 async function joinTokenCreate(
   dataDir: string,
   args: string[],
@@ -256,7 +349,8 @@ async function join(
   dataDir: string,
   args: string[],
   streams: CliStreams,
-): Promise<void> {
+  options: { silent?: boolean } = {},
+): Promise<{ nodeId: string; coordinatorUrl: string }> {
   await initialize(dataDir);
   const config = readConfig(dataDir);
   const coordinator = flagValue(args, "--coordinator");
@@ -325,10 +419,12 @@ async function join(
       },
     }),
   );
-  printJson(streams, {
+  const result = {
     nodeId: value.nodeId,
     coordinatorUrl: clusterFile.coordinatorUrl,
-  });
+  };
+  if (!options.silent) printJson(streams, result);
+  return result;
 }
 
 async function status(dataDir: string, streams: CliStreams): Promise<void> {
@@ -446,6 +542,9 @@ export async function runClusterCommand(
     streams.stdout.write(`cluster commands (JSON on stdout):
   init-coordinator [--exposure internet|private] [--bind HOST] [--port N]
                    [--tls-cert PATH] [--tls-key PATH] [--reserve-percent N]
+  init-local-worker --worker-data-dir PATH [--worker claude|codex]
+                   [--name LABEL] [--reserve-percent N] [--allow-insecure]
+                   (uses --data-dir as the running coordinator)
   join-token create [--ttl DURATION]
   join-token revoke --id ID
   join --coordinator URL [--token TOKEN] [--name LABEL] [--reserve-percent N]
@@ -454,16 +553,22 @@ export async function runClusterCommand(
   drain | leave | pause | resume
   nodes drain --id NODE | nodes remove --id NODE
 Token may also come from BRIDGE_JOIN_TOKEN.
+Claude and Codex workers may join the same coordinator; jobs dispatch by capacity.
 `);
     return;
   }
   if (sub === "init-coordinator")
     return initCoordinator(dataDir, args, streams);
+  if (sub === "init-local-worker")
+    return initLocalWorker(dataDir, args, streams);
   if (sub === "join-token" && sub2 === "create")
     return joinTokenCreate(dataDir, rest, streams);
   if (sub === "join-token" && sub2 === "revoke")
     return joinTokenRevoke(dataDir, rest, streams);
-  if (sub === "join") return join(dataDir, args, streams);
+  if (sub === "join") {
+    await join(dataDir, args, streams);
+    return;
+  }
   if (sub === "status") return status(dataDir, streams);
   if (sub === "nodes" && !sub2) return nodes(dataDir, streams);
   if (sub === "nodes" && sub2 === "drain")

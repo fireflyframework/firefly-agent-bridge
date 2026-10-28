@@ -96,11 +96,13 @@ describe("cluster CLI help and banner", () => {
     expect(stdout).toContain("bridge <command>");
     expect(stdout).toContain("cluster");
     expect(stdout).toContain("init-coordinator");
+    expect(stdout).toContain("init-local-worker");
     expect(stdout).toContain("serve");
     expect(stdout).toContain("--cluster-coordinator");
     expect(stdout).toContain("--cluster-worker");
     expect(stdout).toContain("Quick start");
     expect(stdout).toContain("bridge daemon start --cluster-worker");
+    expect(stdout).toContain("Mixed Claude + Codex");
     expect(stdout).toMatch(/firefly-bridge.*alias|alias.*firefly-bridge/i);
   });
 
@@ -328,6 +330,102 @@ describe("cluster init-coordinator and join", () => {
     expect(result.token).toMatch(/^ffj_/);
     expect(result.id).toMatch(/^jtok_/);
     expect(Date.parse(result.expiresAt)).toBeGreaterThan(Date.now());
+  });
+
+  it("status and nodes return JSON against a running coordinator", async () => {
+    const config = parseConfig({
+      dataDir: dir,
+      workspace: join(dir, "jobs"),
+      claudePath: process.execPath,
+      port: 0,
+      cluster: {
+        mode: "coordinator",
+        bindHost: "127.0.0.1",
+        reservePercent: 10,
+      },
+    });
+    privateWrite(
+      join(dir, "config.json"),
+      JSON.stringify(config, null, 2) + "\n",
+    );
+    service = await startService(config, {
+      worker: () => ({
+        ready: async () => ({ ready: true }),
+        run: async () => {
+          throw new Error("no local jobs");
+        },
+      }),
+    });
+    const status = await captureCli(["cluster", "status", "--data-dir", dir]);
+    expect(status.code).toBe(0);
+    expect(status.stdout).not.toContain("=====");
+    const statusBody = JSON.parse(status.stdout) as {
+      mode: string;
+      pool?: { eligibleNodes: number };
+    };
+    expect(statusBody.mode).toBe("coordinator");
+    expect(statusBody.pool).toBeTruthy();
+
+    const nodes = await captureCli(["cluster", "nodes", "--data-dir", dir]);
+    expect(nodes.code).toBe(0);
+    const nodesBody = JSON.parse(nodes.stdout) as { nodes: unknown[] };
+    expect(Array.isArray(nodesBody.nodes)).toBe(true);
+  });
+
+  it("init-local-worker provisions a second data-dir and joins", async () => {
+    const workerDir = mkdtempSync(join(tmpdir(), "bridge-cli-local-w-"));
+    try {
+      const config = parseConfig({
+        dataDir: dir,
+        workspace: join(dir, "jobs"),
+        claudePath: process.execPath,
+        port: 0,
+        cluster: {
+          mode: "coordinator",
+          bindHost: "127.0.0.1",
+          reservePercent: 10,
+        },
+      });
+      privateWrite(
+        join(dir, "config.json"),
+        JSON.stringify(config, null, 2) + "\n",
+      );
+      service = await startService(config, {
+        worker: () => ({
+          ready: async () => ({ ready: true }),
+          run: async () => {
+            throw new Error("no local jobs");
+          },
+        }),
+      });
+      const { stdout, code } = await captureCli([
+        "cluster",
+        "init-local-worker",
+        "--data-dir",
+        dir,
+        "--worker-data-dir",
+        workerDir,
+        "--worker",
+        "claude",
+        "--name",
+        "host-worker",
+        "--allow-insecure",
+      ]);
+      expect(code).toBe(0);
+      const result = JSON.parse(stdout) as {
+        workerDataDir: string;
+        nodeId: string;
+        worker: string;
+        next: { workerDaemon: string };
+      };
+      expect(result.workerDataDir).toBe(workerDir);
+      expect(result.worker).toBe("claude");
+      expect(result.nodeId).toMatch(/^node_/);
+      expect(result.next.workerDaemon).toContain("--cluster-worker");
+      expect(existsSync(join(workerDir, "cluster.json"))).toBe(true);
+    } finally {
+      removeTree(workerDir);
+    }
   });
 });
 

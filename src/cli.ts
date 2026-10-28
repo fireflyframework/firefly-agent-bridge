@@ -46,6 +46,7 @@ import {
   hasFlag,
   type CliStreams,
 } from "./cluster-cli.js";
+import { runJobsCommand } from "./jobs-cli.js";
 import {
   daemonStatus,
   defaultDaemonPaths,
@@ -76,16 +77,20 @@ function helpText(
   serve       Run the service (--managed follows host leases)
               --cluster-coordinator | --cluster-worker
               --health-port N (worker loopback health only)
+              --no-ui (API/cluster only; no diagnostic console)
   mcp         Start the native stdio adapter (--channel enables Code notifications)
   status      Inspect the running service
-  panel       Open the diagnostic dashboard
+  panel       Optional diagnostic dashboard (not required for ops)
   pause       Pause dispatch and active CLI jobs
-  resume      Resume dispatch; resume individual paused jobs in the panel
+  resume      Resume dispatch; use jobs resume <id> for a paused job
   stop        Stop the local service gracefully
-  token       Create a scoped client token (--id NAME --profiles default --scopes read,submit,control)
+  jobs        Headless job ops (JSON): list|get|pause|resume|cancel|retry
+  token       Create a scoped client token (--id NAME --profiles …)
+              token list  List application tokens (JSON)
   revoke      Revoke a client's tokens (--id NAME)
-  cluster     Headless pool ops (JSON stdout): init-coordinator, join-token,
-              join, status, nodes, drain, leave, pause, resume, verify-node
+  cluster     Headless pool ops (JSON stdout): init-coordinator,
+              init-local-worker, join-token, join, status, nodes, drain,
+              leave, pause, resume, verify-node
   daemon      start|status|stop (--cluster-coordinator|--cluster-worker)
   --version   Print the release version
 
@@ -263,6 +268,10 @@ async function runDaemonCommand(
     ready: () => waitForDaemonReady(dataDir, role),
     timeoutMs: 20_000,
   });
+  if (shouldShowBanner(streams.stderr, streams.env))
+    streams.stderr.write(
+      formatBannerHeader(releaseVersion, { color: true }) + "\n",
+    );
   streams.stdout.write(
     JSON.stringify(
       { running: true, pid: started.pid, pidFile, logFile, role },
@@ -299,6 +308,7 @@ export async function runCli(
         "cluster-coordinator": { type: "boolean" },
         "cluster-worker": { type: "boolean" },
         "health-port": { type: "string" },
+        "no-ui": { type: "boolean" },
         banner: { type: "boolean" },
       },
     });
@@ -324,6 +334,16 @@ export async function runCli(
       const rest = stripGlobalFlags(argv);
       const at = rest.indexOf("cluster");
       await runClusterCommand(
+        dataDir,
+        at >= 0 ? rest.slice(at + 1) : positionals.slice(1),
+        streams,
+      );
+      return 0;
+    }
+    if (command === "jobs") {
+      const rest = stripGlobalFlags(argv);
+      const at = rest.indexOf("jobs");
+      await runJobsCommand(
         dataDir,
         at >= 0 ? rest.slice(at + 1) : positionals.slice(1),
         streams,
@@ -384,6 +404,7 @@ export async function runCli(
       const service = await startService(config, {
         managed: values.managed as boolean | undefined,
         healthPort,
+        ...(values["no-ui"] ? { serveUi: false } : {}),
       });
       const role =
         config.cluster?.mode === "coordinator"
@@ -391,6 +412,10 @@ export async function runCli(
           : config.cluster?.mode === "worker"
             ? "worker"
             : "bridge";
+      if (shouldShowBanner(streams.stderr, streams.env))
+        streams.stderr.write(
+          formatBannerHeader(releaseVersion, { color: true }) + "\n",
+        );
       streams.stderr.write(`bridge ${role} listening at ${service.address}\n`);
       const close = () => {
         void service.close().then(() => process.exit(0));
@@ -443,14 +468,18 @@ export async function runCli(
     else if (["pause", "resume", "stop"].includes(command))
       result = await request(connection, "/v1/bridge/admin/" + command, {});
     else if (command === "token") {
-      if (!values.id) throw new Error("token requires --id NAME");
-      result = await request(connection, "/v1/bridge/admin/tokens", {
-        id: values.id,
-        profiles: ((values.profiles as string) ?? "default").split(","),
-        scopes: (
-          (values.scopes as string) ?? "read,submit,control,workflows"
-        ).split(","),
-      });
+      if (positionals[1] === "list") {
+        result = await request(connection, "/v1/bridge/admin/tokens");
+      } else {
+        if (!values.id) throw new Error("token requires --id NAME");
+        result = await request(connection, "/v1/bridge/admin/tokens", {
+          id: values.id,
+          profiles: ((values.profiles as string) ?? "default").split(","),
+          scopes: (
+            (values.scopes as string) ?? "read,submit,control,workflows"
+          ).split(","),
+        });
+      }
     } else if (command === "revoke") {
       if (!values.id) throw new Error("revoke requires --id NAME");
       result = await request(connection, "/v1/bridge/admin/tokens/revoke", {

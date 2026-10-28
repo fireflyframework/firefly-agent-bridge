@@ -29,7 +29,7 @@ import { BridgeError } from "./contracts.js";
 import { QueueStore } from "./store.js";
 
 export type ClusterRegistryOptions = {
-  worker: "claude" | "codex";
+  /** Coordinator floor for node reservePercent (not a pool-wide CLI type). */
   reservePercent: number;
   heartbeatStaleMs: number;
   heartbeatOfflineMs: number;
@@ -130,10 +130,10 @@ export class ClusterRegistry {
     publicKey: string;
   }): { nodeId: string; credential: string } {
     this.auth.verifyJoinToken(input.token);
-    if (input.worker !== this.options.worker)
+    if (input.worker !== "claude" && input.worker !== "codex")
       throw new BridgeError(
-        "worker_mismatch",
-        `Coordinator accepts only ${this.options.worker} workers`,
+        "invalid_request",
+        "worker must be claude or codex",
         400,
       );
     const name = input.name.trim();

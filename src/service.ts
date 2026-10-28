@@ -84,6 +84,8 @@ export async function startService(
     worker?: (job: Job, imageExecution?: ImageExecution) => Worker;
     /** Worker-only: optional JSON health on 127.0.0.1 (Task 6 wires --health-port). */
     healthPort?: number;
+    /** Override config.serveUi for this process (CLI --no-ui). */
+    serveUi?: boolean;
   } = {},
 ) {
   mkdirSync(config.dataDir, { recursive: true, mode: 0o700 });
@@ -183,7 +185,6 @@ export async function startService(
       ? new ClusterCoordinator(
           store,
           new ClusterRegistry(store, new ClusterAuth(store), {
-            worker: config.worker,
             reservePercent: config.cluster!.reservePercent,
             heartbeatStaleMs: config.cluster!.heartbeatStaleMs,
             heartbeatOfflineMs: config.cluster!.heartbeatOfflineMs,
@@ -290,7 +291,10 @@ export async function startService(
           setTimeout(() => void close(), 50);
         },
       },
-      tls ? { https: tls } : {},
+      {
+        ...(tls ? { https: tls } : {}),
+        serveUi: options.serveUi ?? config.serveUi,
+      },
     );
     function close(): Promise<void> {
       return (closing ??= (async () => {
