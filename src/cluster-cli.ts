@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { hostname } from "node:os";
 import { join as pathJoin } from "node:path";
 import { parseConfig, type BridgeConfig } from "./config.js";
@@ -250,7 +250,31 @@ async function initLocalWorker(
   )
     throw new Error("--reserve-percent must be an integer 0–90");
 
-  await initialize(workerDataDir, worker);
+  const coordinatorConfig = readConfig(coordinatorDataDir);
+  const reusedPath =
+    worker === "claude"
+      ? coordinatorConfig.claudePath
+      : coordinatorConfig.codexPath;
+  mkdirSync(workerDataDir, { recursive: true, mode: 0o700 });
+  const workerConfigPath = pathJoin(workerDataDir, "config.json");
+  if (!existsSync(workerConfigPath)) {
+    if (reusedPath) {
+      writeConfig(
+        parseConfig({
+          dataDir: workerDataDir,
+          workspace: pathJoin(workerDataDir, "jobs"),
+          worker,
+          ...(worker === "codex"
+            ? { codexPath: reusedPath }
+            : { claudePath: reusedPath }),
+        }),
+      );
+    } else {
+      await initialize(workerDataDir, worker);
+    }
+  } else {
+    await initialize(workerDataDir, worker);
+  }
   const connection = await connectClusterAdmin(coordinatorDataDir);
   const tokenResult = (await request(
     connection,

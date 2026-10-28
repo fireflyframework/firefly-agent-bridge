@@ -398,7 +398,7 @@ describe("cluster init-coordinator and join", () => {
           },
         }),
       });
-      const { stdout, code } = await captureCli([
+      const { stdout, stderr, code } = await captureCli([
         "cluster",
         "init-local-worker",
         "--data-dir",
@@ -411,7 +411,8 @@ describe("cluster init-coordinator and join", () => {
         "host-worker",
         "--allow-insecure",
       ]);
-      expect(code).toBe(0);
+      expect(stderr, stdout).toBe("");
+      expect(code, stderr || stdout).toBe(0);
       const result = JSON.parse(stdout) as {
         workerDataDir: string;
         nodeId: string;
