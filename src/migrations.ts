@@ -22,7 +22,7 @@ export function migrate(db: DatabaseSync): void {
   const version = (
     db.prepare("PRAGMA user_version").get() as { user_version: number }
   ).user_version;
-  if (version > 2) throw new Error("Database requires a newer bridge version");
+  if (version > 3) throw new Error("Database requires a newer bridge version");
   db.exec(`
  PRAGMA journal_mode=WAL;
  PRAGMA synchronous=FULL;
@@ -42,6 +42,27 @@ export function migrate(db: DatabaseSync): void {
  CREATE INDEX IF NOT EXISTS audit_entries_job ON audit_entries(job_id,id);
  CREATE TABLE IF NOT EXISTS audit_tools(id INTEGER PRIMARY KEY AUTOINCREMENT, job_id TEXT NOT NULL REFERENCES jobs(id), attempt_id TEXT NOT NULL REFERENCES attempts(id), tool_id TEXT NOT NULL, data TEXT NOT NULL, UNIQUE(job_id,attempt_id,tool_id));
  CREATE INDEX IF NOT EXISTS audit_tools_job ON audit_tools(job_id,id);
- PRAGMA user_version=2;
+ CREATE TABLE IF NOT EXISTS cluster_nodes(
+   id TEXT PRIMARY KEY,
+   name TEXT NOT NULL,
+   worker TEXT NOT NULL,
+   status TEXT NOT NULL,
+   concurrency INTEGER NOT NULL,
+   reserve_percent INTEGER NOT NULL,
+   credential_hash TEXT NOT NULL,
+   last_heartbeat_at TEXT,
+   capacity_json TEXT,
+   created_at TEXT NOT NULL,
+   updated_at TEXT NOT NULL
+ );
+ CREATE TABLE IF NOT EXISTS cluster_join_tokens(
+   id TEXT PRIMARY KEY,
+   hash TEXT NOT NULL UNIQUE,
+   created_by TEXT NOT NULL,
+   created_at TEXT NOT NULL,
+   expires_at TEXT NOT NULL,
+   revoked_at TEXT
+ );
+ PRAGMA user_version=3;
  `);
 }

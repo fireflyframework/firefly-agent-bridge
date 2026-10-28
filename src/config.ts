@@ -19,6 +19,7 @@
 
 import { z } from "zod";
 import { isAbsolute } from "node:path";
+import { clusterConfigSchema } from "./cluster-config.js";
 const identifier = z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/);
 const absolute = z.string().refine(isAbsolute, "Path must be absolute");
 const optionalInputLimit = z
@@ -127,6 +128,7 @@ export const configSchema = z.strictObject({
     .record(identifier, profileSchema)
     .default({ default: profileSchema.parse({}) }),
   workflows: z.array(templateSchema).max(100).default([]),
+  cluster: clusterConfigSchema.optional(),
 });
 export type BridgeConfig = z.infer<typeof configSchema>;
 export function parseConfig(value: unknown): BridgeConfig {

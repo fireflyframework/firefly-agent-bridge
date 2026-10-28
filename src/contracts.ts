@@ -79,6 +79,8 @@ export type Job = JobInput & {
   result?: string;
   error?: string;
   sessionId?: string;
+  sessionNodeId?: string;
+  assignedNodeId?: string;
   workflowRunId?: string;
   stepId?: string;
   messages: Message[];
@@ -91,6 +93,7 @@ export type Attempt = {
   status: JobStatus;
   createdAt: string;
   updatedAt: string;
+  nodeId?: string;
 };
 export type Outcome = {
   usage?: TokenUsage;
