@@ -62,7 +62,10 @@ afterEach(async () => {
   if (dir) removeTree(dir);
 });
 
-async function captureCli(argv: string[]): Promise<{
+async function captureCli(
+  argv: string[],
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<{
   stdout: string;
   stderr: string;
   code: number;
@@ -84,7 +87,7 @@ async function captureCli(argv: string[]): Promise<{
         return true;
       },
     },
-    env: process.env,
+    env,
   });
   return { stdout: out.join(""), stderr: err.join(""), code };
 }
@@ -426,6 +429,114 @@ describe("cluster init-coordinator and join", () => {
       expect(existsSync(join(workerDir, "cluster.json"))).toBe(true);
     } finally {
       removeTree(workerDir);
+    }
+  });
+
+  it("init-local-worker defaults to a Codex-only coordinator's worker", async () => {
+    const workerDir = mkdtempSync(join(tmpdir(), "bridge-cli-local-codex-"));
+    try {
+      const config = parseConfig({
+        dataDir: dir,
+        workspace: join(dir, "jobs"),
+        worker: "codex",
+        codexPath: process.execPath,
+        port: 0,
+        cluster: {
+          mode: "coordinator",
+          bindHost: "127.0.0.1",
+          reservePercent: 10,
+        },
+      });
+      privateWrite(
+        join(dir, "config.json"),
+        JSON.stringify(config, null, 2) + "\n",
+      );
+      service = await startService(config, {
+        worker: () => ({
+          ready: async () => ({ ready: true }),
+          run: async () => {
+            throw new Error("no local jobs");
+          },
+        }),
+      });
+      const { stdout, stderr, code } = await captureCli([
+        "cluster",
+        "init-local-worker",
+        "--data-dir",
+        dir,
+        "--worker-data-dir",
+        workerDir,
+        "--name",
+        "codex-host",
+        "--allow-insecure",
+      ]);
+      expect(stderr, stdout).toBe("");
+      expect(code, stderr || stdout).toBe(0);
+      const result = JSON.parse(stdout) as { worker: string };
+      expect(result.worker).toBe("codex");
+      const workerConfig = parseConfig(
+        JSON.parse(readFileSync(join(workerDir, "config.json"), "utf8")),
+      );
+      expect(workerConfig.worker).toBe("codex");
+      expect(workerConfig.codexPath).toBe(process.execPath);
+      expect(workerConfig.claudePath).toBeUndefined();
+    } finally {
+      removeTree(workerDir);
+    }
+  });
+
+  it("init-local-worker fails clearly when requesting a CLI the host does not have", async () => {
+    const workerDir = mkdtempSync(join(tmpdir(), "bridge-cli-local-miss-"));
+    const emptyBin = mkdtempSync(join(tmpdir(), "bridge-empty-bin-"));
+    try {
+      const config = parseConfig({
+        dataDir: dir,
+        workspace: join(dir, "jobs"),
+        worker: "codex",
+        codexPath: process.execPath,
+        port: 0,
+        cluster: {
+          mode: "coordinator",
+          bindHost: "127.0.0.1",
+          reservePercent: 10,
+        },
+      });
+      privateWrite(
+        join(dir, "config.json"),
+        JSON.stringify(config, null, 2) + "\n",
+      );
+      service = await startService(config, {
+        worker: () => ({
+          ready: async () => ({ ready: true }),
+          run: async () => {
+            throw new Error("no local jobs");
+          },
+        }),
+      });
+      const { stderr, code } = await captureCli(
+        [
+          "cluster",
+          "init-local-worker",
+          "--data-dir",
+          dir,
+          "--worker-data-dir",
+          workerDir,
+          "--worker",
+          "claude",
+          "--allow-insecure",
+        ],
+        { ...process.env, PATH: emptyBin, HOME: emptyBin },
+      );
+      expect(code).not.toBe(0);
+      expect(stderr.toLowerCase()).toContain("claude");
+      expect(stderr.toLowerCase()).toContain("codex");
+      expect(stderr).toMatch(/omit --worker|coordinator/i);
+      expect(stderr.toLowerCase()).not.toMatch(
+        /install and sign in to (both|claude and codex|codex and claude)/,
+      );
+    } finally {
+      removeTree(workerDir);
+      removeTree(emptyBin);
     }
   });
 });

@@ -284,6 +284,7 @@ it("binds verified image admission and actual worker selection to the private fr
     })
   ).json();
   config.worker = "claude";
+  config.claudePath = process.execPath;
   config.profiles.default!.model = "changed-model";
   service.scheduler.start();
   for (

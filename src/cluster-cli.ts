@@ -30,7 +30,14 @@ import {
   newRequestNonce,
   signWorkerRequest,
 } from "./cluster-crypto.js";
-import { connect, initialize, request, type Connection } from "./lifecycle.js";
+import {
+  configuredWorkerPath,
+  connect,
+  initialize,
+  request,
+  resolveCodingAgentExecutable,
+  type Connection,
+} from "./lifecycle.js";
 import { privateWrite } from "./service.js";
 import { assertCoordinatorUrlAllowed } from "./cluster-worker.js";
 
@@ -233,8 +240,9 @@ async function initLocalWorker(
   const workerDataDir = flagValue(args, "--worker-data-dir");
   if (!workerDataDir)
     throw new Error("init-local-worker requires --worker-data-dir PATH");
-  const worker = (flagValue(args, "--worker") ?? "claude") as
-    "claude" | "codex";
+  const coordinatorConfig = readConfig(coordinatorDataDir);
+  const workerFlag = flagValue(args, "--worker");
+  const worker = (workerFlag ?? coordinatorConfig.worker) as "claude" | "codex";
   if (worker !== "claude" && worker !== "codex")
     throw new Error("--worker must be claude or codex");
   const name =
@@ -250,28 +258,37 @@ async function initLocalWorker(
   )
     throw new Error("--reserve-percent must be an integer 0–90");
 
-  const coordinatorConfig = readConfig(coordinatorDataDir);
-  const reusedPath =
-    worker === "claude"
-      ? coordinatorConfig.claudePath
-      : coordinatorConfig.codexPath;
+  // Prefer the coordinator path for the same CLI; otherwise resolve only that
+  // binary. Hosts may have Claude or Codex alone — never require the other.
+  let executablePath = configuredWorkerPath(coordinatorConfig, worker);
+  if (!executablePath) {
+    try {
+      executablePath = resolveCodingAgentExecutable(worker, streams.env);
+    } catch {
+      throw new Error(
+        "No " +
+          worker +
+          " executable on this host. Install and sign in to " +
+          worker +
+          ", or omit --worker to reuse the coordinator's " +
+          coordinatorConfig.worker +
+          " CLI.",
+      );
+    }
+  }
   mkdirSync(workerDataDir, { recursive: true, mode: 0o700 });
   const workerConfigPath = pathJoin(workerDataDir, "config.json");
   if (!existsSync(workerConfigPath)) {
-    if (reusedPath) {
-      writeConfig(
-        parseConfig({
-          dataDir: workerDataDir,
-          workspace: pathJoin(workerDataDir, "jobs"),
-          worker,
-          ...(worker === "codex"
-            ? { codexPath: reusedPath }
-            : { claudePath: reusedPath }),
-        }),
-      );
-    } else {
-      await initialize(workerDataDir, worker);
-    }
+    writeConfig(
+      parseConfig({
+        dataDir: workerDataDir,
+        workspace: pathJoin(workerDataDir, "jobs"),
+        worker,
+        ...(worker === "codex"
+          ? { codexPath: executablePath }
+          : { claudePath: executablePath }),
+      }),
+    );
   } else {
     await initialize(workerDataDir, worker);
   }
@@ -568,7 +585,8 @@ export async function runClusterCommand(
                    [--tls-cert PATH] [--tls-key PATH] [--reserve-percent N]
   init-local-worker --worker-data-dir PATH [--worker claude|codex]
                    [--name LABEL] [--reserve-percent N] [--allow-insecure]
-                   (uses --data-dir as the running coordinator)
+                   (uses --data-dir as the running coordinator; default
+                   --worker matches the coordinator; only that CLI is required)
   join-token create [--ttl DURATION]
   join-token revoke --id ID
   join --coordinator URL [--token TOKEN] [--name LABEL] [--reserve-percent N]

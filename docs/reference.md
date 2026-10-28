@@ -36,7 +36,7 @@ Cluster mode is documented end-to-end in [Cluster quota pool](cluster.md), inclu
 | Subcommand                             | Role                              | Notes                                                                                               |
 | -------------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------- |
 | `cluster init-coordinator`             | Prepare coordinator config        | `--exposure internet\|private`, `--bind`, `--port`, `--tls-cert` / `--tls-key`, `--reserve-percent` |
-| `cluster init-local-worker`            | Second data-dir worker on host    | `--worker-data-dir`, `--worker`, `--name`, `--reserve-percent`, `--allow-insecure`                  |
+| `cluster init-local-worker`            | Second data-dir worker on host    | `--worker-data-dir`; `--worker` defaults to the coordinator's CLI (only that binary is required)    |
 | `cluster join-token create`            | Mint a one-time join secret       | `--ttl` (for example `1h`); also prints `id` / `expiresAt`                                          |
 | `cluster join-token revoke`            | Invalidate a token                | `--id`                                                                                              |
 | `cluster join`                         | Enroll this data dir as a worker  | `--coordinator`, `--token` or `BRIDGE_JOIN_TOKEN`, `--name`, `--allow-insecure` (lab HTTP only)     |

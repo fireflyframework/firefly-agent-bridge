@@ -24,9 +24,9 @@ import {
   openSync,
   closeSync,
 } from "node:fs";
-import { join, resolve } from "node:path";
+import { delimiter, join, resolve } from "node:path";
 import { homedir } from "node:os";
-import { spawn, execFileSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import lockfile from "proper-lockfile";
 import { isSea } from "node:sea";
 import { parseConfig, type BridgeConfig } from "./config.js";
@@ -40,6 +40,43 @@ export function defaultDataDir(): string {
         : (process.env.XDG_STATE_HOME ?? join(homedir(), ".local", "state"));
   return join(base, "Firefly Agent Bridge");
 }
+
+/**
+ * Locate only the requested coding CLI. Hosts may have Claude or Codex alone;
+ * never require the other binary. Walks HOME/.local/bin then PATH entries
+ * without invoking `which`/`where` (those tools need a populated PATH).
+ */
+export function resolveCodingAgentExecutable(
+  worker: "claude" | "codex",
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  const binary = process.platform === "win32" ? worker + ".exe" : worker;
+  const home =
+    env.HOME ??
+    env.USERPROFILE ??
+    (typeof homedir === "function" ? homedir() : "");
+  if (home) {
+    const homeLocal = join(home, ".local", "bin", binary);
+    if (existsSync(homeLocal)) return homeLocal;
+  }
+  for (const entry of (env.PATH ?? "").split(delimiter)) {
+    if (!entry) continue;
+    const candidate = join(entry, binary);
+    if (existsSync(candidate)) return candidate;
+  }
+  throw new Error(
+    "Install and sign in to the selected official coding agent: " + worker,
+  );
+}
+
+/** Absolute path already stored for this worker type, if any. */
+export function configuredWorkerPath(
+  config: BridgeConfig,
+  worker: "claude" | "codex" = config.worker,
+): string | undefined {
+  return worker === "codex" ? config.codexPath : config.claudePath;
+}
+
 export async function initialize(
   dataDir = defaultDataDir(),
   worker: "claude" | "codex" = "codex",
@@ -60,27 +97,7 @@ export async function initialize(
         );
       return config;
     }
-    let executablePath = join(
-      homedir(),
-      ".local",
-      "bin",
-      process.platform === "win32" ? worker + ".exe" : worker,
-    );
-    if (!existsSync(executablePath))
-      try {
-        executablePath = execFileSync(
-          process.platform === "win32" ? "where.exe" : "which",
-          [worker],
-          { encoding: "utf8", timeout: 5000 },
-        )
-          .trim()
-          .split(/\r?\n/)[0]!;
-      } catch {
-        throw new Error(
-          "Install and sign in to the selected official coding agent: " +
-            worker,
-        );
-      }
+    const executablePath = resolveCodingAgentExecutable(worker);
     const config = parseConfig({
       dataDir,
       workspace: join(dataDir, "jobs"),

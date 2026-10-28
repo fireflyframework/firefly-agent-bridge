@@ -45,13 +45,12 @@ export function currentImageExecution(
   profile: string,
   worker: BridgeConfig["worker"] = config.worker,
 ): ImageExecution {
-  const path =
-    worker === "codex"
-      ? (config.codexPath ?? config.claudePath)
-      : (config.claudePath ?? config.codexPath);
+  const path = worker === "codex" ? config.codexPath : config.claudePath;
+  if (!path)
+    throw new Error("Config is missing the absolute path for worker " + worker);
   const execution = {
     worker,
-    path: path!,
+    path,
     options: config.profiles[profile]!,
   };
   return { ...execution, revision: imageExecutionRevision(execution) };
