@@ -219,7 +219,7 @@ describe("cluster init-coordinator and join", () => {
         ) + "\n",
       );
 
-      const { stdout, code } = await captureCli([
+      const { stdout, code, stderr } = await captureCli([
         "cluster",
         "join",
         "--data-dir",
@@ -228,8 +228,10 @@ describe("cluster init-coordinator and join", () => {
         service.address,
         "--name",
         "cli-worker",
+        "--allow-insecure",
       ]);
       expect(code).toBe(0);
+      expect(stderr).toBe("");
       const result = JSON.parse(stdout) as {
         nodeId: string;
         coordinatorUrl: string;
@@ -243,9 +245,13 @@ describe("cluster init-coordinator and join", () => {
         nodeId: string;
         credential: string;
         coordinatorUrl: string;
+        nodePrivateKey: string;
+        allowInsecure: boolean;
       };
       expect(clusterFile.nodeId).toBe(result.nodeId);
       expect(clusterFile.credential).toMatch(/^ffn_/);
+      expect(clusterFile.nodePrivateKey).toContain("PRIVATE KEY");
+      expect(clusterFile.allowInsecure).toBe(true);
       const workerConfig = parseConfig(
         JSON.parse(readFileSync(join(workerDir, "config.json"), "utf8")),
       );

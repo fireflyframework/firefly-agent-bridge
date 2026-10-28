@@ -26,6 +26,10 @@ import {
   type ClusterWorkerFile,
 } from "./cluster-config.js";
 import {
+  newRequestNonce,
+  signWorkerRequest as signEd25519Request,
+} from "./cluster-crypto.js";
+import {
   collectNodeResources,
   type CollectNodeResourcesOptions,
   type CpuTimesSample,
@@ -40,6 +44,23 @@ import type { BridgeConfig } from "./config.js";
 import type { Attempt, Job, Outcome } from "./contracts.js";
 import type { ImageExecution } from "./image-execution.js";
 import type { Worker, WorkerEvent, WorkerReadiness } from "./worker.js";
+
+export function assertCoordinatorUrlAllowed(
+  coordinatorUrl: string,
+  options: { allowInsecure?: boolean } = {},
+): void {
+  let url: URL;
+  try {
+    url = new URL(coordinatorUrl);
+  } catch {
+    throw new Error("Invalid coordinator URL");
+  }
+  if (url.protocol === "https:") return;
+  if (url.protocol === "http:" && options.allowInsecure) return;
+  throw new Error(
+    "Coordinator URL must use https:// (set allowInsecure for private lab http:// only)",
+  );
+}
 
 export type ClusterClaimSnapshot = {
   attempt: Attempt;
@@ -85,9 +106,7 @@ type ActiveEntry = {
  * Headless cluster worker: heartbeat → apply controls → claim → run frozen
  * snapshot → forward events/finish. No public client API.
  *
- * Auth today: Bearer `ffn_` credential from cluster.json.
- * TODO(Task 8): wrap mutating requests with Ed25519 signature headers
- * (timestamp/nonce) using enrolled nodePrivateKey — leave sign hook below.
+ * Auth: Bearer `ffn_` + Ed25519 signature headers from enrolled nodePrivateKey.
  */
 export async function startClusterWorker(
   config: BridgeConfig,
@@ -100,6 +119,9 @@ export async function startClusterWorker(
         readFileSync(join(config.dataDir, "cluster.json"), "utf8"),
       ) as unknown,
     );
+  assertCoordinatorUrlAllowed(cluster.coordinatorUrl, {
+    allowInsecure: cluster.allowInsecure,
+  });
   const doFetch = options.fetch ?? fetch;
   const intervalMs =
     options.heartbeatIntervalMs ??
@@ -134,12 +156,30 @@ export async function startClusterWorker(
   let healthApp: ReturnType<typeof Fastify> | undefined;
   let healthAddress: string | undefined;
 
-  /** Hook for Task 8: attach Ed25519 signature headers before send. */
-  function signWorkerRequest(
-    headers: Record<string, string>,
+  function signedHeaders(
+    method: string,
+    path: string,
+    bodyText: string,
   ): Record<string, string> {
-    // TODO(Task 8): sign method+path+body with nodePrivateKey; add
-    // X-Firefly-Node-Signature / timestamp / nonce for replay protection.
+    const headers: Record<string, string> = {
+      authorization: "Bearer " + cluster.credential,
+      accept: "application/json",
+    };
+    if (bodyText.length > 0) headers["content-type"] = "application/json";
+    if (!cluster.nodePrivateKey) return headers;
+    const timestamp = String(Date.now());
+    const nonce = newRequestNonce();
+    const signature = signEd25519Request({
+      privateKeyPem: cluster.nodePrivateKey,
+      timestamp,
+      nonce,
+      method,
+      path,
+      body: bodyText,
+    });
+    headers["x-bridge-timestamp"] = timestamp;
+    headers["x-bridge-nonce"] = nonce;
+    headers["x-bridge-signature"] = signature;
     return headers;
   }
 
@@ -148,15 +188,12 @@ export async function startClusterWorker(
     path: string,
     body?: unknown,
   ): Promise<Response> {
-    const headers = signWorkerRequest({
-      authorization: "Bearer " + cluster.credential,
-      "content-type": "application/json",
-      accept: "application/json",
-    });
+    const bodyText = body === undefined ? "" : JSON.stringify(body);
+    const headers = signedHeaders(method, path, bodyText);
     return doFetch(cluster.coordinatorUrl.replace(/\/$/, "") + path, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : bodyText,
     });
   }
 

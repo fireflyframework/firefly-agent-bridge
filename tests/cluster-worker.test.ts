@@ -22,13 +22,43 @@ import Fastify from "fastify";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { randomBytes } from "node:crypto";
 import { ClusterAuth } from "../src/cluster-auth.js";
+import {
+  generateNodeKeyPair,
+  signWorkerRequest,
+} from "../src/cluster-crypto.js";
 import type { NodeCapacity, NodeResources } from "../src/cluster-types.js";
 import { startClusterWorker } from "../src/cluster-worker.js";
 import { parseConfig } from "../src/config.js";
 import type { Attempt, Job, Outcome } from "../src/contracts.js";
 import { startService } from "../src/service.js";
 import type { Worker, WorkerEvent } from "../src/worker.js";
+
+function signedHeaders(
+  privateKeyPem: string,
+  credential: string,
+  method: string,
+  path: string,
+  body: string,
+): Record<string, string> {
+  const timestamp = String(Date.now());
+  const nonce = randomBytes(16).toString("base64url");
+  return {
+    authorization: "Bearer " + credential,
+    "content-type": "application/json",
+    "x-bridge-timestamp": timestamp,
+    "x-bridge-nonce": nonce,
+    "x-bridge-signature": signWorkerRequest({
+      privateKeyPem,
+      timestamp,
+      nonce,
+      method,
+      path,
+      body,
+    }),
+  };
+}
 
 type FakeClaim = {
   attempt: Attempt;
@@ -149,6 +179,7 @@ describe("cluster worker pull loop", () => {
         nodeId: "node_a",
         credential: "ffn_test_credential",
         reservePercent: 10,
+        allowInsecure: true,
       }),
     );
 
@@ -279,6 +310,7 @@ describe("cluster worker pull loop", () => {
         nodeId: "node_a",
         credential: "ffn_test_credential",
         reservePercent: null,
+        allowInsecure: true,
       }),
     );
 
@@ -345,6 +377,7 @@ describe("cluster worker pull loop", () => {
         coordinatorUrl: address,
         nodeId: "node_a",
         credential: "ffn_test_credential",
+        allowInsecure: true,
       }),
     );
 
@@ -428,6 +461,7 @@ describe("cluster worker pull loop", () => {
       createdBy: "owner",
       ttlMs: 60_000,
     });
+    const keys = generateNodeKeyPair();
     const joinRes = await fetch(service.address + "/v1/cluster/join", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -436,6 +470,7 @@ describe("cluster worker pull loop", () => {
         name: "gone",
         worker: "claude",
         concurrency: 1,
+        publicKey: keys.publicKeyPem,
       }),
     });
     const worker = (await joinRes.json()) as {
@@ -460,13 +495,18 @@ describe("cluster worker pull loop", () => {
       reservePercent: 10,
       draining: false,
     };
-    await fetch(service.address + `/v1/cluster/nodes/${worker.nodeId}/heartbeat`, {
+    const hbPath = `/v1/cluster/nodes/${worker.nodeId}/heartbeat`;
+    const hbBody = JSON.stringify(capacity);
+    await fetch(service.address + hbPath, {
       method: "POST",
-      headers: {
-        authorization: "Bearer " + worker.credential,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(capacity),
+      headers: signedHeaders(
+        keys.privateKeyPem,
+        worker.credential,
+        "POST",
+        hbPath,
+        hbBody,
+      ),
+      body: hbBody,
     });
 
     const submit = await fetch(service.address + "/v1/chat/completions", {
@@ -483,42 +523,45 @@ describe("cluster worker pull loop", () => {
     });
     const job = (await submit.json()) as { id: string };
 
-    const claimed = await fetch(
-      service.address + `/v1/cluster/nodes/${worker.nodeId}/claim`,
-      {
-        method: "POST",
-        headers: {
-          authorization: "Bearer " + worker.credential,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ freeSlots: 1 }),
-      },
-    );
+    const claimPath = `/v1/cluster/nodes/${worker.nodeId}/claim`;
+    const claimBody = JSON.stringify({ freeSlots: 1 });
+    const claimed = await fetch(service.address + claimPath, {
+      method: "POST",
+      headers: signedHeaders(
+        keys.privateKeyPem,
+        worker.credential,
+        "POST",
+        claimPath,
+        claimBody,
+      ),
+      body: claimBody,
+    });
     const body = (await claimed.json()) as { claims: FakeClaim[] };
     expect(body.claims).toHaveLength(1);
 
-    await fetch(
-      service.address +
-        `/v1/cluster/attempts/${body.claims[0]!.attempt.id}/events`,
-      {
-        method: "POST",
-        headers: {
-          authorization: "Bearer " + worker.credential,
-          "content-type": "application/json",
+    const evPath = `/v1/cluster/attempts/${body.claims[0]!.attempt.id}/events`;
+    const evBody = JSON.stringify({
+      owner: body.claims[0]!.attempt.owner,
+      fence: body.claims[0]!.attempt.fence,
+      events: [
+        {
+          kind: "session",
+          text: "",
+          data: { sessionId: "sess_keep" },
         },
-        body: JSON.stringify({
-          owner: body.claims[0]!.attempt.owner,
-          fence: body.claims[0]!.attempt.fence,
-          events: [
-            {
-              kind: "session",
-              text: "",
-              data: { sessionId: "sess_keep" },
-            },
-          ],
-        }),
-      },
-    );
+      ],
+    });
+    await fetch(service.address + evPath, {
+      method: "POST",
+      headers: signedHeaders(
+        keys.privateKeyPem,
+        worker.credential,
+        "POST",
+        evPath,
+        evBody,
+      ),
+      body: evBody,
+    });
 
     // Age the heartbeat so the next coordinator tick marks the node offline.
     service.store.db

@@ -18,11 +18,32 @@
  */
 
 import type { DatabaseSync } from "node:sqlite";
+
+const LATEST_VERSION = 4;
+
+function tableColumns(db: DatabaseSync, table: string): Set<string> {
+  const rows = db.prepare(`PRAGMA table_info(${table})`).all() as {
+    name: string;
+  }[];
+  return new Set(rows.map((row) => row.name));
+}
+
+function ensureColumn(
+  db: DatabaseSync,
+  table: string,
+  column: string,
+  ddl: string,
+): void {
+  if (!tableColumns(db, table).has(column))
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+}
+
 export function migrate(db: DatabaseSync): void {
   const version = (
     db.prepare("PRAGMA user_version").get() as { user_version: number }
   ).user_version;
-  if (version > 3) throw new Error("Database requires a newer bridge version");
+  if (version > LATEST_VERSION)
+    throw new Error("Database requires a newer bridge version");
   db.exec(`
  PRAGMA journal_mode=WAL;
  PRAGMA synchronous=FULL;
@@ -50,7 +71,10 @@ export function migrate(db: DatabaseSync): void {
    concurrency INTEGER NOT NULL,
    reserve_percent INTEGER NOT NULL,
    credential_hash TEXT NOT NULL,
+   public_key TEXT,
+   enrollment_fingerprint TEXT,
    last_heartbeat_at TEXT,
+   last_signed_at TEXT,
    capacity_json TEXT,
    created_at TEXT NOT NULL,
    updated_at TEXT NOT NULL
@@ -63,6 +87,15 @@ export function migrate(db: DatabaseSync): void {
    expires_at TEXT NOT NULL,
    revoked_at TEXT
  );
- PRAGMA user_version=3;
  `);
+  // Additive columns for databases created at user_version<=3.
+  ensureColumn(db, "cluster_nodes", "public_key", "public_key TEXT");
+  ensureColumn(
+    db,
+    "cluster_nodes",
+    "enrollment_fingerprint",
+    "enrollment_fingerprint TEXT",
+  );
+  ensureColumn(db, "cluster_nodes", "last_signed_at", "last_signed_at TEXT");
+  db.exec(`PRAGMA user_version=${LATEST_VERSION};`);
 }

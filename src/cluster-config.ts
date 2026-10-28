@@ -67,25 +67,50 @@ export type ClusterScheduling = z.infer<typeof clusterSchedulingSchema>;
 export const DEFAULT_SCHEDULING: ClusterScheduling =
   clusterSchedulingSchema.parse({});
 
-export const clusterConfigSchema = z.strictObject({
-  mode: z.enum(["off", "coordinator", "worker"]).default("off"),
-  bindHost: z.string().min(1).max(253).default("0.0.0.0"),
-  reservePercent: z.number().int().min(0).max(90).default(10),
-  heartbeatIntervalMs: z.number().int().min(500).max(60_000).default(2000),
-  heartbeatStaleMs: z.number().int().min(1000).max(300_000).default(10_000),
-  heartbeatOfflineMs: z.number().int().min(1000).max(600_000).default(60_000),
-  joinTokenHash: z.string().min(1).nullable().default(null),
-  requireTls: z.boolean().default(false),
-  allowedWorkerCidrs: z.array(z.string().min(1).max(64)).default([]),
-  scheduling: clusterSchedulingSchema.default(DEFAULT_SCHEDULING),
+export const clusterDaemonSchema = z.strictObject({
+  pidFile: z.string().min(1).max(1024).optional(),
+  logFile: z.string().min(1).max(1024).optional(),
 });
+export type ClusterDaemonConfig = z.infer<typeof clusterDaemonSchema>;
+
+export const clusterConfigSchema = z
+  .strictObject({
+    mode: z.enum(["off", "coordinator", "worker"]).default("off"),
+    exposure: z.enum(["internet", "private"]).default("private"),
+    bindHost: z.string().min(1).max(253).default("0.0.0.0"),
+    reservePercent: z.number().int().min(0).max(90).default(10),
+    heartbeatIntervalMs: z.number().int().min(500).max(60_000).default(2000),
+    heartbeatStaleMs: z.number().int().min(1000).max(300_000).default(10_000),
+    heartbeatOfflineMs: z.number().int().min(1000).max(600_000).default(60_000),
+    joinTokenHash: z.string().min(1).nullable().default(null),
+    requireTls: z.boolean().default(false),
+    tlsCertPath: z.string().min(1).max(1024).nullable().default(null),
+    tlsKeyPath: z.string().min(1).max(1024).nullable().default(null),
+    allowedWorkerCidrs: z.array(z.string().min(1).max(64)).default([]),
+    joinRateLimitPerMinute: z.number().int().min(1).max(1000).default(10),
+    requestSkewMs: z.number().int().min(1000).max(600_000).default(60_000),
+    daemon: clusterDaemonSchema.optional(),
+    scheduling: clusterSchedulingSchema.default(DEFAULT_SCHEDULING),
+  })
+  .superRefine((value, ctx) => {
+    if (value.exposure === "internet" && !value.requireTls) {
+      ctx.addIssue({
+        code: "custom",
+        message: "exposure=internet requires requireTls=true",
+        path: ["requireTls"],
+      });
+    }
+  });
 export type ClusterConfig = z.infer<typeof clusterConfigSchema>;
 
 export const clusterWorkerFileSchema = z.strictObject({
   coordinatorUrl: z.string().url(),
   nodeId: z.string().min(1).max(128),
   credential: z.string().min(1).max(512),
+  nodePrivateKey: z.string().min(1).optional(),
   reservePercent: z.number().int().min(0).max(90).nullable().default(null),
+  allowInsecure: z.boolean().default(false),
+  daemon: clusterDaemonSchema.optional(),
 });
 export type ClusterWorkerFile = z.infer<typeof clusterWorkerFileSchema>;
 

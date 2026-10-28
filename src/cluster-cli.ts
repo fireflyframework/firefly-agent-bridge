@@ -25,8 +25,14 @@ import {
   parseClusterWorkerFile,
   type ClusterWorkerFile,
 } from "./cluster-config.js";
+import {
+  generateNodeKeyPair,
+  newRequestNonce,
+  signWorkerRequest,
+} from "./cluster-crypto.js";
 import { connect, initialize, request, type Connection } from "./lifecycle.js";
 import { privateWrite } from "./service.js";
+import { assertCoordinatorUrlAllowed } from "./cluster-worker.js";
 
 export type CliStreams = {
   stdout: { isTTY?: boolean; write: (chunk: string) => boolean };
@@ -94,7 +100,7 @@ export async function connectClusterAdmin(
     readFileSync(pathJoin(dataDir, "service.json"), "utf8"),
   ) as { address: string; instanceId: string };
   const url = new URL(info.address);
-  if (url.protocol !== "http:")
+  if (url.protocol !== "http:" && url.protocol !== "https:")
     throw new Error("Invalid local service address");
   if (url.hostname === "0.0.0.0" || url.hostname === "::")
     url.hostname = "127.0.0.1";
@@ -123,15 +129,31 @@ async function workerRequest(
   method: string,
   body?: unknown,
 ): Promise<unknown> {
+  const bodyText = body === undefined ? "" : JSON.stringify(body);
+  const headers: Record<string, string> = {
+    Authorization: "Bearer " + cluster.credential,
+  };
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (cluster.nodePrivateKey) {
+    const timestamp = String(Date.now());
+    const nonce = newRequestNonce();
+    headers["X-Bridge-Timestamp"] = timestamp;
+    headers["X-Bridge-Nonce"] = nonce;
+    headers["X-Bridge-Signature"] = signWorkerRequest({
+      privateKeyPem: cluster.nodePrivateKey,
+      timestamp,
+      nonce,
+      method,
+      path,
+      body: bodyText,
+    });
+  }
   const response = await fetch(
     cluster.coordinatorUrl.replace(/\/$/, "") + path,
     {
       method,
-      headers: {
-        Authorization: "Bearer " + cluster.credential,
-        "Content-Type": "application/json",
-      },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      headers,
+      ...(body === undefined ? {} : { body: bodyText }),
       signal: AbortSignal.timeout(15_000),
     },
   );
@@ -168,15 +190,24 @@ async function initCoordinator(
   )
     throw new Error("--reserve-percent must be an integer 0–90");
   const requireTls = exposure === "internet";
+  const tlsCert = flagValue(args, "--tls-cert") ?? null;
+  const tlsKey = flagValue(args, "--tls-key") ?? null;
+  if (requireTls && (!tlsCert || !tlsKey))
+    throw new Error(
+      "init-coordinator --exposure internet requires --tls-cert and --tls-key",
+    );
   const next = parseConfig({
     ...config,
     port,
     cluster: {
       ...(config.cluster ?? {}),
       mode: "coordinator",
+      exposure,
       bindHost: bind,
       reservePercent,
       requireTls,
+      tlsCertPath: tlsCert,
+      tlsKeyPath: tlsKey,
     },
   });
   writeConfig(next);
@@ -247,6 +278,9 @@ async function join(
       reservePercent > 90)
   )
     throw new Error("--reserve-percent must be an integer 0–90");
+  const allowInsecure = hasFlag(args, "--allow-insecure");
+  assertCoordinatorUrlAllowed(coordinator, { allowInsecure });
+  const keys = generateNodeKeyPair();
   const response = await fetch(
     coordinator.replace(/\/$/, "") + "/v1/cluster/join",
     {
@@ -257,6 +291,7 @@ async function join(
         name,
         worker: config.worker,
         concurrency: config.concurrency,
+        publicKey: keys.publicKeyPem,
         ...(reservePercent != null ? { reservePercent } : {}),
       }),
       signal: AbortSignal.timeout(15_000),
@@ -275,7 +310,9 @@ async function join(
     coordinatorUrl: coordinator.replace(/\/$/, ""),
     nodeId: value.nodeId,
     credential: value.credential,
+    nodePrivateKey: keys.privateKeyPem,
     reservePercent: reservePercent ?? null,
+    allowInsecure,
   };
   privateWrite(
     pathJoin(dataDir, "cluster.json"),
@@ -416,10 +453,12 @@ export async function runClusterCommand(
   const args = positionals.slice(1);
   if (!sub || sub === "help") {
     streams.stdout.write(`cluster commands (JSON on stdout):
-  init-coordinator [--exposure internet|private] [--bind HOST] [--port N] [--reserve-percent N]
+  init-coordinator [--exposure internet|private] [--bind HOST] [--port N]
+                   [--tls-cert PATH] [--tls-key PATH] [--reserve-percent N]
   join-token create [--ttl DURATION]
   join-token revoke --id ID
   join --coordinator URL [--token TOKEN] [--name LABEL] [--reserve-percent N]
+       [--allow-insecure]
   status | nodes | verify-node --id NODE
   drain | leave | pause | resume
   nodes drain --id NODE | nodes remove --id NODE

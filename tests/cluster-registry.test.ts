@@ -22,12 +22,15 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ClusterAuth } from "../src/cluster-auth.js";
+import { generateNodeKeyPair } from "../src/cluster-crypto.js";
 import { ClusterRegistry } from "../src/cluster-registry.js";
 import type { NodeCapacity, NodeResources } from "../src/cluster-types.js";
 import { BridgeError } from "../src/contracts.js";
 import { QueueStore } from "../src/store.js";
 import { parseConfig } from "../src/config.js";
 import { resolve } from "node:path";
+
+const testPublicKey = () => generateNodeKeyPair().publicKeyPem;
 
 let dir: string;
 let store: QueueStore;
@@ -117,6 +120,7 @@ describe("ClusterRegistry", () => {
       name: "desk-12",
       worker: "claude",
       concurrency: 2,
+      publicKey: testPublicKey(),
     });
     expect(joined.nodeId).toMatch(/^node_/);
     expect(joined.credential).toMatch(/^ffn_/);
@@ -127,6 +131,7 @@ describe("ClusterRegistry", () => {
     expect(nodes[0]?.status).toBe("joining");
     expect(nodes[0]?.concurrency).toBe(2);
     expect(nodes[0]?.reservePercent).toBe(10);
+    expect(nodes[0]?.enrollmentFingerprint).toMatch(/^[a-f0-9]{64}$/);
   });
 
   it("heartbeat updates capacity and moves joining to online", () => {
@@ -136,6 +141,7 @@ describe("ClusterRegistry", () => {
       name: "desk-12",
       worker: "claude",
       concurrency: 1,
+      publicKey: testPublicKey(),
     });
     const snap = capacity({
       freeSlots: 0,
@@ -164,6 +170,7 @@ describe("ClusterRegistry", () => {
       name: "desk-12",
       worker: "claude",
       concurrency: 1,
+      publicKey: testPublicKey(),
     });
     const t0 = Date.parse("2026-10-27T12:00:00.000Z");
     registry.heartbeat(nodeId, capacity(), new Date(t0));
@@ -187,6 +194,7 @@ describe("ClusterRegistry", () => {
         name: "codex-box",
         worker: "codex",
         concurrency: 1,
+        publicKey: testPublicKey(),
       }),
     ).toThrow(BridgeError);
     try {
@@ -195,6 +203,7 @@ describe("ClusterRegistry", () => {
         name: "codex-box",
         worker: "codex",
         concurrency: 1,
+        publicKey: testPublicKey(),
       });
     } catch (error) {
       expect(error).toBeInstanceOf(BridgeError);
@@ -210,6 +219,7 @@ describe("ClusterRegistry", () => {
       name: "desk-12",
       worker: "claude",
       concurrency: 1,
+      publicKey: testPublicKey(),
     });
     registry.heartbeat(nodeId, capacity());
     registry.drain(nodeId);

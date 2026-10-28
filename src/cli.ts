@@ -20,8 +20,10 @@
 
 import { releaseVersion } from "./release-version.js";
 import { parseArgs } from "node:util";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { spawn } from "node:child_process";
+import { isSea } from "node:sea";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   defaultDataDir,
@@ -40,8 +42,19 @@ import {
 } from "./cli-banner.js";
 import {
   runClusterCommand,
+  flagValue,
+  hasFlag,
   type CliStreams,
 } from "./cluster-cli.js";
+import {
+  daemonStatus,
+  defaultDaemonPaths,
+  startDaemonProcess,
+  stopDaemonProcess,
+  type DaemonRole,
+} from "./cluster-daemon.js";
+import { parseConfig } from "./config.js";
+import { parseClusterWorkerFile } from "./cluster-config.js";
 
 export type RunCliOptions = {
   stdout?: CliStreams["stdout"];
@@ -73,7 +86,7 @@ function helpText(
   revoke      Revoke a client's tokens (--id NAME)
   cluster     Headless pool ops (JSON stdout): init-coordinator, join-token,
               join, status, nodes, drain, leave, pause, resume, verify-node
-  daemon      start|status|stop — coming in a later release; use serve for now
+  daemon      start|status|stop (--cluster-coordinator|--cluster-worker)
   --version   Print the release version
 
 ${QUICK_START_FOOTER}
@@ -92,6 +105,177 @@ function stripGlobalFlags(args: string[]): string[] {
     out.push(arg);
   }
   return out;
+}
+
+function resolveDaemonRole(args: string[]): DaemonRole {
+  const asCoordinator = hasFlag(args, "--cluster-coordinator");
+  const asWorker = hasFlag(args, "--cluster-worker");
+  if (asCoordinator && asWorker)
+    throw new Error(
+      "Choose only one of --cluster-coordinator or --cluster-worker",
+    );
+  if (asCoordinator) return "coordinator";
+  if (asWorker) return "worker";
+  throw new Error(
+    "daemon start requires --cluster-coordinator or --cluster-worker",
+  );
+}
+
+function daemonPathsFor(dataDir: string, role: DaemonRole) {
+  const defaults = defaultDaemonPaths(dataDir, role);
+  try {
+    if (role === "coordinator") {
+      const config = parseConfig(
+        JSON.parse(readFileSync(join(dataDir, "config.json"), "utf8")),
+      );
+      return {
+        pidFile: config.cluster?.daemon?.pidFile ?? defaults.pidFile,
+        logFile: config.cluster?.daemon?.logFile ?? defaults.logFile,
+      };
+    }
+    const worker = parseClusterWorkerFile(
+      JSON.parse(readFileSync(join(dataDir, "cluster.json"), "utf8")),
+    );
+    return {
+      pidFile: worker.daemon?.pidFile ?? defaults.pidFile,
+      logFile: worker.daemon?.logFile ?? defaults.logFile,
+    };
+  } catch {
+    return defaults;
+  }
+}
+
+async function waitForDaemonReady(
+  dataDir: string,
+  role: DaemonRole,
+): Promise<boolean> {
+  const servicePath = join(dataDir, "service.json");
+  if (!existsSync(servicePath)) return false;
+  try {
+    const info = JSON.parse(readFileSync(servicePath, "utf8")) as {
+      address?: string;
+      clusterMode?: string;
+      pid?: number;
+    };
+    if (!info.address) return false;
+    if (role === "worker")
+      return (
+        info.clusterMode === "worker" ||
+        String(info.address).startsWith("cluster-worker://")
+      );
+    const token = readFileSync(join(dataDir, "owner.token"), "utf8").trim();
+    const response = await fetch(
+      info.address.replace(/\/$/, "") + "/v1/bridge/status",
+      {
+        headers: { Authorization: "Bearer " + token },
+        signal: AbortSignal.timeout(1000),
+      },
+    );
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function runDaemonCommand(
+  dataDir: string,
+  args: string[],
+  streams: CliStreams,
+): Promise<void> {
+  const [action] = args;
+  if (!action || action === "help") {
+    streams.stdout.write(`daemon commands (JSON on stdout):
+  start --cluster-coordinator|--cluster-worker
+  status [--cluster-coordinator|--cluster-worker]
+  stop [--cluster-coordinator|--cluster-worker]
+`);
+    return;
+  }
+  if (action === "status") {
+    let role: DaemonRole;
+    try {
+      role = resolveDaemonRole(args);
+    } catch {
+      const configPath = join(dataDir, "config.json");
+      if (!existsSync(configPath))
+        throw new Error("daemon status requires a role or initialized data dir");
+      const config = parseConfig(
+        JSON.parse(readFileSync(configPath, "utf8")),
+      );
+      if (config.cluster?.mode === "coordinator") role = "coordinator";
+      else if (config.cluster?.mode === "worker") role = "worker";
+      else
+        throw new Error(
+          "daemon status requires --cluster-coordinator or --cluster-worker",
+        );
+    }
+    const paths = daemonPathsFor(dataDir, role);
+    streams.stdout.write(
+      JSON.stringify(daemonStatus(paths.pidFile), null, 2) + "\n",
+    );
+    return;
+  }
+  if (action === "stop") {
+    let role: DaemonRole;
+    try {
+      role = resolveDaemonRole(args);
+    } catch {
+      const config = parseConfig(
+        JSON.parse(readFileSync(join(dataDir, "config.json"), "utf8")),
+      );
+      if (config.cluster?.mode === "coordinator") role = "coordinator";
+      else if (config.cluster?.mode === "worker") role = "worker";
+      else throw new Error("daemon stop requires a cluster role flag");
+    }
+    const paths = daemonPathsFor(dataDir, role);
+    const result = await stopDaemonProcess(paths.pidFile);
+    streams.stdout.write(JSON.stringify(result, null, 2) + "\n");
+    return;
+  }
+  if (action !== "start")
+    throw new Error("Unknown daemon command: " + args.join(" "));
+  const role = resolveDaemonRole(args);
+  await initialize(dataDir);
+  const config = parseConfig(
+    JSON.parse(readFileSync(join(dataDir, "config.json"), "utf8")),
+  );
+  if (role === "coordinator" && config.cluster?.mode !== "coordinator")
+    throw new Error(
+      "Config cluster.mode is not coordinator; run bridge cluster init-coordinator first",
+    );
+  if (role === "worker" && config.cluster?.mode !== "worker")
+    throw new Error(
+      "Config cluster.mode is not worker; run bridge cluster join first",
+    );
+  const paths = daemonPathsFor(dataDir, role);
+  const overridePid = flagValue(args, "--pid-file");
+  const overrideLog = flagValue(args, "--log-file");
+  const pidFile = overridePid ?? paths.pidFile;
+  const logFile = overrideLog ?? paths.logFile;
+  const serveFlag =
+    role === "coordinator" ? "--cluster-coordinator" : "--cluster-worker";
+  const cliArgs = isSea() ? [] : [process.argv[1]!];
+  const started = await startDaemonProcess({
+    pidFile,
+    logFile,
+    command: process.execPath,
+    args: [
+      ...cliArgs,
+      "serve",
+      serveFlag,
+      "--data-dir",
+      dataDir,
+    ],
+    ready: () => waitForDaemonReady(dataDir, role),
+    timeoutMs: 20_000,
+  });
+  streams.stdout.write(
+    JSON.stringify(
+      { running: true, pid: started.pid, pidFile, logFile, role },
+      null,
+      2,
+    ) + "\n",
+  );
 }
 
 export async function runCli(
@@ -155,13 +339,11 @@ export async function runCli(
       return 0;
     }
     if (command === "daemon") {
-      streams.stderr.write(
-        JSON.stringify({
-          error:
-            "daemon start|status|stop is not implemented yet; use bridge serve --cluster-coordinator|--cluster-worker",
-        }) + "\n",
-      );
-      return 1;
+      const rest = stripGlobalFlags(argv);
+      const at = rest.indexOf("daemon");
+      const daemonArgs = at >= 0 ? rest.slice(at + 1) : positionals.slice(1);
+      await runDaemonCommand(dataDir, daemonArgs, streams);
+      return 0;
     }
     if (command === "init") {
       if (

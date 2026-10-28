@@ -21,7 +21,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { randomBytes } from "node:crypto";
 import { ClusterAuth } from "../src/cluster-auth.js";
+import {
+  generateNodeKeyPair,
+  signWorkerRequest,
+} from "../src/cluster-crypto.js";
 import type { NodeCapacity, NodeResources } from "../src/cluster-types.js";
 import { parseConfig } from "../src/config.js";
 import { startService } from "../src/service.js";
@@ -91,11 +96,43 @@ async function startCoordinator() {
   return service;
 }
 
+type WorkerCreds = {
+  nodeId: string;
+  credential: string;
+  privateKeyPem: string;
+};
+
+function signedHeaders(
+  privateKeyPem: string,
+  credential: string,
+  method: string,
+  path: string,
+  body: string,
+): Record<string, string> {
+  const timestamp = String(Date.now());
+  const nonce = randomBytes(16).toString("base64url");
+  return {
+    authorization: "Bearer " + credential,
+    "content-type": "application/json",
+    "x-bridge-timestamp": timestamp,
+    "x-bridge-nonce": nonce,
+    "x-bridge-signature": signWorkerRequest({
+      privateKeyPem,
+      timestamp,
+      nonce,
+      method,
+      path,
+      body,
+    }),
+  };
+}
+
 async function joinWorker(
   address: string,
   joinToken: string,
   name: string,
-): Promise<{ nodeId: string; credential: string }> {
+): Promise<WorkerCreds> {
+  const keys = generateNodeKeyPair();
   const res = await fetch(address + "/v1/cluster/join", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -104,26 +141,41 @@ async function joinWorker(
       name,
       worker: "claude",
       concurrency: 2,
+      publicKey: keys.publicKeyPem,
     }),
   });
   expect(res.status).toBe(200);
-  return (await res.json()) as { nodeId: string; credential: string };
+  const joined = (await res.json()) as { nodeId: string; credential: string };
+  return { ...joined, privateKeyPem: keys.privateKeyPem };
+}
+
+async function workerPost(
+  address: string,
+  worker: WorkerCreds,
+  path: string,
+  payload: unknown,
+) {
+  const body = JSON.stringify(payload);
+  return fetch(address + path, {
+    method: "POST",
+    headers: signedHeaders(
+      worker.privateKeyPem,
+      worker.credential,
+      "POST",
+      path,
+      body,
+    ),
+    body,
+  });
 }
 
 async function heartbeat(
   address: string,
-  nodeId: string,
-  credential: string,
+  worker: WorkerCreds,
   snap: NodeCapacity = capacity(),
 ) {
-  const res = await fetch(address + `/v1/cluster/nodes/${nodeId}/heartbeat`, {
-    method: "POST",
-    headers: {
-      authorization: "Bearer " + credential,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(snap),
-  });
+  const path = `/v1/cluster/nodes/${worker.nodeId}/heartbeat`;
+  const res = await workerPost(address, worker, path, snap);
   expect(res.status).toBe(200);
   return (await res.json()) as {
     status: string;
@@ -133,17 +185,13 @@ async function heartbeat(
 
 async function claim(
   address: string,
-  nodeId: string,
-  credential: string,
+  worker: WorkerCreds,
   freeSlots = 1,
 ) {
-  const res = await fetch(address + `/v1/cluster/nodes/${nodeId}/claim`, {
-    method: "POST",
-    headers: {
-      authorization: "Bearer " + credential,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ freeSlots, worker: "claude" }),
+  const path = `/v1/cluster/nodes/${worker.nodeId}/claim`;
+  const res = await workerPost(address, worker, path, {
+    freeSlots,
+    worker: "claude",
   });
   expect(res.status).toBe(200);
   return (await res.json()) as {
@@ -172,7 +220,7 @@ describe("ClusterCoordinator protocol", () => {
       ttlMs: 60_000,
     });
     const worker = await joinWorker(service.address, joinToken, "desk-a");
-    await heartbeat(service.address, worker.nodeId, worker.credential);
+    await heartbeat(service.address, worker);
 
     const submit = await fetch(service.address + "/v1/chat/completions", {
       method: "POST",
@@ -199,11 +247,7 @@ describe("ClusterCoordinator protocol", () => {
     ).json();
     expect(before.status).toBe("queued");
 
-    const claimed = await claim(
-      service.address,
-      worker.nodeId,
-      worker.credential,
-    );
+    const claimed = await claim(service.address, worker);
     expect(claimed.claims).toHaveLength(1);
     const [entry] = claimed.claims;
     expect(entry!.job.id).toBe(job.id);
@@ -214,47 +258,37 @@ describe("ClusterCoordinator protocol", () => {
       tools: expect.any(Array),
     });
 
-    const eventRes = await fetch(
-      service.address + `/v1/cluster/attempts/${entry!.attempt.id}/events`,
+    const eventRes = await workerPost(
+      service.address,
+      worker,
+      `/v1/cluster/attempts/${entry!.attempt.id}/events`,
       {
-        method: "POST",
-        headers: {
-          authorization: "Bearer " + worker.credential,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          owner: entry!.attempt.owner,
-          fence: entry!.attempt.fence,
-          events: [
-            {
-              kind: "session",
-              text: "",
-              data: { sessionId: "sess_sticky_1" },
-            },
-            { kind: "progress", text: "working" },
-          ],
-        }),
+        owner: entry!.attempt.owner,
+        fence: entry!.attempt.fence,
+        events: [
+          {
+            kind: "session",
+            text: "",
+            data: { sessionId: "sess_sticky_1" },
+          },
+          { kind: "progress", text: "working" },
+        ],
       },
     );
     expect(eventRes.status).toBe(200);
 
-    const finishRes = await fetch(
-      service.address + `/v1/cluster/attempts/${entry!.attempt.id}/finish`,
+    const finishRes = await workerPost(
+      service.address,
+      worker,
+      `/v1/cluster/attempts/${entry!.attempt.id}/finish`,
       {
-        method: "POST",
-        headers: {
-          authorization: "Bearer " + worker.credential,
-          "content-type": "application/json",
+        owner: entry!.attempt.owner,
+        fence: entry!.attempt.fence,
+        outcome: {
+          status: "succeeded",
+          result: "done from worker",
+          sessionId: "sess_sticky_1",
         },
-        body: JSON.stringify({
-          owner: entry!.attempt.owner,
-          fence: entry!.attempt.fence,
-          outcome: {
-            status: "succeeded",
-            result: "done from worker",
-            sessionId: "sess_sticky_1",
-          },
-        }),
       },
     );
     expect(finishRes.status).toBe(200);
@@ -297,7 +331,7 @@ describe("ClusterCoordinator protocol", () => {
       ttlMs: 60_000,
     });
     const a = await joinWorker(service.address, joinToken, "node-a");
-    await heartbeat(service.address, a.nodeId, a.credential);
+    await heartbeat(service.address, a);
 
     const submit = await fetch(service.address + "/v1/chat/completions", {
       method: "POST",
@@ -313,39 +347,25 @@ describe("ClusterCoordinator protocol", () => {
     });
     const job = (await submit.json()) as { id: string };
 
-    const first = await claim(service.address, a.nodeId, a.credential);
+    const first = await claim(service.address, a);
     expect(first.claims).toHaveLength(1);
     const attempt = first.claims[0]!.attempt;
 
-    await fetch(service.address + `/v1/cluster/attempts/${attempt.id}/events`, {
-      method: "POST",
-      headers: {
-        authorization: "Bearer " + a.credential,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        owner: attempt.owner,
-        fence: attempt.fence,
-        events: [
-          { kind: "session", text: "", data: { sessionId: "native-sess" } },
-        ],
-      }),
+    await workerPost(service.address, a, `/v1/cluster/attempts/${attempt.id}/events`, {
+      owner: attempt.owner,
+      fence: attempt.fence,
+      events: [
+        { kind: "session", text: "", data: { sessionId: "native-sess" } },
+      ],
     });
-    await fetch(service.address + `/v1/cluster/attempts/${attempt.id}/finish`, {
-      method: "POST",
-      headers: {
-        authorization: "Bearer " + a.credential,
-        "content-type": "application/json",
+    await workerPost(service.address, a, `/v1/cluster/attempts/${attempt.id}/finish`, {
+      owner: attempt.owner,
+      fence: attempt.fence,
+      outcome: {
+        status: "paused",
+        error: "operator_pause",
+        sessionId: "native-sess",
       },
-      body: JSON.stringify({
-        owner: attempt.owner,
-        fence: attempt.fence,
-        outcome: {
-          status: "paused",
-          error: "operator_pause",
-          sessionId: "native-sess",
-        },
-      }),
     });
 
     // Second node joins after sticky is established — must not steal.
@@ -354,7 +374,7 @@ describe("ClusterCoordinator protocol", () => {
       ttlMs: 60_000,
     });
     const b = await joinWorker(service.address, joinTokenB, "node-b");
-    await heartbeat(service.address, b.nodeId, b.credential);
+    await heartbeat(service.address, b);
 
     // Resume keeps sticky binding; only node A may claim.
     await fetch(service.address + "/v1/bridge/jobs/" + job.id + "/resume", {
@@ -362,10 +382,10 @@ describe("ClusterCoordinator protocol", () => {
       headers: { authorization: "Bearer " + service.ownerToken },
     });
 
-    const stolen = await claim(service.address, b.nodeId, b.credential);
+    const stolen = await claim(service.address, b);
     expect(stolen.claims).toHaveLength(0);
 
-    const sticky = await claim(service.address, a.nodeId, a.credential);
+    const sticky = await claim(service.address, a);
     expect(sticky.claims).toHaveLength(1);
     expect(sticky.claims[0]!.job.id).toBe(job.id);
     expect(sticky.claims[0]!.attempt.nodeId).toBe(a.nodeId);
@@ -377,7 +397,7 @@ describe("ClusterCoordinator protocol", () => {
       ttlMs: 60_000,
     });
     const worker = await joinWorker(service.address, joinToken, "desk-pause");
-    await heartbeat(service.address, worker.nodeId, worker.credential);
+    await heartbeat(service.address, worker);
 
     const submit = await fetch(service.address + "/v1/chat/completions", {
       method: "POST",
@@ -392,11 +412,7 @@ describe("ClusterCoordinator protocol", () => {
       }),
     });
     const job = (await submit.json()) as { id: string };
-    const claimed = await claim(
-      service.address,
-      worker.nodeId,
-      worker.credential,
-    );
+    const claimed = await claim(service.address, worker);
     expect(claimed.claims).toHaveLength(1);
     const attempt = claimed.claims[0]!.attempt;
 
@@ -406,12 +422,7 @@ describe("ClusterCoordinator protocol", () => {
     });
     expect(pause.status).toBe(200);
 
-    const hb = await heartbeat(
-      service.address,
-      worker.nodeId,
-      worker.credential,
-      capacity({ freeSlots: 1, active: 1 }),
-    );
+    const hb = await heartbeat(service.address, worker, capacity({ freeSlots: 1, active: 1 }));
     expect(hb.controls).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -422,12 +433,7 @@ describe("ClusterCoordinator protocol", () => {
       ]),
     );
 
-    const blocked = await claim(
-      service.address,
-      worker.nodeId,
-      worker.credential,
-      2,
-    );
+    const blocked = await claim(service.address, worker, 2);
     expect(blocked.claims).toHaveLength(0);
 
     const status = await (
@@ -438,17 +444,10 @@ describe("ClusterCoordinator protocol", () => {
     expect(status.cluster.dispatch).toBe("paused");
 
     // Finish the in-flight attempt so a second job can prove the gate.
-    await fetch(service.address + `/v1/cluster/attempts/${attempt.id}/finish`, {
-      method: "POST",
-      headers: {
-        authorization: "Bearer " + worker.credential,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        owner: attempt.owner,
-        fence: attempt.fence,
-        outcome: { status: "paused", error: "operator_pause" },
-      }),
+    await workerPost(service.address, worker, `/v1/cluster/attempts/${attempt.id}/finish`, {
+      owner: attempt.owner,
+      fence: attempt.fence,
+      outcome: { status: "paused", error: "operator_pause" },
     });
 
     await fetch(service.address + "/v1/chat/completions", {
@@ -463,11 +462,7 @@ describe("ClusterCoordinator protocol", () => {
         bridge: { execution: "agent", background: true },
       }),
     });
-    const stillBlocked = await claim(
-      service.address,
-      worker.nodeId,
-      worker.credential,
-    );
+    const stillBlocked = await claim(service.address, worker);
     expect(stillBlocked.claims).toHaveLength(0);
     void job;
   });
@@ -478,7 +473,7 @@ describe("ClusterCoordinator protocol", () => {
       ttlMs: 60_000,
     });
     const worker = await joinWorker(service.address, joinToken, "hidden");
-    await heartbeat(service.address, worker.nodeId, worker.credential);
+    await heartbeat(service.address, worker);
 
     const { Tokens } = await import("../src/auth.js");
     const scoped = new Tokens(service.store).create({

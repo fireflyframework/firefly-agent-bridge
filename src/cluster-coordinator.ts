@@ -22,6 +22,10 @@ import { z } from "zod";
 import type { BridgeConfig } from "./config.js";
 import { ClusterAuth } from "./cluster-auth.js";
 import {
+  ReplayNonceStore,
+  verifyWorkerRequest,
+} from "./cluster-crypto.js";
+import {
   headroom,
   usableCapacity,
 } from "./cluster-quota.js";
@@ -62,11 +66,11 @@ export type WorkerAuthContext = {
 
 /**
  * Coordinator claim/finish/events/controls plane.
- * Worker identity today: Bearer `ffn_` via ClusterAuth/registry.
- * Task 8 will add Ed25519 request signatures + TLS without changing claim semantics —
- * keep authentication at the HTTP boundary (`authenticateWorker`) so crypto can wrap it.
+ * Worker identity: Bearer `ffn_` plus Ed25519 request signatures.
  */
 export class ClusterCoordinator {
+  private readonly nonceStore = new ReplayNonceStore();
+
   constructor(
     private store: QueueStore,
     private registry: ClusterRegistry,
@@ -78,7 +82,11 @@ export class ClusterCoordinator {
     return this.config.cluster?.scheduling ?? DEFAULT_SCHEDULING;
   }
 
-  /** Resolve ffn_ credential → node. Hook point for Task 8 signature checks. */
+  private get requestSkewMs(): number {
+    return this.config.cluster?.requestSkewMs ?? 60_000;
+  }
+
+  /** Resolve ffn_ credential → node (signature checked separately). */
   authenticateWorker(credential: string): WorkerAuthContext {
     const node = this.registry.findByCredential(credential);
     if (!node)
@@ -88,6 +96,49 @@ export class ClusterCoordinator {
         401,
       );
     return { nodeId: node.id, credential };
+  }
+
+  /**
+   * Verify Ed25519 headers for a worker request after credential resolution.
+   */
+  authenticateWorkerRequest(input: {
+    credential: string;
+    method: string;
+    path: string;
+    body: string;
+    timestamp?: string;
+    nonce?: string;
+    signature?: string;
+  }): WorkerAuthContext {
+    const auth = this.authenticateWorker(input.credential);
+    const node = this.registry.get(auth.nodeId);
+    if (!node.publicKey)
+      throw new BridgeError(
+        "unauthorized",
+        "Node has no enrolled public key",
+        401,
+      );
+    if (!input.timestamp || !input.nonce || !input.signature)
+      throw new BridgeError(
+        "unauthorized",
+        "Signed worker request headers are required",
+        401,
+      );
+    const verified = verifyWorkerRequest({
+      publicKeyPem: node.publicKey,
+      timestamp: input.timestamp,
+      nonce: input.nonce,
+      method: input.method,
+      path: input.path,
+      body: input.body,
+      signature: input.signature,
+      skewMs: this.requestSkewMs,
+      nonceStore: this.nonceStore,
+    });
+    if (!verified.ok)
+      throw new BridgeError("unauthorized", verified.reason, 401);
+    this.registry.markSigned(auth.nodeId);
+    return auth;
   }
 
   assertNodePath(auth: WorkerAuthContext, pathNodeId: string): void {
@@ -105,6 +156,7 @@ export class ClusterCoordinator {
     worker: "claude" | "codex";
     concurrency: number;
     reservePercent?: number | null;
+    publicKey: string;
   }): { nodeId: string; credential: string } {
     return this.registry.join(input);
   }
@@ -480,6 +532,7 @@ export const clusterJoinBodySchema = z.strictObject({
   worker: z.enum(["claude", "codex"]),
   concurrency: z.number().int().min(1).max(64),
   reservePercent: z.number().int().min(0).max(90).nullable().optional(),
+  publicKey: z.string().min(32).max(4096),
 });
 
 export const clusterClaimBodySchema = z.strictObject({

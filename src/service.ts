@@ -54,6 +54,30 @@ export function privateWrite(path: string, value: string): void {
   writeFileSync(temporary, value, { mode: 0o600 });
   renameSync(temporary, path);
 }
+
+function loadCoordinatorTls(
+  config: BridgeConfig,
+): { key: Buffer; cert: Buffer } | undefined {
+  const cluster = config.cluster;
+  if (!cluster || cluster.mode !== "coordinator") return undefined;
+  const requireTls =
+    cluster.requireTls || cluster.exposure === "internet";
+  if (!requireTls) return undefined;
+  const certPath = cluster.tlsCertPath;
+  const keyPath = cluster.tlsKeyPath;
+  if (!certPath || !keyPath)
+    throw new Error(
+      "TLS is required (exposure=internet or requireTls); set cluster.tlsCertPath and cluster.tlsKeyPath",
+    );
+  if (!existsSync(certPath) || !existsSync(keyPath))
+    throw new Error(
+      "TLS cert/key files are missing; refuse to start internet-exposed coordinator",
+    );
+  return {
+    cert: readFileSync(certPath),
+    key: readFileSync(keyPath),
+  };
+}
 export async function startService(
   config: BridgeConfig,
   options: {
@@ -231,37 +255,41 @@ export async function startService(
       }
     }
 
-    const app = createHttpService({
-      store,
-      auth,
-      scheduler,
-      flows,
-      config,
-      cluster,
-      persistConfig: (next) =>
-        privateWrite(
-          join(config.dataDir, "config.json"),
-          JSON.stringify(next, null, 2) + "\n",
-        ),
-      diagnostics: () => ({
-        instanceId,
-        pid: process.pid,
-        managed: Boolean(options.managed),
-        hosts: hosts.size,
-        dataDir: config.dataDir,
-        workspace: config.workspace,
-      }),
-      heartbeat: (id) => {
-        hosts.set(id, Date.now());
-        idleSince = Date.now();
+    const tls = isCoordinator ? loadCoordinatorTls(config) : undefined;
+    const app = createHttpService(
+      {
+        store,
+        auth,
+        scheduler,
+        flows,
+        config,
+        cluster,
+        persistConfig: (next) =>
+          privateWrite(
+            join(config.dataDir, "config.json"),
+            JSON.stringify(next, null, 2) + "\n",
+          ),
+        diagnostics: () => ({
+          instanceId,
+          pid: process.pid,
+          managed: Boolean(options.managed),
+          hosts: hosts.size,
+          dataDir: config.dataDir,
+          workspace: config.workspace,
+        }),
+        heartbeat: (id) => {
+          hosts.set(id, Date.now());
+          idleSince = Date.now();
+        },
+        disconnect: (id) => {
+          hosts.delete(id);
+        },
+        shutdown: () => {
+          setTimeout(() => void close(), 50);
+        },
       },
-      disconnect: (id) => {
-        hosts.delete(id);
-      },
-      shutdown: () => {
-        setTimeout(() => void close(), 50);
-      },
-    });
+      tls ? { https: tls } : {},
+    );
     function close(): Promise<void> {
       return (closing ??= (async () => {
         if (timer) clearInterval(timer);

@@ -17,6 +17,7 @@
  * limitations under the License.
  */
 
+import { Readable } from "node:stream";
 import { releaseVersion } from "./release-version.js";
 import Fastify, { type FastifyRequest } from "fastify";
 import { z } from "zod";
@@ -34,6 +35,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { createAdapter } from "./mcp.js";
 import { RECOVERY_LIMITS } from "./completion-recovery.js";
 import { registerOpenAI, CompletionError, openAIError } from "./openai.js";
+import { ipAllowedByCidrs } from "./cluster-crypto.js";
 import {
   ClusterCoordinator,
   clusterClaimBodySchema,
@@ -55,20 +57,29 @@ export type HttpDependencies = {
   shutdown?: () => void;
   persistConfig?: (config: BridgeConfig) => void;
 };
-export function createHttpService(d: HttpDependencies) {
+export type HttpServiceOptions = {
+  https?: { key: Buffer | string; cert: Buffer | string };
+};
+export function createHttpService(
+  d: HttpDependencies,
+  options: HttpServiceOptions = {},
+) {
   const app = Fastify({
     logger: false,
     bodyLimit: 120000,
     requestTimeout: 30000,
     trustProxy: false,
     forceCloseConnections: true,
+    ...(options.https ? { https: options.https } : {}),
   });
   const streams = new EventStreams(d.store, d.auth),
-    bearers = new WeakMap<FastifyRequest, string>();
+    bearers = new WeakMap<FastifyRequest, string>(),
+    rawBodies = new WeakMap<FastifyRequest, string>();
   const channels = new Channels(d.store);
   const reaper = setInterval(() => channels.reap(), 1000);
   reaper.unref();
   const rate = new Map<string, { count: number; since: number }>();
+  const joinRate = new Map<string, { count: number; since: number }>();
   // Body parsing may await; scope checks must use current token authority.
   const identity = (req: FastifyRequest): Principal =>
     d.auth.verify(bearers.get(req)!);
@@ -174,7 +185,7 @@ export function createHttpService(d: HttpDependencies) {
         )
         .header(
           "Access-Control-Allow-Headers",
-          "Authorization, Content-Type, Idempotency-Key, Last-Event-ID, X-Bridge-Image-Revision, X-Bridge-Completion-Recovery, MCP-Protocol-Version",
+          "Authorization, Content-Type, Idempotency-Key, Last-Event-ID, X-Bridge-Image-Revision, X-Bridge-Completion-Recovery, X-Bridge-Timestamp, X-Bridge-Nonce, X-Bridge-Signature, MCP-Protocol-Version",
         )
         .header("Access-Control-Max-Age", "600");
       return reply.code(204).send();
@@ -187,7 +198,7 @@ export function createHttpService(d: HttpDependencies) {
     const path = req.url.split("?")[0]!;
     // Cluster join exchanges a join token in the body (no bearer yet).
     if (req.method === "POST" && path === "/v1/cluster/join") return;
-    // Worker plane: ffn_ bearer today; Task 8 adds Ed25519 headers on top.
+    // Worker plane: ffn_ bearer + Ed25519 headers (verified in preHandler).
     if (path.startsWith("/v1/cluster/")) {
       if (!d.cluster)
         throw new BridgeError(
@@ -248,6 +259,36 @@ export function createHttpService(d: HttpDependencies) {
       throw new BridgeError("rate_limited", "Request rate limit reached", 429);
     if (rate.size > 1000)
       for (const [k, v] of rate) if (now - v.since >= 60000) rate.delete(k);
+  });
+  app.addHook("preParsing", async (req, _reply, payload) => {
+    const path = req.url.split("?")[0]!;
+    if (!path.startsWith("/v1/cluster/")) return payload;
+    const chunks: Buffer[] = [];
+    for await (const chunk of payload)
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const raw = Buffer.concat(chunks).toString("utf8");
+    rawBodies.set(req, raw);
+    return Readable.from([raw]);
+  });
+  app.addHook("preHandler", async (req) => {
+    const path = req.url.split("?")[0]!;
+    if (!path.startsWith("/v1/cluster/") || path === "/v1/cluster/join") return;
+    if (!d.cluster) return;
+    const credential = bearers.get(req);
+    if (!credential) return;
+    const header = (name: string) => {
+      const value = req.headers[name];
+      return Array.isArray(value) ? value[0] : value;
+    };
+    d.cluster.authenticateWorkerRequest({
+      credential,
+      method: req.method,
+      path,
+      body: rawBodies.get(req) ?? "",
+      timestamp: header("x-bridge-timestamp"),
+      nonce: header("x-bridge-nonce"),
+      signature: header("x-bridge-signature"),
+    });
   });
   app.addHook("onSend", async (_req, reply, payload) => {
     reply
@@ -624,10 +665,11 @@ export function createHttpService(d: HttpDependencies) {
       concurrency: node.concurrency,
       reservePercent: node.reservePercent,
       lastHeartbeatAt: node.lastHeartbeatAt,
+      enrollmentFingerprint: node.enrollmentFingerprint,
+      lastSignedAt: node.lastSignedAt,
       capacity: node.capacity,
       createdAt: node.createdAt,
       updatedAt: node.updatedAt,
-      // Enrollment fingerprint / lastSignedAt arrive with Task 8 Ed25519.
     };
   });
   app.post("/v1/bridge/admin/cluster/nodes/:id/drain", async (req) => {
@@ -812,6 +854,28 @@ export function createHttpService(d: HttpDependencies) {
 
   app.post("/v1/cluster/join", async (req) => {
     const cluster = requireCluster();
+    const remote =
+      req.socket.remoteAddress?.replace(/^::ffff:/i, "") ?? "unknown";
+    const cidrs = d.config.cluster?.allowedWorkerCidrs ?? [];
+    if (!ipAllowedByCidrs(remote, cidrs))
+      throw new BridgeError(
+        "forbidden",
+        "Worker address is not in allowedWorkerCidrs",
+        403,
+      );
+    const limit = d.config.cluster?.joinRateLimitPerMinute ?? 10;
+    const now = Date.now();
+    let entry = joinRate.get(remote);
+    if (!entry || now - entry.since >= 60_000) {
+      entry = { count: 0, since: now };
+      joinRate.set(remote, entry);
+    }
+    if (++entry.count > limit)
+      throw new BridgeError(
+        "rate_limited",
+        "Join rate limit reached",
+        429,
+      );
     const body = clusterJoinBodySchema.parse(req.body);
     return cluster.join(body);
   });

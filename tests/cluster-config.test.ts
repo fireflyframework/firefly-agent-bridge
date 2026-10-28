@@ -107,13 +107,19 @@ it("parses worker cluster.json files", () => {
   expect(worker.reservePercent).toBeNull();
 });
 
-it("migrates to user_version 3 with cluster tables", () => {
+it("migrates to user_version 4 with cluster tables and enrollment columns", () => {
   const db = new DatabaseSync(":memory:");
   migrate(db);
   const version = (
     db.prepare("PRAGMA user_version").get() as { user_version: number }
   ).user_version;
-  expect(version).toBe(3);
+  expect(version).toBe(4);
+  const cols = (
+    db.prepare("PRAGMA table_info(cluster_nodes)").all() as { name: string }[]
+  ).map((row) => row.name);
+  expect(cols).toContain("public_key");
+  expect(cols).toContain("enrollment_fingerprint");
+  expect(cols).toContain("last_signed_at");
   const tables = (
     db
       .prepare(
@@ -157,8 +163,8 @@ it("migrates to user_version 3 with cluster tables", () => {
   ).toBe(1);
 });
 
-it("rejects databases newer than user_version 3", () => {
+it("rejects databases newer than user_version 4", () => {
   const db = new DatabaseSync(":memory:");
-  db.exec("PRAGMA user_version=4");
+  db.exec("PRAGMA user_version=5");
   expect(() => migrate(db)).toThrow(/newer/);
 });

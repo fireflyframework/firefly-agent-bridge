@@ -19,6 +19,7 @@
 
 import { randomBytes } from "node:crypto";
 import type { ClusterAuth } from "./cluster-auth.js";
+import { enrollmentFingerprint } from "./cluster-crypto.js";
 import {
   nodeCapacitySchema,
   type ClusterNodeStatus,
@@ -41,7 +42,10 @@ export type ClusterNodeRecord = {
   status: ClusterNodeStatus;
   concurrency: number;
   reservePercent: number;
+  publicKey: string | null;
+  enrollmentFingerprint: string | null;
   lastHeartbeatAt: string | null;
+  lastSignedAt: string | null;
   capacity: NodeCapacity | null;
   createdAt: string;
   updatedAt: string;
@@ -55,7 +59,10 @@ type NodeRow = {
   concurrency: number;
   reserve_percent: number;
   credential_hash: string;
+  public_key: string | null;
+  enrollment_fingerprint: string | null;
   last_heartbeat_at: string | null;
+  last_signed_at: string | null;
   capacity_json: string | null;
   created_at: string;
   updated_at: string;
@@ -83,7 +90,10 @@ export class ClusterRegistry {
       status: row.status as ClusterNodeStatus,
       concurrency: row.concurrency,
       reservePercent: row.reserve_percent,
+      publicKey: row.public_key ?? null,
+      enrollmentFingerprint: row.enrollment_fingerprint ?? null,
       lastHeartbeatAt: row.last_heartbeat_at,
+      lastSignedAt: row.last_signed_at ?? null,
       capacity: row.capacity_json
         ? (JSON.parse(row.capacity_json) as NodeCapacity)
         : null,
@@ -117,6 +127,7 @@ export class ClusterRegistry {
     worker: "claude" | "codex";
     concurrency: number;
     reservePercent?: number | null;
+    publicKey: string;
   }): { nodeId: string; credential: string } {
     this.auth.verifyJoinToken(input.token);
     if (input.worker !== this.options.worker)
@@ -128,6 +139,12 @@ export class ClusterRegistry {
     const name = input.name.trim();
     if (!name)
       throw new BridgeError("invalid_request", "Node name is required");
+    const publicKey = input.publicKey.trim();
+    if (!publicKey.includes("PUBLIC KEY"))
+      throw new BridgeError(
+        "invalid_request",
+        "Ed25519 publicKey PEM is required",
+      );
     if (
       !Number.isInteger(input.concurrency) ||
       input.concurrency < 1 ||
@@ -140,13 +157,15 @@ export class ClusterRegistry {
     const reservePercent = this.effectiveReserve(input.reservePercent);
     const { credential, hash } = this.auth.issueNodeCredential();
     const nodeId = "node_" + randomBytes(12).toString("base64url");
+    const fingerprint = enrollmentFingerprint(publicKey, name);
     const now = stamp();
     this.store.db
       .prepare(
         `INSERT INTO cluster_nodes(
           id,name,worker,status,concurrency,reserve_percent,credential_hash,
-          last_heartbeat_at,capacity_json,created_at,updated_at
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
+          public_key,enrollment_fingerprint,
+          last_heartbeat_at,last_signed_at,capacity_json,created_at,updated_at
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       )
       .run(
         nodeId,
@@ -156,12 +175,24 @@ export class ClusterRegistry {
         input.concurrency,
         reservePercent,
         hash,
+        publicKey,
+        fingerprint,
+        null,
         null,
         null,
         now,
         now,
       );
     return { nodeId, credential };
+  }
+
+  markSigned(nodeId: string, at?: Date): void {
+    const now = stamp(at);
+    this.store.db
+      .prepare(
+        "UPDATE cluster_nodes SET last_signed_at=?, updated_at=? WHERE id=?",
+      )
+      .run(now, now, nodeId);
   }
 
   heartbeat(
@@ -249,9 +280,15 @@ export class ClusterRegistry {
   remove(nodeId: string): ClusterNodeRecord {
     this.getRow(nodeId);
     const now = stamp();
+    // Revoke credential and enrolled key so stolen material cannot re-auth.
     this.store.db
-      .prepare("UPDATE cluster_nodes SET status=?, updated_at=? WHERE id=?")
-      .run("removed", now, nodeId);
+      .prepare(
+        `UPDATE cluster_nodes
+         SET status=?, credential_hash=?, public_key=NULL,
+             enrollment_fingerprint=NULL, updated_at=?
+         WHERE id=?`,
+      )
+      .run("removed", "revoked:" + randomBytes(16).toString("hex"), now, nodeId);
     return this.mapRow(this.getRow(nodeId));
   }
 
