@@ -143,10 +143,10 @@ A lost lease interrupts the attempt and rejects late completion. The operator mu
 
 When the service runs as a **coordinator**, additional routes manage the pool. Prefer the `bridge cluster` CLI for day-to-day ops; the HTTP surface is for automation. Semantics and examples: [Cluster quota pool](cluster.md). Machine-readable paths: [OpenAPI](openapi.json) (tags `Administration` and `Cluster`).
 
-| Audience | Prefix | Auth |
-| -------- | ------ | ---- |
-| Owner / admin | `/v1/bridge/admin/cluster/…` | Bridge bearer with owner (join tokens, verify-node, drain/remove) |
-| Workers | `/v1/cluster/…` | Join token at `POST /v1/cluster/join`; then node credential + Ed25519 signature headers |
+| Audience      | Prefix                       | Auth                                                                                    |
+| ------------- | ---------------------------- | --------------------------------------------------------------------------------------- |
+| Owner / admin | `/v1/bridge/admin/cluster/…` | Bridge bearer with owner (join tokens, verify-node, drain/remove)                       |
+| Workers       | `/v1/cluster/…`              | Join token at `POST /v1/cluster/join`; then node credential + Ed25519 signature headers |
 
 `GET /v1/bridge/status` includes a `cluster` object (`mode`, `dispatch`, `pool`, optional `nodes`) when cluster mode is enabled.
 

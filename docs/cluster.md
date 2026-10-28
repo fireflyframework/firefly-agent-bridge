@@ -16,12 +16,14 @@ By default Firefly Agent Bridge is **one process on one machine** with one Claud
 
 Clients keep calling the same HTTP, MCP, and OpenAI-compatible endpoints - they talk to the **coordinator** only. They never choose a node. Workers never serve the public client API; they only call **out** to the coordinator.
 
-```mermaid
-flowchart LR
-  Client[Clients / SDKs / MCP] --> Coord[Coordinator<br/>queue + public API]
-  Coord --> W0[Worker A<br/>CLI login]
-  Coord --> W1[Worker B<br/>CLI login]
-  Coord --> W2[Worker C<br/>CLI login]
+```text
+  Clients / SDKs / MCP
+            |
+            v
+     Coordinator (queue + public API)
+        /         |         \
+   Worker A   Worker B   Worker C
+  (CLI login) (CLI login) (CLI login)
 ```
 
 | Piece           | Responsibility                                                              |

@@ -25,9 +25,7 @@
         "operationId": "get_v1_bridge_status",
         "summary": "GET /v1/bridge/status",
         "description": "Requires read authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Jobs"
-        ],
+        "tags": ["Jobs"],
         "x-required-scope": "read",
         "parameters": [],
         "responses": {
@@ -96,9 +94,7 @@
         "operationId": "get_v1_bridge_jobs",
         "summary": "GET /v1/bridge/jobs",
         "description": "Requires read authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Jobs"
-        ],
+        "tags": ["Jobs"],
         "x-required-scope": "read",
         "parameters": [
           {
@@ -123,10 +119,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": [
-                "asc",
-                "desc"
-              ],
+              "enum": ["asc", "desc"],
               "default": "asc"
             }
           }
@@ -160,9 +153,7 @@
         "operationId": "get_v1_bridge_jobs_id",
         "summary": "GET /v1/bridge/jobs/{id}",
         "description": "Requires read authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Jobs"
-        ],
+        "tags": ["Jobs"],
         "x-required-scope": "read",
         "parameters": [
           {
@@ -204,9 +195,7 @@
         "operationId": "get_v1_bridge_jobs_id_audit",
         "summary": "GET /v1/bridge/jobs/{id}/audit",
         "description": "Requires read authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Jobs"
-        ],
+        "tags": ["Jobs"],
         "x-required-scope": "read",
         "parameters": [
           {
@@ -251,10 +240,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": [
-                "true",
-                "false"
-              ],
+              "enum": ["true", "false"],
               "default": "false"
             },
             "description": "Include complete tool inputs/results. Pages stop around 4 MB, always retaining at least one whole entry."
@@ -289,9 +275,7 @@
         "operationId": "get_v1_bridge_jobs_id_tools",
         "summary": "GET /v1/bridge/jobs/{id}/tools",
         "description": "Requires read authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Jobs"
-        ],
+        "tags": ["Jobs"],
         "x-required-scope": "read",
         "parameters": [
           {
@@ -327,10 +311,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": [
-                "true",
-                "false"
-              ],
+              "enum": ["true", "false"],
               "default": "false"
             }
           }
@@ -364,9 +345,7 @@
         "operationId": "get_v1_bridge_jobs_id_tools_tool",
         "summary": "GET /v1/bridge/jobs/{id}/tools/{tool}",
         "description": "Requires read authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Jobs"
-        ],
+        "tags": ["Jobs"],
         "x-required-scope": "read",
         "parameters": [
           {
@@ -417,9 +396,7 @@
         "operationId": "get_v1_bridge_jobs_id_attempts",
         "summary": "GET /v1/bridge/jobs/{id}/attempts",
         "description": "Requires read authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Jobs"
-        ],
+        "tags": ["Jobs"],
         "x-required-scope": "read",
         "parameters": [
           {
@@ -461,9 +438,7 @@
         "operationId": "post_v1_bridge_jobs_id_pause",
         "summary": "POST /v1/bridge/jobs/{id}/pause",
         "description": "Requires control authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Jobs"
-        ],
+        "tags": ["Jobs"],
         "x-required-scope": "control",
         "parameters": [
           {
@@ -516,9 +491,7 @@
         "operationId": "post_v1_bridge_jobs_id_resume",
         "summary": "POST /v1/bridge/jobs/{id}/resume",
         "description": "Requires control authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Jobs"
-        ],
+        "tags": ["Jobs"],
         "x-required-scope": "control",
         "parameters": [
           {
@@ -571,9 +544,7 @@
         "operationId": "get_v1_bridge_jobs_id_result",
         "summary": "GET /v1/bridge/jobs/{id}/result",
         "description": "Requires read authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Jobs"
-        ],
+        "tags": ["Jobs"],
         "x-required-scope": "read",
         "parameters": [
           {
@@ -625,9 +596,7 @@
         "operationId": "get_v1_bridge_jobs_id_messages",
         "summary": "GET /v1/bridge/jobs/{id}/messages",
         "description": "Requires read authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Jobs"
-        ],
+        "tags": ["Jobs"],
         "x-required-scope": "read",
         "parameters": [
           {
@@ -667,9 +636,7 @@
         "operationId": "post_v1_bridge_jobs_id_messages",
         "summary": "POST /v1/bridge/jobs/{id}/messages",
         "description": "Requires submit authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Jobs"
-        ],
+        "tags": ["Jobs"],
         "x-required-scope": "submit",
         "parameters": [
           {
@@ -725,9 +692,7 @@
                     "maxLength": 100000
                   }
                 },
-                "required": [
-                  "text"
-                ],
+                "required": ["text"],
                 "additionalProperties": false
               }
             }
@@ -740,9 +705,7 @@
         "operationId": "post_v1_bridge_jobs_id_cancel",
         "summary": "POST /v1/bridge/jobs/{id}/cancel",
         "description": "Requires control authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Jobs"
-        ],
+        "tags": ["Jobs"],
         "x-required-scope": "control",
         "parameters": [
           {
@@ -795,9 +758,7 @@
         "operationId": "post_v1_bridge_jobs_id_retry",
         "summary": "POST /v1/bridge/jobs/{id}/retry",
         "description": "Requires control authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Jobs"
-        ],
+        "tags": ["Jobs"],
         "x-required-scope": "control",
         "parameters": [
           {
@@ -850,9 +811,7 @@
         "operationId": "get_v1_bridge_events",
         "summary": "GET /v1/bridge/events",
         "description": "Requires read authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Events"
-        ],
+        "tags": ["Events"],
         "x-required-scope": "read",
         "parameters": [
           {
@@ -894,9 +853,7 @@
         "operationId": "post_v1_bridge_workflow-runs",
         "summary": "POST /v1/bridge/workflow-runs",
         "description": "Requires workflows authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Workflows"
-        ],
+        "tags": ["Workflows"],
         "x-required-scope": "workflows",
         "parameters": [
           {
@@ -947,10 +904,7 @@
                     }
                   }
                 },
-                "required": [
-                  "templateId",
-                  "inputs"
-                ],
+                "required": ["templateId", "inputs"],
                 "additionalProperties": false
               }
             }
@@ -961,9 +915,7 @@
         "operationId": "get_v1_bridge_workflow-runs",
         "summary": "GET /v1/bridge/workflow-runs",
         "description": "Requires read authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Workflows"
-        ],
+        "tags": ["Workflows"],
         "x-required-scope": "read",
         "parameters": [],
         "responses": {
@@ -995,9 +947,7 @@
         "operationId": "get_v1_bridge_workflow-runs_id",
         "summary": "GET /v1/bridge/workflow-runs/{id}",
         "description": "Requires read authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Workflows"
-        ],
+        "tags": ["Workflows"],
         "x-required-scope": "read",
         "parameters": [
           {
@@ -1039,9 +989,7 @@
         "operationId": "post_v1_bridge_workflow-runs_id_cancel",
         "summary": "POST /v1/bridge/workflow-runs/{id}/cancel",
         "description": "Requires control authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Workflows"
-        ],
+        "tags": ["Workflows"],
         "x-required-scope": "control",
         "parameters": [
           {
@@ -1094,9 +1042,7 @@
         "operationId": "post_v1_bridge_workflow-runs_id_pause",
         "summary": "POST /v1/bridge/workflow-runs/{id}/pause",
         "description": "Requires control authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Workflows"
-        ],
+        "tags": ["Workflows"],
         "x-required-scope": "control",
         "parameters": [
           {
@@ -1149,9 +1095,7 @@
         "operationId": "post_v1_bridge_workflow-runs_id_resume",
         "summary": "POST /v1/bridge/workflow-runs/{id}/resume",
         "description": "Requires control authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Workflows"
-        ],
+        "tags": ["Workflows"],
         "x-required-scope": "control",
         "parameters": [
           {
@@ -1204,9 +1148,7 @@
         "operationId": "post_v1_bridge_admin_pause",
         "summary": "POST /v1/bridge/admin/pause",
         "description": "Requires owner authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [],
         "responses": {
@@ -1249,9 +1191,7 @@
         "operationId": "post_v1_bridge_admin_resume",
         "summary": "POST /v1/bridge/admin/resume",
         "description": "Requires owner authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [],
         "responses": {
@@ -1294,9 +1234,7 @@
         "operationId": "post_v1_bridge_admin_stop",
         "summary": "POST /v1/bridge/admin/stop",
         "description": "Requires owner authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [],
         "responses": {
@@ -1339,9 +1277,7 @@
         "operationId": "get_v1_bridge_admin_tokens",
         "summary": "GET /v1/bridge/admin/tokens",
         "description": "Requires owner authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [],
         "responses": {
@@ -1371,9 +1307,7 @@
         "operationId": "post_v1_bridge_admin_tokens",
         "summary": "POST /v1/bridge/admin/tokens",
         "description": "Requires owner authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [],
         "responses": {
@@ -1420,20 +1354,11 @@
                     "type": "array",
                     "minItems": 1,
                     "items": {
-                      "enum": [
-                        "read",
-                        "submit",
-                        "control",
-                        "workflows"
-                      ]
+                      "enum": ["read", "submit", "control", "workflows"]
                     }
                   }
                 },
-                "required": [
-                  "id",
-                  "profiles",
-                  "scopes"
-                ],
+                "required": ["id", "profiles", "scopes"],
                 "additionalProperties": false
               }
             }
@@ -1446,9 +1371,7 @@
         "operationId": "post_v1_bridge_admin_tokens_revoke",
         "summary": "POST /v1/bridge/admin/tokens/revoke",
         "description": "Requires owner authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [],
         "responses": {
@@ -1484,9 +1407,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "id"
-                ],
+                "required": ["id"],
                 "additionalProperties": false
               }
             }
@@ -1499,9 +1420,7 @@
         "operationId": "post_v1_bridge_hosts_heartbeat",
         "summary": "POST /v1/bridge/hosts/heartbeat",
         "description": "Requires owner authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [],
         "responses": {
@@ -1537,9 +1456,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "id"
-                ],
+                "required": ["id"],
                 "additionalProperties": false
               }
             }
@@ -1552,9 +1469,7 @@
         "operationId": "post_v1_bridge_hosts_disconnect",
         "summary": "POST /v1/bridge/hosts/disconnect",
         "description": "Requires owner authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [],
         "responses": {
@@ -1590,9 +1505,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "id"
-                ],
+                "required": ["id"],
                 "additionalProperties": false
               }
             }
@@ -1605,9 +1518,7 @@
         "operationId": "get_v1_bridge_channel_pending",
         "summary": "GET /v1/bridge/channel/pending",
         "description": "Requires owner authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [],
         "responses": {
@@ -1639,9 +1550,7 @@
         "operationId": "post_v1_bridge_channel_claim",
         "summary": "POST /v1/bridge/channel/claim",
         "description": "Requires owner authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [],
         "responses": {
@@ -1681,10 +1590,7 @@
                     "format": "uuid"
                   }
                 },
-                "required": [
-                  "hostId",
-                  "jobId"
-                ],
+                "required": ["hostId", "jobId"],
                 "additionalProperties": false
               }
             }
@@ -1697,9 +1603,7 @@
         "operationId": "get_v1_bridge_admin_templates",
         "summary": "GET /v1/bridge/admin/templates",
         "description": "Requires owner authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [],
         "responses": {
@@ -1731,9 +1635,7 @@
         "operationId": "put_v1_bridge_admin_templates_templateId",
         "summary": "PUT /v1/bridge/admin/templates/{templateId}",
         "description": "Requires owner authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [
           {
@@ -1782,9 +1684,7 @@
         "operationId": "delete_v1_bridge_admin_templates_templateId",
         "summary": "DELETE /v1/bridge/admin/templates/{templateId}",
         "description": "Requires owner authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [
           {
@@ -1825,9 +1725,7 @@
         "operationId": "post_v1_bridge_channel_progress",
         "summary": "POST /v1/bridge/channel/progress",
         "description": "Requires owner authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [],
         "responses": {
@@ -1875,12 +1773,7 @@
                     "maxLength": 16000
                   }
                 },
-                "required": [
-                  "hostId",
-                  "attemptId",
-                  "fence",
-                  "text"
-                ],
+                "required": ["hostId", "attemptId", "fence", "text"],
                 "additionalProperties": false
               }
             }
@@ -1893,9 +1786,7 @@
         "operationId": "post_v1_bridge_channel_complete",
         "summary": "POST /v1/bridge/channel/complete",
         "description": "Requires owner authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [],
         "responses": {
@@ -1943,12 +1834,7 @@
                     "maxLength": 100000
                   }
                 },
-                "required": [
-                  "hostId",
-                  "attemptId",
-                  "fence",
-                  "result"
-                ],
+                "required": ["hostId", "attemptId", "fence", "result"],
                 "additionalProperties": false
               }
             }
@@ -1961,9 +1847,7 @@
         "operationId": "post_v1_bridge_channel_stopped",
         "summary": "POST /v1/bridge/channel/stopped",
         "description": "Requires owner authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [],
         "responses": {
@@ -2007,11 +1891,7 @@
                     "format": "uuid"
                   }
                 },
-                "required": [
-                  "hostId",
-                  "attemptId",
-                  "fence"
-                ],
+                "required": ["hostId", "attemptId", "fence"],
                 "additionalProperties": false
               }
             }
@@ -2024,9 +1904,7 @@
         "operationId": "get_v1_bridge_completion-requests_request",
         "summary": "GET /v1/bridge/completion-requests/{request}",
         "description": "Requires read authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Jobs"
-        ],
+        "tags": ["Jobs"],
         "x-required-scope": "read",
         "parameters": [
           {
@@ -2067,9 +1945,7 @@
         "operationId": "get_v1_models",
         "summary": "GET /v1/models",
         "description": "Requires read authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "OpenAI compatibility"
-        ],
+        "tags": ["OpenAI compatibility"],
         "x-required-scope": "read",
         "parameters": [],
         "responses": {
@@ -2101,9 +1977,7 @@
         "operationId": "post_v1_chat_completions",
         "summary": "POST /v1/chat/completions",
         "description": "Requires read + submit authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "OpenAI compatibility"
-        ],
+        "tags": ["OpenAI compatibility"],
         "x-required-scope": "read + submit",
         "parameters": [
           {
@@ -2188,10 +2062,7 @@
                           "pattern": "^fbr1_[a-f0-9]{32}$"
                         }
                       },
-                      "required": [
-                        "id",
-                        "completion_request_id"
-                      ],
+                      "required": ["id", "completion_request_id"],
                       "additionalProperties": false
                     }
                   ]
@@ -2245,9 +2116,7 @@
         "operationId": "post_v1_bridge_image-input_probes",
         "summary": "POST /v1/bridge/image-input/probes",
         "description": "Requires owner authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [],
         "responses": {
@@ -2287,10 +2156,7 @@
                     "format": "uuid"
                   }
                 },
-                "required": [
-                  "profile",
-                  "request_id"
-                ],
+                "required": ["profile", "request_id"],
                 "additionalProperties": false
               }
             }
@@ -2303,9 +2169,7 @@
         "operationId": "get_v1_bridge_image-input_probes_id",
         "summary": "GET /v1/bridge/image-input/probes/{id}",
         "description": "Requires owner authorization. See api.md for lifecycle semantics, errors, and response fields.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [
           {
@@ -2347,9 +2211,7 @@
         "operationId": "post_v1_bridge_admin_cluster_join-tokens",
         "summary": "POST /v1/bridge/admin/cluster/join-tokens",
         "description": "Owner: create a short-lived cluster join token. See cluster.md.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [],
         "responses": {
@@ -2392,9 +2254,7 @@
         "operationId": "post_v1_bridge_admin_cluster_join-tokens_revoke",
         "summary": "POST /v1/bridge/admin/cluster/join-tokens/revoke",
         "description": "Requires owner authorization. See api.md and cluster.md for lifecycle semantics.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [],
         "responses": {
@@ -2430,9 +2290,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "id"
-                ],
+                "required": ["id"],
                 "additionalProperties": false
               }
             }
@@ -2445,9 +2303,7 @@
         "operationId": "get_v1_bridge_admin_cluster_nodes_id",
         "summary": "GET /v1/bridge/admin/cluster/nodes/{id}",
         "description": "Owner: verify-node detail including enrollment fingerprint.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [
           {
@@ -2486,9 +2342,7 @@
         "operationId": "delete_v1_bridge_admin_cluster_nodes_id",
         "summary": "DELETE /v1/bridge/admin/cluster/nodes/{id}",
         "description": "Requires owner authorization. See api.md and cluster.md for lifecycle semantics.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [
           {
@@ -2529,9 +2383,7 @@
         "operationId": "post_v1_bridge_admin_cluster_nodes_id_drain",
         "summary": "POST /v1/bridge/admin/cluster/nodes/{id}/drain",
         "description": "Requires owner authorization. See api.md and cluster.md for lifecycle semantics.",
-        "tags": [
-          "Administration"
-        ],
+        "tags": ["Administration"],
         "x-required-scope": "owner",
         "parameters": [
           {
@@ -2583,9 +2435,7 @@
         "operationId": "post_v1_cluster_join",
         "summary": "POST /v1/cluster/join",
         "description": "Worker enrollment with a join token. Returns nodeId and credential. See cluster.md.",
-        "tags": [
-          "Cluster"
-        ],
+        "tags": ["Cluster"],
         "x-required-scope": "join",
         "parameters": [],
         "responses": {
@@ -2628,9 +2478,7 @@
         "operationId": "post_v1_cluster_nodes_id_heartbeat",
         "summary": "POST /v1/cluster/nodes/{id}/heartbeat",
         "description": "Requires cluster:worker authorization. See api.md and cluster.md for lifecycle semantics.",
-        "tags": [
-          "Cluster"
-        ],
+        "tags": ["Cluster"],
         "x-required-scope": "cluster:worker",
         "parameters": [
           {
@@ -2682,9 +2530,7 @@
         "operationId": "post_v1_cluster_nodes_id_claim",
         "summary": "POST /v1/cluster/nodes/{id}/claim",
         "description": "Requires cluster:worker authorization. See api.md and cluster.md for lifecycle semantics.",
-        "tags": [
-          "Cluster"
-        ],
+        "tags": ["Cluster"],
         "x-required-scope": "cluster:worker",
         "parameters": [
           {
@@ -2736,9 +2582,7 @@
         "operationId": "post_v1_cluster_attempts_id_events",
         "summary": "POST /v1/cluster/attempts/{id}/events",
         "description": "Requires cluster:worker authorization. See api.md and cluster.md for lifecycle semantics.",
-        "tags": [
-          "Cluster"
-        ],
+        "tags": ["Cluster"],
         "x-required-scope": "cluster:worker",
         "parameters": [
           {
@@ -2790,9 +2634,7 @@
         "operationId": "post_v1_cluster_attempts_id_finish",
         "summary": "POST /v1/cluster/attempts/{id}/finish",
         "description": "Requires cluster:worker authorization. See api.md and cluster.md for lifecycle semantics.",
-        "tags": [
-          "Cluster"
-        ],
+        "tags": ["Cluster"],
         "x-required-scope": "cluster:worker",
         "parameters": [
           {
@@ -2844,9 +2686,7 @@
         "operationId": "post_v1_cluster_nodes_id_drain",
         "summary": "POST /v1/cluster/nodes/{id}/drain",
         "description": "Requires cluster:worker authorization. See api.md and cluster.md for lifecycle semantics.",
-        "tags": [
-          "Cluster"
-        ],
+        "tags": ["Cluster"],
         "x-required-scope": "cluster:worker",
         "parameters": [
           {
@@ -2898,9 +2738,7 @@
         "operationId": "delete_v1_cluster_nodes_id",
         "summary": "DELETE /v1/cluster/nodes/{id}",
         "description": "Requires cluster:worker authorization. See api.md and cluster.md for lifecycle semantics.",
-        "tags": [
-          "Cluster"
-        ],
+        "tags": ["Cluster"],
         "x-required-scope": "cluster:worker",
         "parameters": [
           {
@@ -2941,9 +2779,7 @@
         "operationId": "get_v1_health",
         "summary": "GET /v1/health",
         "description": "Unauthenticated liveness for local supervisors.",
-        "tags": [
-          "Health"
-        ],
+        "tags": ["Health"],
         "x-required-scope": "public",
         "parameters": [],
         "responses": {
@@ -3069,12 +2905,7 @@
           },
           "state": {
             "type": "string",
-            "enum": [
-              "pending",
-              "paused",
-              "terminal",
-              "result_unavailable"
-            ]
+            "enum": ["pending", "paused", "terminal", "result_unavailable"]
           },
           "terminal": {
             "anyOf": [
@@ -3136,10 +2967,7 @@
                   },
                   "reason": {
                     "type": "string",
-                    "enum": [
-                      "result_too_large",
-                      "invalid_completion"
-                    ]
+                    "enum": ["result_too_large", "invalid_completion"]
                   },
                   "digest": {
                     "type": "string",
@@ -3199,16 +3027,10 @@
                     ]
                   },
                   "retry_at": {
-                    "type": [
-                      "number",
-                      "null"
-                    ]
+                    "type": ["number", "null"]
                   }
                 },
-                "required": [
-                  "reason",
-                  "retry_at"
-                ],
+                "required": ["reason", "retry_at"],
                 "additionalProperties": false
               },
               {
@@ -3244,13 +3066,7 @@
               "properties": {
                 "role": {
                   "type": "string",
-                  "enum": [
-                    "system",
-                    "developer",
-                    "user",
-                    "assistant",
-                    "tool"
-                  ]
+                  "enum": ["system", "developer", "user", "assistant", "tool"]
                 },
                 "content": {
                   "anyOf": [
@@ -3275,10 +3091,7 @@
                                     "type": "string"
                                   }
                                 },
-                                "required": [
-                                  "type",
-                                  "text"
-                                ],
+                                "required": ["type", "text"],
                                 "additionalProperties": false
                               },
                               {
@@ -3299,16 +3112,11 @@
                                         "const": "auto"
                                       }
                                     },
-                                    "required": [
-                                      "url"
-                                    ],
+                                    "required": ["url"],
                                     "additionalProperties": false
                                   }
                                 },
-                                "required": [
-                                  "type",
-                                  "image_url"
-                                ],
+                                "required": ["type", "image_url"],
                                 "additionalProperties": false
                               }
                             ]
@@ -3352,18 +3160,11 @@
                             "type": "string"
                           }
                         },
-                        "required": [
-                          "name",
-                          "arguments"
-                        ],
+                        "required": ["name", "arguments"],
                         "additionalProperties": false
                       }
                     },
-                    "required": [
-                      "id",
-                      "type",
-                      "function"
-                    ],
+                    "required": ["id", "type", "function"],
                     "additionalProperties": false
                   }
                 },
@@ -3373,9 +3174,7 @@
                   "maxLength": 200
                 }
               },
-              "required": [
-                "role"
-              ],
+              "required": ["role"],
               "additionalProperties": false
             }
           },
@@ -3416,16 +3215,11 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "name"
-                  ],
+                  "required": ["name"],
                   "additionalProperties": false
                 }
               },
-              "required": [
-                "type",
-                "function"
-              ],
+              "required": ["type", "function"],
               "additionalProperties": false
             }
           },
@@ -3433,11 +3227,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "enum": [
-                  "none",
-                  "auto",
-                  "required"
-                ]
+                "enum": ["none", "auto", "required"]
               },
               {
                 "type": "object",
@@ -3454,16 +3244,11 @@
                         "pattern": "^[a-zA-Z0-9_-]{1,64}$"
                       }
                     },
-                    "required": [
-                      "name"
-                    ],
+                    "required": ["name"],
                     "additionalProperties": false
                   }
                 },
-                "required": [
-                  "type",
-                  "function"
-                ],
+                "required": ["type", "function"],
                 "additionalProperties": false
               }
             ]
@@ -3485,9 +3270,7 @@
                     "const": "text"
                   }
                 },
-                "required": [
-                  "type"
-                ],
+                "required": ["type"],
                 "additionalProperties": false
               },
               {
@@ -3498,9 +3281,7 @@
                     "const": "json_object"
                   }
                 },
-                "required": [
-                  "type"
-                ],
+                "required": ["type"],
                 "additionalProperties": false
               },
               {
@@ -3531,17 +3312,11 @@
                         "type": "boolean"
                       }
                     },
-                    "required": [
-                      "name",
-                      "schema"
-                    ],
+                    "required": ["name", "schema"],
                     "additionalProperties": false
                   }
                 },
-                "required": [
-                  "type",
-                  "json_schema"
-                ],
+                "required": ["type", "json_schema"],
                 "additionalProperties": false
               }
             ]
@@ -3578,11 +3353,7 @@
               "execution": {
                 "default": "inference",
                 "type": "string",
-                "enum": [
-                  "inference",
-                  "agent",
-                  "channel"
-                ]
+                "enum": ["inference", "agent", "channel"]
               },
               "background": {
                 "default": false,
@@ -3592,10 +3363,7 @@
             "additionalProperties": false
           }
         },
-        "required": [
-          "model",
-          "messages"
-        ],
+        "required": ["model", "messages"],
         "additionalProperties": false
       },
       "ChatCompletion": {
@@ -3628,10 +3396,7 @@
                       "const": "assistant"
                     },
                     "content": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     },
                     "tool_calls": {
                       "type": "array",
@@ -3642,17 +3407,10 @@
                   }
                 },
                 "finish_reason": {
-                  "enum": [
-                    "stop",
-                    "tool_calls"
-                  ]
+                  "enum": ["stop", "tool_calls"]
                 }
               },
-              "required": [
-                "index",
-                "message",
-                "finish_reason"
-              ],
+              "required": ["index", "message", "finish_reason"],
               "additionalProperties": false
             }
           },
@@ -3660,13 +3418,7 @@
             "$ref": "#/components/schemas/Usage"
           }
         },
-        "required": [
-          "id",
-          "object",
-          "created",
-          "model",
-          "choices"
-        ],
+        "required": ["id", "object", "created", "model", "choices"],
         "additionalProperties": false
       },
       "Usage": {
@@ -3682,11 +3434,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "prompt_tokens",
-          "completion_tokens",
-          "total_tokens"
-        ],
+        "required": ["prompt_tokens", "completion_tokens", "total_tokens"],
         "additionalProperties": false
       },
       "Models": {
@@ -3713,26 +3461,16 @@
                   "type": "string"
                 },
                 "worker": {
-                  "enum": [
-                    "codex",
-                    "claude"
-                  ]
+                  "enum": ["codex", "claude"]
                 },
                 "native_model": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
+                  "type": ["string", "null"]
                 },
                 "image_input": {
                   "type": "object",
                   "properties": {
                     "status": {
-                      "enum": [
-                        "unverified",
-                        "verified",
-                        "unsupported"
-                      ]
+                      "enum": ["unverified", "verified", "unsupported"]
                     },
                     "config_revision": {
                       "type": "string",
@@ -3785,29 +3523,17 @@
             }
           }
         },
-        "required": [
-          "object",
-          "data"
-        ],
+        "required": ["object", "data"],
         "additionalProperties": false
       },
       "AuthenticationObservation": {
         "type": "object",
         "properties": {
           "provider": {
-            "enum": [
-              "claude",
-              "codex",
-              null
-            ]
+            "enum": ["claude", "codex", null]
           },
           "state": {
-            "enum": [
-              "unknown",
-              "authenticated",
-              "required",
-              "unavailable"
-            ]
+            "enum": ["unknown", "authenticated", "required", "unavailable"]
           },
           "source": {
             "enum": [
@@ -3817,36 +3543,21 @@
             ]
           },
           "observedAt": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "format": "date-time"
           }
         },
-        "required": [
-          "provider",
-          "state",
-          "source",
-          "observedAt"
-        ],
+        "required": ["provider", "state", "source", "observedAt"],
         "additionalProperties": false
       },
       "QuotaObservation": {
         "type": "object",
         "properties": {
           "provider": {
-            "enum": [
-              "claude",
-              "codex",
-              null
-            ]
+            "enum": ["claude", "codex", null]
           },
           "state": {
-            "enum": [
-              "unknown",
-              "limited"
-            ]
+            "enum": ["unknown", "limited"]
           },
           "source": {
             "enum": [
@@ -3856,27 +3567,15 @@
             ]
           },
           "observedAt": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "format": "date-time"
           },
           "resetAt": {
-            "type": [
-              "integer",
-              "null"
-            ],
+            "type": ["integer", "null"],
             "description": "Last reported provider reset in Unix milliseconds; not evidence that allowance returned"
           }
         },
-        "required": [
-          "provider",
-          "state",
-          "source",
-          "observedAt",
-          "resetAt"
-        ],
+        "required": ["provider", "state", "source", "observedAt", "resetAt"],
         "additionalProperties": false
       },
       "ProviderObservations": {
@@ -3905,12 +3604,7 @@
             "type": "object",
             "properties": {
               "state": {
-                "enum": [
-                  "enabled",
-                  "paused",
-                  "checking",
-                  "unavailable"
-                ]
+                "enum": ["enabled", "paused", "checking", "unavailable"]
               },
               "source": {
                 "const": "scheduler"
@@ -3923,11 +3617,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "state",
-              "source",
-              "observedAt"
-            ],
+            "required": ["state", "source", "observedAt"],
             "additionalProperties": false
           }
         },
@@ -3984,33 +3674,17 @@
                   "pattern": "^[a-zA-Z0-9_-]{1,64}$"
                 }
               },
-              "required": [
-                "id",
-                "prompt",
-                "profile"
-              ],
+              "required": ["id", "prompt", "profile"],
               "additionalProperties": false
             }
           }
         },
-        "required": [
-          "id",
-          "description",
-          "inputs",
-          "steps"
-        ],
+        "required": ["id", "description", "inputs", "steps"],
         "additionalProperties": false
       },
       "Job": {
         "type": "object",
-        "required": [
-          "id",
-          "prompt",
-          "profile",
-          "mode",
-          "status",
-          "messages"
-        ],
+        "required": ["id", "prompt", "profile", "mode", "status", "messages"],
         "properties": {
           "id": {
             "type": "string",
@@ -4023,10 +3697,7 @@
             "type": "string"
           },
           "mode": {
-            "enum": [
-              "cli",
-              "channel"
-            ]
+            "enum": ["cli", "channel"]
           },
           "status": {
             "enum": [
@@ -4109,12 +3780,7 @@
             "type": "string"
           },
           "status": {
-            "enum": [
-              "requested",
-              "succeeded",
-              "failed",
-              "unknown"
-            ]
+            "enum": ["requested", "succeeded", "failed", "unknown"]
           },
           "requestedAt": {
             "type": "string"
@@ -4132,29 +3798,16 @@
                 "type": "string"
               },
               "operation": {
-                "enum": [
-                  "read",
-                  "write",
-                  "edit"
-                ]
+                "enum": ["read", "write", "edit"]
               }
             },
-            "required": [
-              "path",
-              "operation"
-            ],
+            "required": ["path", "operation"],
             "additionalProperties": false
           },
           "input": {},
           "output": {}
         },
-        "required": [
-          "id",
-          "jobId",
-          "attemptId",
-          "toolId",
-          "status"
-        ],
+        "required": ["id", "jobId", "attemptId", "toolId", "status"],
         "additionalProperties": false
       },
       "AuditEntry": {
@@ -4178,11 +3831,7 @@
             "type": "string"
           },
           "source": {
-            "enum": [
-              "claude",
-              "bridge",
-              "client"
-            ]
+            "enum": ["claude", "bridge", "client"]
           },
           "createdAt": {
             "type": "string"
@@ -4192,14 +3841,7 @@
             "additionalProperties": true
           }
         },
-        "required": [
-          "id",
-          "jobId",
-          "type",
-          "source",
-          "createdAt",
-          "data"
-        ],
+        "required": ["id", "jobId", "type", "source", "createdAt", "data"],
         "additionalProperties": false
       },
       "AuditPage": {
@@ -4215,10 +3857,7 @@
             "type": "integer"
           },
           "nextCursor": {
-            "type": [
-              "integer",
-              "null"
-            ]
+            "type": ["integer", "null"]
           },
           "summary": {
             "type": "object",
@@ -4242,11 +3881,7 @@
                 "type": "integer"
               },
               "coverage": {
-                "enum": [
-                  "native_tools",
-                  "client_functions",
-                  "host_lifecycle"
-                ]
+                "enum": ["native_tools", "client_functions", "host_lifecycle"]
               }
             },
             "required": [
@@ -4261,12 +3896,7 @@
             "additionalProperties": false
           }
         },
-        "required": [
-          "entries",
-          "through",
-          "nextCursor",
-          "summary"
-        ],
+        "required": ["entries", "through", "nextCursor", "summary"],
         "additionalProperties": false
       },
       "ToolPage": {
@@ -4279,16 +3909,10 @@
             }
           },
           "nextCursor": {
-            "type": [
-              "integer",
-              "null"
-            ]
+            "type": ["integer", "null"]
           }
         },
-        "required": [
-          "tools",
-          "nextCursor"
-        ],
+        "required": ["tools", "nextCursor"],
         "additionalProperties": false
       },
       "Error": {
@@ -4317,18 +3941,11 @@
                 "format": "uuid"
               }
             },
-            "required": [
-              "code",
-              "message",
-              "type",
-              "param"
-            ],
+            "required": ["code", "message", "type", "param"],
             "additionalProperties": false
           }
         },
-        "required": [
-          "error"
-        ],
+        "required": ["error"],
         "additionalProperties": false
       }
     }
