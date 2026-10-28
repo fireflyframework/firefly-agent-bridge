@@ -338,9 +338,28 @@ export class ClusterCoordinator {
     return this.registry.remove(nodeId);
   }
 
-  /** Periodic registry housekeeping (stale/offline transitions). */
+  /**
+   * When a node flips to offline, interrupt its running attempts (sticky
+   * sessionNodeId retained via store.finish — same spirit as recover()).
+   */
+  private interruptOfflineNode(nodeId: string): void {
+    const rows = this.store.db
+      .prepare("SELECT data FROM attempts")
+      .all() as { data: string }[];
+    for (const row of rows) {
+      const attempt = JSON.parse(row.data) as Attempt;
+      if (attempt.nodeId !== nodeId || attempt.status !== "running") continue;
+      this.store.finish(attempt, {
+        status: "interrupted",
+        error: "Worker ownership lost; explicit retry required",
+      });
+    }
+  }
+
+  /** Periodic registry housekeeping (stale/offline → interrupt). */
   tick(): void {
-    this.registry.markStale();
+    const { offline } = this.registry.markStale();
+    for (const nodeId of offline) this.interruptOfflineNode(nodeId);
   }
 
   status(includeNodes: boolean): ClusterStatus {

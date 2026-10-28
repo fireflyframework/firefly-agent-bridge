@@ -831,3 +831,22 @@ export function createHttpService(d: HttpDependencies) {
   );
   return app;
 }
+
+/**
+ * Worker-only health JSON. Bind exclusively to 127.0.0.1 (CLI `--health-port`).
+ * Does not load UI assets or expose public client routes.
+ */
+export function createWorkerHealthApp(
+  health: () => Record<string, unknown>,
+): ReturnType<typeof Fastify> {
+  const app = Fastify({
+    logger: false,
+    bodyLimit: 4096,
+    requestTimeout: 5000,
+    trustProxy: false,
+    forceCloseConnections: true,
+  });
+  app.get("/health", async () => health());
+  app.get("/v1/health", async () => health());
+  return app;
+}

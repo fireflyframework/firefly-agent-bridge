@@ -45,6 +45,7 @@ import { createHttpService } from "./http.js";
 import { ClusterAuth } from "./cluster-auth.js";
 import { ClusterCoordinator } from "./cluster-coordinator.js";
 import { ClusterRegistry } from "./cluster-registry.js";
+import { startClusterWorker } from "./cluster-worker.js";
 import type { BridgeConfig } from "./config.js";
 import type { Worker } from "./worker.js";
 import type { Job } from "./contracts.js";
@@ -58,6 +59,8 @@ export async function startService(
   options: {
     managed?: boolean;
     worker?: (job: Job, imageExecution?: ImageExecution) => Worker;
+    /** Worker-only: optional JSON health on 127.0.0.1 (Task 6 wires --health-port). */
+    healthPort?: number;
   } = {},
 ) {
   mkdirSync(config.dataDir, { recursive: true, mode: 0o700 });
@@ -131,23 +134,26 @@ export async function startService(
       };
     };
     const isCoordinator = config.cluster?.mode === "coordinator";
+    const isWorker = config.cluster?.mode === "worker";
     const scheduler = new Scheduler(
       store,
       flows,
       workerFor,
       config.workspace,
       config.concurrency,
-      !isCoordinator,
+      !isCoordinator && !isWorker,
     );
     scheduler.readiness = options.worker
       ? { ready: true }
       : isCoordinator
         ? { ready: true, reason: "cluster_coordinator" }
-        : {
-            ready: false,
-            reason:
-              "Checking the official " + config.worker + " subscription login",
-          };
+        : isWorker
+          ? { ready: true, reason: "cluster_worker" }
+          : {
+              ready: false,
+              reason:
+                "Checking the official " + config.worker + " subscription login",
+            };
     const cluster = isCoordinator
       ? new ClusterCoordinator(
           store,
@@ -166,6 +172,65 @@ export async function startService(
     let closing: Promise<void> | undefined,
       timer: ReturnType<typeof setInterval> | undefined,
       idleSince = Date.now();
+    let clusterWorker: Awaited<ReturnType<typeof startClusterWorker>> | undefined;
+
+    if (isWorker) {
+      function close(): Promise<void> {
+        return (closing ??= (async () => {
+          if (timer) clearInterval(timer);
+          try {
+            await clusterWorker?.stop();
+          } finally {
+            try {
+              await scheduler.stop();
+            } finally {
+              try {
+                store.close();
+              } finally {
+                await release().catch(() => {});
+              }
+            }
+          }
+        })());
+      }
+      closeService = close;
+      try {
+        clusterWorker = await startClusterWorker(config, {
+          healthPort: options.healthPort,
+          ...(options.worker
+            ? {
+                workerFactory: (claim) =>
+                  options.worker!(claim.job, claim.imageExecution),
+              }
+            : {}),
+        });
+        const address =
+          clusterWorker.address ??
+          "cluster-worker://" +
+            JSON.parse(
+              readFileSync(join(config.dataDir, "cluster.json"), "utf8"),
+            ).nodeId;
+        privateWrite(
+          join(config.dataDir, "service.json"),
+          JSON.stringify({
+            address,
+            instanceId,
+            protocolVersion: 2,
+            pid: process.pid,
+            clusterMode: "worker",
+          }),
+        );
+        timer = setInterval(() => {
+          if (compromised) void close();
+        }, 1000);
+        timer.unref();
+        return { address, ownerToken, instanceId, store, scheduler, close };
+      } catch (error) {
+        await close();
+        throw error;
+      }
+    }
+
     const app = createHttpService({
       store,
       auth,
