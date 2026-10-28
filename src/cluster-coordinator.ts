@@ -172,16 +172,14 @@ export class ClusterCoordinator {
   /** Pool-wide admin pause: durable gate + pause_requested on running cluster attempts. */
   pauseDispatch(reason = "operator_pause"): void {
     this.store.atomic(() => {
-      this.store.db
-        .prepare("INSERT OR REPLACE INTO metadata VALUES(?,?)")
-        .run(
-          DISPATCH_KEY,
-          JSON.stringify({
-            paused: true,
-            reason,
-            at: new Date().toISOString(),
-          }),
-        );
+      this.store.db.prepare("INSERT OR REPLACE INTO metadata VALUES(?,?)").run(
+        DISPATCH_KEY,
+        JSON.stringify({
+          paused: true,
+          reason,
+          at: new Date().toISOString(),
+        }),
+      );
       const rows = this.store.db
         .prepare(
           "SELECT data FROM jobs WHERE status IN ('running','pause_requested')",
