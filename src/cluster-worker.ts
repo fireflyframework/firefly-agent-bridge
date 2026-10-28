@@ -243,14 +243,15 @@ export async function startClusterWorker(
           updatedAt: now,
           messages: [],
         },
-        profile: config.profiles.default,
+        profile: config.profiles.default!,
       });
     }
     const path =
       config.worker === "codex" ? config.codexPath : config.claudePath;
+    const profile = config.profiles.default!;
     return new (config.worker === "codex" ? CodexWorker : ClaudeWorker)({
       path: path!,
-      ...config.profiles.default,
+      ...profile,
     });
   }
 

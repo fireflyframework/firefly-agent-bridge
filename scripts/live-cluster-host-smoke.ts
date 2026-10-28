@@ -293,8 +293,10 @@ async function runPool(opts: {
   const job = JSON.parse(submitBody) as { id: string; status?: string };
   log("job submitted", job);
 
-  let final: { id: string; status: string; result?: string; error?: string } =
-    job;
+  let final: { id: string; status: string; result?: string; error?: string } = {
+    id: job.id,
+    status: job.status ?? "queued",
+  };
   for (let i = 0; i < 120; i++) {
     await sleep(2000);
     const r = await fetch(`${coordUrl}/v1/bridge/jobs/${job.id}`, {

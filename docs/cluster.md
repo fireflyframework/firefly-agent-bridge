@@ -8,15 +8,15 @@ description: Run a headless company pool of Claude or Codex subscription workers
 
 !!! warning "Subscriptions and terms"
 
-    Each worker uses its own signed-in coding CLI subscription. Pooling does not create extra provider capacity beyond those subscriptions. Confirm your plan and company policy before joining company machines to a shared coordinator. The diagnostic dashboard is optional and never required for cluster operations.
+ Each worker uses its own signed-in coding CLI subscription. Pooling does not create extra provider capacity beyond those subscriptions. Confirm your plan and company policy before joining company machines to a shared coordinator. The diagnostic dashboard is optional and never required for cluster operations.
 
 Cluster mode turns many headless bridge **workers** (each with one Claude Code or Codex login) into one logical bridge behind a **coordinator**. Clients keep using the same HTTP, MCP, and OpenAI-compatible APIs. The coordinator fair-shares new work, keeps a configurable **reserve** of each node’s estimated quota unused (default 10%), and sticks native sessions to the node that created them.
 
-The coordinator is intended to run on an **internet-reachable host** (or private network). Workers call the coordinator over **HTTPS** and stay headless — no UI required. See [Architecture — Cluster mode](architecture.md#cluster-mode-optional) for how this fits the single-node model; [Service lifecycle](operations.md) covers graceful stop and backups for any data directory.
+The coordinator is intended to run on an **internet-reachable host** (or private network). Workers call the coordinator over **HTTPS** and stay headless - no UI required. See [Architecture - Cluster mode](architecture.md#cluster-mode-optional) for how this fits the single-node model; [Service lifecycle](operations.md) covers graceful stop and backups for any data directory.
 
 !!! note "How to run the pool"
 
-    Use **`bridge serve --cluster-coordinator`** / **`--cluster-worker`** under systemd, Docker, or another supervisor, **or** **`bridge daemon start|status|stop`** with pidfile/logfile for bare VMs. Internet coordinators require listener TLS (`--tls-cert` / `--tls-key`). Workers enroll an Ed25519 key at join and sign every mutating coordinator request.
+ Use **`bridge serve --cluster-coordinator`** / **`--cluster-worker`** under systemd, Docker, or another supervisor, **or** **`bridge daemon start|status|stop`** with pidfile/logfile for bare VMs. Internet coordinators require listener TLS (`--tls-cert` / `--tls-key`). Workers enroll an Ed25519 key at join and sign every mutating coordinator request.
 
 ## Headless first
 
@@ -34,9 +34,9 @@ Workers do not serve the public client API. They only talk **out** to the coordi
 
 ## Topology
 
-- **One worker type per coordinator** — set by coordinator `config.worker` (`claude` or `codex`). Other worker kinds are rejected at join.
-- **Coordinator** — durable SQLite queue, public API, router, registry, telemetry.
-- **Workers** — local official CLI, pull claims, execute, forward events; local workspace per `jobId`.
+- **One worker type per coordinator** - set by coordinator `config.worker` (`claude` or `codex`). Other worker kinds are rejected at join.
+- **Coordinator** - durable SQLite queue, public API, router, registry, telemetry.
+- **Workers** - local official CLI, pull claims, execute, forward events; local workspace per `jobId`.
 
 Native `sessionId` values stay on the worker that created them. Follow-ups stick to that node. `retry` clears the session and sticky binding so fair-share can pick again.
 
@@ -47,12 +47,12 @@ Native `sessionId` values stay on the worker that created them. Follow-ups stick
 ```bash
 bridge init --worker claude --data-dir /var/lib/bridge-coordinator
 bridge cluster init-coordinator \
-  --data-dir /var/lib/bridge-coordinator \
-  --exposure internet \
-  --bind 0.0.0.0 --port 8787 \
-  --tls-cert /etc/ffb/fullchain.pem \
-  --tls-key /etc/ffb/privkey.pem \
-  --reserve-percent 10
+ --data-dir /var/lib/bridge-coordinator \
+ --exposure internet \
+ --bind 0.0.0.0 --port 8787 \
+ --tls-cert /etc/ffb/fullchain.pem \
+ --tls-key /etc/ffb/privkey.pem \
+ --reserve-percent 10
 bridge daemon start --cluster-coordinator --data-dir /var/lib/bridge-coordinator
 # or: bridge serve --cluster-coordinator --data-dir /var/lib/bridge-coordinator
 ```
@@ -73,15 +73,15 @@ On each agent host, after `claude auth login` (or Codex equivalent):
 ```bash
 bridge init --worker claude --data-dir /var/lib/bridge-worker
 bridge cluster join \
-  --data-dir /var/lib/bridge-worker \
-  --coordinator https://bridge.company.example:8787 \
-  --token "$BRIDGE_JOIN_TOKEN" \
-  --name "$(hostname -s)"
+ --data-dir /var/lib/bridge-worker \
+ --coordinator https://bridge.company.example:8787 \
+ --token "$BRIDGE_JOIN_TOKEN" \
+ --name "$(hostname -s)"
 bridge daemon start --cluster-worker --data-dir /var/lib/bridge-worker
 # or: bridge serve --cluster-worker --data-dir /var/lib/bridge-worker
 ```
 
-Join generates an Ed25519 keypair locally and enrolls the **public key** with the coordinator. It writes **`cluster.json`** (mode `0600`) with the coordinator URL, **`nodeId`**, node **credential** (`ffn_…`), and **`nodePrivateKey`**. Workers send `Authorization: Bearer ffn_…` plus **`X-Bridge-Timestamp`**, **`X-Bridge-Nonce`**, and **`X-Bridge-Signature`** on every mutating request. A stolen credential without the private key cannot claim work. Workers refuse `http://` coordinator URLs unless you pass **`--allow-insecure`** (private lab only). Missing `nodePrivateKey` fails fast at worker start — re-run `cluster join`.
+Join generates an Ed25519 keypair locally and enrolls the **public key** with the coordinator. It writes **`cluster.json`** (mode `0600`) with the coordinator URL, **`nodeId`**, node **credential** (`ffn_…`), and **`nodePrivateKey`**. Workers send `Authorization: Bearer ffn_…` plus **`X-Bridge-Timestamp`**, **`X-Bridge-Nonce`**, and **`X-Bridge-Signature`** on every mutating request. A stolen credential without the private key cannot claim work. Workers refuse `http://` coordinator URLs unless you pass **`--allow-insecure`** (private lab only). Missing `nodePrivateKey` fails fast at worker start - re-run `cluster join`.
 
 Inspect enrollment from the coordinator (`enrollmentFingerprint`, `lastSignedAt`, status):
 
@@ -129,10 +129,10 @@ Internet exposure requires in-process TLS on the coordinator listener. Private l
 
 ## Reserve, resources, and fair-share
 
-- Coordinator default `reservePercent: 10` — that slice is not used for pool claims.
+- Coordinator default `reservePercent: 10` - that slice is not used for pool claims.
 - A node may set a **higher** reserve; it cannot go below the coordinator floor.
 - Each heartbeat includes **RAM, disk (workspace volume), and CPU** pressure. Collection uses portable Node APIs so the same worker binary works on **macOS, Linux, and Windows** (load averages are zero on Windows; CPU busy uses processor time samples).
-- A node is skipped if free memory/disk fall below configured floors or CPU busy exceeds the max — even if quota remains.
+- A node is skipped if free memory/disk fall below configured floors or CPU busy exceeds the max - even if quota remains.
 - New jobs go to the eligible node with the best **weighted** score (quota headroom + memory + disk + CPU slack). Defaults: quota 0.45, memory 0.2, disk 0.15, cpu 0.2.
 - When a node is provider-`limited`, it stops taking new work; other nodes continue. The pool does **not** global-pause for one node.
 - Sticky jobs wait for their node (or interrupt after offline timeout). They are never moved to another machine.
