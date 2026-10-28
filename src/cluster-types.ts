@@ -100,6 +100,10 @@ export const clusterPoolSummarySchema = z.strictObject({
   fairnessSkew: z.number().min(0),
   queuedJobs: z.number().int().min(0),
   runningJobs: z.number().int().min(0),
+  /** Cumulative cluster failover events since process start (coordinator telemetry). */
+  failovers: z.number().int().min(0).default(0),
+  /** Queued jobs carrying a one-shot handoff awaiting a peer claim. */
+  waitingForFailover: z.number().int().min(0).default(0),
   avgMemoryFreeBytes: z.number().min(0).nullable().default(null),
   avgDiskFreeBytes: z.number().min(0).nullable().default(null),
   avgCpuBusyRatio: z.number().min(0).max(1).nullable().default(null),

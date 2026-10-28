@@ -353,6 +353,31 @@ describe("official CLI boundary", () => {
     expect(result.args).not.toContain("--no-session-persistence");
     expect(result.prompt).not.toContain("original");
   });
+  it("after cluster failover runs without --resume and injects the handoff brief", async () => {
+    const execution = input("continue the report");
+    delete execution.job.sessionId;
+    execution.job.clusterHandoff = {
+      reason: "quota",
+      fromNodeId: "node_home",
+      brief:
+        "Cluster failover continuation (new native CLI session on another node).\nGoal / last user intent: continue the report",
+      recentTurns: [
+        { role: "user", text: "continue the report" },
+        { role: "assistant", text: "drafting section 1" },
+      ],
+      createdAt: "2026-10-27T00:00:00.000Z",
+    };
+    const outcome = await worker().run(
+      execution,
+      () => {},
+      new AbortController().signal,
+    );
+    expect(outcome.status).toBe("succeeded");
+    const result = JSON.parse(outcome.result!);
+    expect(result.args).not.toContain("--resume");
+    expect(result.prompt).toContain("Cluster failover continuation");
+    expect(result.prompt).toContain("continue the report");
+  });
   it("preflights subscription authentication and rejects alternate billing environments", async () => {
     expect(await worker().ready()).toEqual({
       ready: true,

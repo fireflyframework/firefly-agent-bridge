@@ -38,7 +38,7 @@ See [Architecture - Cluster mode](architecture.md#cluster-mode-optional) for how
 
 1. **One worker type per coordinator.** A Claude coordinator rejects Codex joins (and the reverse). For both CLIs on one host, run **two pools** (two coordinators, two ports).
 2. **Reserve (default 10%).** That slice of each node's estimated quota is kept unused for spikes and sticky follow-ups.
-3. **Sticky sessions.** Native `sessionId` values stay on the worker that created them. Follow-ups wait for that node. `retry` clears the session and sticky binding so fair-share can pick again.
+3. **Sticky while healthy.** Native `sessionId` values prefer the worker that created them. When that home is limited, unhealthy, draining, or offline, the coordinator **failovers** the bridge job: pause in-flight work, clear sticky binding, attach a bounded handoff brief from durable coordinator memory, and requeue for any eligible peer. There is no native CLI session transfer: the next claim starts a new CLI session with the handoff as context. After `maxFailovers` (default 3) without a successful reassignment path, the job fails with `cluster_failover_exhausted`.
 4. **Headless first.** Ops use `bridge serve`, `bridge daemon`, and `bridge cluster …` (JSON on stdout). The panel is optional diagnostics only.
 5. **Workers authenticate twice.** Bearer node credential (`ffn_…`) **plus** Ed25519 signatures on mutating requests. A stolen credential without the private key cannot claim work.
 
@@ -48,7 +48,7 @@ The product binary is **`bridge`** (`firefly-bridge` remains a compatibility ali
 
 ```text
 $ bridge help
-Firefly Agent Bridge 0.2.21
+Firefly Agent Bridge 0.2.22
 Usage: bridge <command> [--data-dir PATH]
   (firefly-bridge remains a compatibility alias; prefer bridge)
 
@@ -437,14 +437,27 @@ Owner admin HTTP still uses the coordinator `owner.token` file, same as single-n
 - On macOS, free memory prefers reclaimable pages from `vm_stat` so eligibility is not starved by Node's conservative `os.freemem()`.
 - A node is skipped when free memory/disk fall below configured floors or CPU busy exceeds the max - even if quota remains.
 - New jobs go to the eligible node with the best weighted score (defaults: quota 0.45, memory 0.2, disk 0.15, cpu 0.2).
-- When a node is provider-`limited`, it stops taking new work; other nodes continue. The pool does **not** global-pause for one node.
-- Sticky jobs wait for their home node (or interrupt after offline timeout). They are never moved to another machine.
+- When a node is provider-`limited`, it stops taking new work; in-flight and sticky-home jobs on that node failover to eligible peers. The pool does **not** global-pause for one node.
+- Sticky preference holds only while the home node is eligible. Quota, health floors, drain, leave, and offline triggers clear sticky and requeue with a coordinator-owned handoff brief (`job.cluster_failover` / `job.cluster_reassigned` audit events). Clients keep the same `job.id` through `running → pause_requested → paused → queued → running`.
 
-Estimation is used because CLIs do not expose exact remaining allowance. Tune `capacityUnits`, `scheduling` floors/weights, and windows in config when needed.
+Estimation is used because CLIs do not expose exact remaining allowance. Tune `capacityUnits`, `scheduling` floors/weights, `maxFailovers`, and windows in config when needed.
+
+## Job failover and auto-rebalance
+
+| Trigger                         | Coordinator action                                                                   |
+| ------------------------------- | ------------------------------------------------------------------------------------ |
+| Home `quotaState: limited`      | Pause reason `cluster_failover:quota`; clear sticky; requeue with handoff            |
+| Home fails resource/auth floors | Pause reason `cluster_failover:health`; same requeue path                            |
+| Node offline / leave            | Interrupt running attempts; failover sticky-queued work (`cluster_failover:offline`) |
+| Drain                           | Pause in-flight + sticky-queued with `cluster_failover:drain`                        |
+| Peer joins                      | No push; pull claims absorb capacity once sticky is cleared                          |
+| `failoverCount > maxFailovers`  | Job `failed` with `cluster_failover_exhausted: …`                                    |
+
+Pool telemetry on `GET /v1/bridge/status` includes `cluster.pool.failovers` (cumulative) and `waitingForFailover` (queued jobs awaiting a peer claim after handoff). Workspace files still live on the worker that last ran the job; shared storage is an operator concern when side effects must survive host moves.
 
 ## Client transparency
 
-Submit jobs, watch SSE, use MCP, and call OpenAI-compatible completions against the **coordinator** exactly as against a single bridge. Per-node inventory in status requires owner or `admin` scope; pool summary is visible to authenticated principals. Internal fields `sessionNodeId` / `assignedNodeId` stay out of ordinary client job views unless the principal is owner or has `admin` scope.
+Submit jobs, watch SSE, use MCP, and call OpenAI-compatible completions against the **coordinator** exactly as against a single bridge. Per-node inventory in status requires owner or `admin` scope; pool summary is visible to authenticated principals. Internal fields `sessionNodeId` / `assignedNodeId` / `clusterHandoff` / `failoverCount` stay out of ordinary client job views unless the principal is owner or has `admin` scope.
 
 ## Workspace constraint
 
@@ -452,14 +465,14 @@ Job files live under the **worker's** configured workspace, namespaced by job id
 
 ## Health and failure signals
 
-| Signal                               | Meaning                                                        |
-| ------------------------------------ | -------------------------------------------------------------- |
-| Coordinator `GET /v1/bridge/status`  | Includes `cluster.pool` and `dispatch`                         |
-| Worker `--health-port`               | Loopback-only `{"ok":true,"nodeId":"…"}` for local supervisors |
-| Stale heartbeat (default 10s)        | Node marked `stale`                                            |
-| Offline (default 60s)                | Running attempts on that node interrupted                      |
-| `authentication` not `authenticated` | Worker has not proven CLI login; not eligible                  |
-| `quotaState: limited`                | That node pauses new claims; siblings continue                 |
+| Signal                               | Meaning                                                                 |
+| ------------------------------------ | ----------------------------------------------------------------------- |
+| Coordinator `GET /v1/bridge/status`  | Includes `cluster.pool` and `dispatch`                                  |
+| Worker `--health-port`               | Loopback-only `{"ok":true,"nodeId":"…"}` for local supervisors          |
+| Stale heartbeat (default 10s)        | Node marked `stale`                                                     |
+| Offline (default 60s)                | Running attempts interrupted and fail over to peers                     |
+| `authentication` not `authenticated` | Worker has not proven CLI login; not eligible; sticky home may failover |
+| `quotaState: limited`                | That node pauses/failovers its work; siblings continue                  |
 
 ## Security checklist
 
@@ -479,4 +492,4 @@ More context: [Security boundaries](security.md).
 
 ## Non-goals (v1)
 
-No multi-account login in one OS user, no live session migration between nodes, no UI-required ops path, and no mixed Claude+Codex workers on one coordinator.
+No multi-account login in one OS user, no native CLI session transfer between hosts (bridge-job failover with a coordinator handoff brief is supported), no UI-required ops path, and no mixed Claude+Codex workers on one coordinator.

@@ -12,7 +12,7 @@ description: Manage bridge execution, queue dispatch, service lifecycle and inte
 
 [README](../README.md) · [Architecture](architecture.md) · [Configuration](configuration.md) · [Cluster quota pool](cluster.md)
 
-Single-node lifecycle below still applies to every bridge data directory. For a multi-node pool, the **coordinator** data directory is the one clients and backups treat as the queue of record; each **worker** has its own data directory and workspace. Use `bridge daemon start|status|stop --cluster-coordinator|--cluster-worker` when you want pidfile-supervised cluster processes instead of an external unit manager.
+Single-node lifecycle below still applies to every bridge data directory. For a multi-node pool, the **coordinator** data directory is the one clients and backups treat as the queue of record; each **worker** has its own data directory and workspace. Use `bridge daemon start|status|stop --cluster-coordinator|--cluster-worker` when you want pidfile-supervised cluster processes instead of an external unit manager. Cluster failover keeps that coordinator queue as memory of record: when a worker home becomes limited, unhealthy, draining, or offline, the coordinator pauses or interrupts the attempt, clears sticky binding, attaches a handoff brief, and requeues the same `job.id` for any eligible peer (see [Cluster quota pool](cluster.md#job-failover-and-auto-rebalance)).
 
 ![Job execution lifecycle](../assets/diagrams/lifecycle.svg)
 

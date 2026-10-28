@@ -59,6 +59,16 @@ export type Message = {
   text: string;
   createdAt: string;
 };
+
+/** Coordinator-owned incremental packet injected after sticky failover (no native CLI session transfer). */
+export type ClusterHandoff = {
+  reason: "quota" | "health" | "offline" | "drain";
+  fromNodeId: string;
+  brief: string;
+  recentTurns: Array<{ role: "user" | "assistant"; text: string }>;
+  createdAt: string;
+};
+
 export type Job = JobInput & {
   worker?: "claude" | "codex";
   completion?: ChatRequest;
@@ -84,6 +94,9 @@ export type Job = JobInput & {
   workflowRunId?: string;
   stepId?: string;
   messages: Message[];
+  clusterHandoff?: ClusterHandoff;
+  failoverCount?: number;
+  failoverAt?: string;
 };
 
 /** Owner or `admin` scope may see internal cluster routing fields on jobs. */
@@ -97,11 +110,20 @@ export function canSeeClusterNodeFields(p: Principal): boolean {
  */
 export function jobForClient(job: Job, p: Principal): Job {
   if (canSeeClusterNodeFields(p)) return job;
-  if (job.sessionNodeId === undefined && job.assignedNodeId === undefined)
+  if (
+    job.sessionNodeId === undefined &&
+    job.assignedNodeId === undefined &&
+    job.clusterHandoff === undefined &&
+    job.failoverCount === undefined &&
+    job.failoverAt === undefined
+  )
     return job;
   const view = { ...job };
   delete view.sessionNodeId;
   delete view.assignedNodeId;
+  delete view.clusterHandoff;
+  delete view.failoverCount;
+  delete view.failoverAt;
   return view;
 }
 

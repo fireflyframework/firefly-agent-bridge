@@ -36,6 +36,7 @@ import {
 import {
   BridgeError,
   type Attempt,
+  type ClusterHandoff,
   type Job,
   type Outcome,
 } from "./contracts.js";
@@ -45,6 +46,7 @@ import type { WorkerEvent } from "./worker.js";
 
 const DISPATCH_KEY = "cluster_dispatch";
 const LAST_ASSIGNED_PREFIX = "cluster_last_assigned:";
+const FAILOVER_COUNTER_KEY = "cluster_failover_count";
 
 export type ClusterClaimEntry = {
   attempt: Attempt;
@@ -64,8 +66,6 @@ export type WorkerAuthContext = {
  */
 export class ClusterCoordinator {
   private readonly nonceStore = new ReplayNonceStore();
-  /** Rate-limit sticky wait activity/retryAt writes (jobId → last update ms). */
-  private readonly stickyWaitUpdatedAt = new Map<string, number>();
 
   constructor(
     private store: QueueStore,
@@ -80,6 +80,56 @@ export class ClusterCoordinator {
 
   private get requestSkewMs(): number {
     return this.config.cluster?.requestSkewMs ?? 60_000;
+  }
+
+  private get maxFailovers(): number {
+    return this.config.cluster?.maxFailovers ?? 3;
+  }
+
+  private bumpFailoverTelemetry(): void {
+    const row = this.store.db
+      .prepare("SELECT value FROM metadata WHERE key=?")
+      .get(FAILOVER_COUNTER_KEY) as { value: string } | undefined;
+    const next = (row ? Number(row.value) || 0 : 0) + 1;
+    this.store.db
+      .prepare("INSERT OR REPLACE INTO metadata VALUES(?,?)")
+      .run(FAILOVER_COUNTER_KEY, String(next));
+  }
+
+  private failoverJob(
+    jobId: string,
+    input: { reason: ClusterHandoff["reason"]; fromNodeId: string },
+  ): Job {
+    const before = this.store.get(jobId);
+    const after = this.store.beginClusterFailover(jobId, {
+      ...input,
+      maxFailovers: this.maxFailovers,
+    });
+    if (
+      after.failoverCount != null &&
+      after.failoverCount !== before.failoverCount &&
+      after.status !== "pause_requested"
+    )
+      this.bumpFailoverTelemetry();
+    return after;
+  }
+
+  private failoverReasonFromError(
+    error: string | undefined,
+  ): ClusterHandoff["reason"] | null {
+    if (!error) return null;
+    if (error.startsWith("cluster_failover:")) {
+      const code = error.slice("cluster_failover:".length);
+      if (
+        code === "quota" ||
+        code === "health" ||
+        code === "offline" ||
+        code === "drain"
+      )
+        return code;
+    }
+    if (error.startsWith("quota_exhausted")) return "quota";
+    return null;
   }
 
   /** Resolve ffn_ credential → node (signature checked separately). */
@@ -207,15 +257,32 @@ export class ClusterCoordinator {
   } {
     const node = this.registry.heartbeat(nodeId, capacity);
     if (capacity.quota.state === "limited")
-      this.pauseRunningAttemptsOnNode(nodeId);
+      this.pauseRunningAttemptsOnNode(nodeId, "quota");
+    else if (
+      capacity.authentication === "unauthenticated" ||
+      !this.nodeMeetsResourceFloors(capacity)
+    )
+      this.pauseRunningAttemptsOnNode(nodeId, "health");
     return { node, controls: this.controlsForNode(nodeId) };
   }
 
+  private nodeMeetsResourceFloors(capacity: NodeCapacity): boolean {
+    const { resources } = capacity;
+    const floors = this.scheduling;
+    if (resources.memory.freeBytes < floors.minFreeMemoryBytes) return false;
+    if (resources.disk.freeBytes < floors.minFreeDiskBytes) return false;
+    if (resources.cpu.busyRatio > floors.maxCpuBusyRatio) return false;
+    return true;
+  }
+
   /**
-   * When a node reports quota limited, request pause for in-flight attempts
-   * on that node (parity with single-node scheduler gate, scoped to the node).
+   * Request pause for in-flight attempts on a node so they can failover.
    */
-  private pauseRunningAttemptsOnNode(nodeId: string): void {
+  private pauseRunningAttemptsOnNode(
+    nodeId: string,
+    reason: ClusterHandoff["reason"],
+  ): void {
+    const pauseReason = `cluster_failover:${reason}`;
     const attemptRows = this.store.db
       .prepare("SELECT data FROM attempts")
       .all() as { data: string }[];
@@ -229,7 +296,29 @@ export class ClusterCoordinator {
         continue;
       }
       if (job.status === "running")
-        this.store.pause(job.id, { id: "system", owner: true, profiles: [] });
+        this.store.pause(
+          job.id,
+          { id: "system", owner: true, profiles: [] },
+          pauseReason,
+        );
+    }
+    // Sticky-queued work bound to this home also sheds immediately.
+    this.failoverStickyQueuedForNode(nodeId, reason);
+  }
+
+  private failoverStickyQueuedForNode(
+    nodeId: string,
+    reason: ClusterHandoff["reason"],
+  ): void {
+    const rows = this.store.db
+      .prepare(
+        "SELECT data FROM jobs WHERE status IN ('queued','paused','interrupted')",
+      )
+      .all() as { data: string }[];
+    for (const row of rows) {
+      const job = JSON.parse(row.data) as Job;
+      if (job.sessionNodeId !== nodeId) continue;
+      this.failoverJob(job.id, { reason, fromNodeId: nodeId });
     }
   }
 
@@ -300,39 +389,18 @@ export class ClusterCoordinator {
   }
 
   /**
-   * Surface sticky-home wait reason to clients (rate-limited per job).
+   * Sticky home exists but cannot take work — clear sticky and hand off.
    */
-  private noteStickyWait(job: Job, nodes: RouterNode[], now: number): void {
-    const last = this.stickyWaitUpdatedAt.get(job.id) ?? 0;
-    if (now - last < 5_000) return;
-    this.stickyWaitUpdatedAt.set(job.id, now);
-
-    const home = nodes.find((n) => n.id === job.sessionNodeId);
-    const limited = home?.capacity.quota.state === "limited";
-    const activity = limited
-      ? "waiting_for_home_node_quota"
-      : "waiting_for_home_node";
-    const retryAt =
-      limited && typeof home?.capacity.quota.resetAt === "number"
-        ? home.capacity.quota.resetAt
-        : undefined;
-
-    this.store.atomic(() => {
-      const live = this.store.get(job.id);
-      if (live.status !== "queued") return;
-      if (live.activity === activity && live.retryAt === retryAt) return;
-      live.activity = activity;
-      if (retryAt != null) live.retryAt = retryAt;
-      else delete live.retryAt;
-      live.updatedAt = new Date().toISOString();
-      this.store.db
-        .prepare("UPDATE jobs SET status=?,data=? WHERE id=?")
-        .run(live.status, JSON.stringify(live), live.id);
-      this.store.addEvent(live, "job.activity", {
-        status: activity,
-        ...(retryAt != null ? { retryAt } : {}),
-      });
-    });
+  private failoverStickyHome(job: Job, nodes: RouterNode[]): void {
+    const homeId = job.sessionNodeId;
+    if (!homeId) return;
+    const home = nodes.find((n) => n.id === homeId);
+    let reason: ClusterHandoff["reason"] = "health";
+    if (!home) reason = "offline";
+    else if (home.capacity.quota.state === "limited") reason = "quota";
+    else if (home.capacity.draining || home.status === "draining")
+      reason = "drain";
+    this.failoverJob(job.id, { reason, fromNodeId: homeId });
   }
 
   /**
@@ -391,12 +459,9 @@ export class ClusterCoordinator {
         now,
         this.scheduling,
       );
-      if (
-        job.sessionNodeId &&
-        selected === null &&
-        nodes.some((n) => n.id === job.sessionNodeId)
-      ) {
-        this.noteStickyWait(job, nodes, now);
+      if (job.sessionNodeId && selected === null) {
+        // Home offline or ineligible: failover instead of sticky-wait-forever.
+        this.failoverStickyHome(job, nodes);
         continue;
       }
       if (selected !== nodeId) continue;
@@ -404,11 +469,23 @@ export class ClusterCoordinator {
       const attempt = this.store.claim(owner, "cli", job.id, { nodeId });
       if (!attempt) continue;
       this.markAssigned(nodeId);
-      this.stickyWaitUpdatedAt.delete(job.id);
       const live = this.store.get(job.id);
+      const handoff = live.clusterHandoff;
+      const jobForWorker = structuredClone(live);
+      if (handoff) {
+        this.store.consumeClusterHandoff(live.id);
+        if (handoff.fromNodeId !== nodeId) {
+          this.store.addEvent(live, "job.cluster_reassigned", {
+            fromNodeId: handoff.fromNodeId,
+            toNodeId: nodeId,
+            reason: handoff.reason,
+            failoverCount: live.failoverCount,
+          });
+        }
+      }
       claims.push({
         attempt,
-        job: live,
+        job: jobForWorker,
         profile: structuredClone(profile),
         imageExecution: loadImageExecution(this.store, live.id),
       });
@@ -470,14 +547,35 @@ export class ClusterCoordinator {
       { ...attempt, owner: input.owner, fence: input.fence },
       input.outcome,
     );
+    this.maybeFailoverAfterFinish(attempt, input.outcome);
     return { ok: true };
   }
 
+  private maybeFailoverAfterFinish(attempt: Attempt, outcome: Outcome): void {
+    if (outcome.status !== "paused" && outcome.status !== "interrupted") return;
+    let job: Job;
+    try {
+      job = this.store.get(attempt.jobId);
+    } catch {
+      return;
+    }
+    const reason =
+      this.failoverReasonFromError(job.error) ??
+      this.failoverReasonFromError(outcome.error);
+    if (!reason) return;
+    const fromNodeId =
+      attempt.nodeId ?? job.assignedNodeId ?? job.sessionNodeId ?? "unknown";
+    this.failoverJob(job.id, { reason, fromNodeId });
+  }
+
   drain(nodeId: string) {
-    return this.registry.drain(nodeId);
+    const node = this.registry.drain(nodeId);
+    this.pauseRunningAttemptsOnNode(nodeId, "drain");
+    return node;
   }
 
   leave(nodeId: string) {
+    this.interruptAndFailoverNode(nodeId, "offline");
     return this.registry.remove(nodeId);
   }
 
@@ -494,10 +592,13 @@ export class ClusterCoordinator {
   }
 
   /**
-   * When a node flips to offline, interrupt its running attempts (sticky
-   * sessionNodeId retained via store.finish — same spirit as recover()).
+   * When a node flips to offline/leave, interrupt running attempts and failover
+   * so peers can claim (sticky cleared; handoff brief attached).
    */
-  private interruptOfflineNode(nodeId: string): void {
+  private interruptAndFailoverNode(
+    nodeId: string,
+    reason: ClusterHandoff["reason"],
+  ): void {
     const rows = this.store.db.prepare("SELECT data FROM attempts").all() as {
       data: string;
     }[];
@@ -506,15 +607,18 @@ export class ClusterCoordinator {
       if (attempt.nodeId !== nodeId || attempt.status !== "running") continue;
       this.store.finish(attempt, {
         status: "interrupted",
-        error: "Worker ownership lost; explicit retry required",
+        error: `cluster_failover:${reason}`,
       });
+      this.failoverJob(attempt.jobId, { reason, fromNodeId: nodeId });
     }
+    this.failoverStickyQueuedForNode(nodeId, reason);
   }
 
-  /** Periodic registry housekeeping (stale/offline → interrupt). */
+  /** Periodic registry housekeeping (stale/offline → interrupt + failover). */
   tick(): void {
     const { offline } = this.registry.markStale();
-    for (const nodeId of offline) this.interruptOfflineNode(nodeId);
+    for (const nodeId of offline)
+      this.interruptAndFailoverNode(nodeId, "offline");
   }
 
   status(includeNodes: boolean): ClusterStatus {
@@ -580,6 +684,18 @@ export class ClusterCoordinator {
         )
         .get() as { n: number }
     ).n;
+    const waitingForFailover = (
+      this.store.db
+        .prepare("SELECT data FROM jobs WHERE status='queued'")
+        .all() as { data: string }[]
+    ).filter((row) => {
+      const job = JSON.parse(row.data) as Job;
+      return Boolean(job.clusterHandoff) || job.activity === "cluster_failover";
+    }).length;
+    const failoverRow = this.store.db
+      .prepare("SELECT value FROM metadata WHERE key=?")
+      .get(FAILOVER_COUNTER_KEY) as { value: string } | undefined;
+    const failovers = failoverRow ? Number(failoverRow.value) || 0 : 0;
 
     let dispatch: ClusterStatus["dispatch"] = "ready";
     if (this.dispatchPaused) dispatch = "paused";
@@ -606,6 +722,8 @@ export class ClusterCoordinator {
         fairnessSkew,
         queuedJobs,
         runningJobs,
+        failovers,
+        waitingForFailover,
         avgMemoryFreeBytes: avg(
           withMem.map((s) => s.memoryFreeBytes as number),
         ),

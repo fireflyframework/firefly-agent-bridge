@@ -25,6 +25,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { AuditLog, type AuditQuery, type ToolsQuery } from "./audit.js";
 import { migrate } from "./migrations.js";
 import type { WorkerEvent } from "./worker.js";
+import { buildClusterHandoff } from "./cluster-handoff.js";
 import {
   BridgeError,
   jobInputSchema,
@@ -32,6 +33,7 @@ import {
   terminal,
   type Attempt,
   type BridgeEvent,
+  type ClusterHandoff,
   type Job,
   type JobInput,
   type Outcome,
@@ -348,19 +350,120 @@ export class QueueStore {
       );
     });
   }
-  pause(id: string, p: Principal): Job {
+  pause(id: string, p: Principal, reason = "operator_pause"): Job {
     return this.atomic(() => {
       const job = this.get(id, p);
       if (job.status === "queued") job.status = "paused";
       else if (job.status === "running") job.status = "pause_requested";
       else return job;
-      job.error = "operator_pause";
+      job.error = reason;
       this.save(job);
       this.addEvent(job, "job." + job.status, {
         reason: job.error,
         actor: p.id,
       });
       return job;
+    });
+  }
+
+  /**
+   * Clear sticky binding and requeue with a bounded handoff brief, or fail when
+   * `maxFailovers` is exceeded. Running jobs are first asked to pause with the
+   * failover reason; call again after the attempt finishes paused/interrupted.
+   */
+  beginClusterFailover(
+    jobId: string,
+    input: {
+      reason: ClusterHandoff["reason"];
+      fromNodeId: string;
+      maxFailovers?: number;
+    },
+  ): Job {
+    return this.atomic(() => {
+      const job = this.get(jobId);
+      const maxFailovers = input.maxFailovers ?? 3;
+      const pauseReason = `cluster_failover:${input.reason}`;
+
+      if (job.status === "running") {
+        job.status = "pause_requested";
+        job.error = pauseReason;
+        this.save(job);
+        this.addEvent(job, "job.pause_requested", {
+          reason: pauseReason,
+          actor: "system",
+        });
+        return job;
+      }
+      if (job.status === "pause_requested") {
+        if (!job.error?.startsWith("cluster_failover:")) {
+          job.error = pauseReason;
+          this.save(job);
+        }
+        return job;
+      }
+
+      if (
+        !["paused", "interrupted", "queued", "timed_out"].includes(job.status)
+      )
+        return job;
+
+      const nextCount = (job.failoverCount ?? 0) + 1;
+      if (nextCount > maxFailovers) {
+        job.status = "failed";
+        job.error = `cluster_failover_exhausted: exceeded ${maxFailovers} failovers`;
+        job.activity = "failed";
+        job.failoverCount = nextCount;
+        job.failoverAt = stamp();
+        delete job.clusterHandoff;
+        delete job.sessionId;
+        delete job.sessionNodeId;
+        delete job.assignedNodeId;
+        delete job.resumePending;
+        delete job.retryAt;
+        this.save(job);
+        this.addEvent(job, "job.failed", {
+          error: job.error,
+          failoverCount: nextCount,
+        });
+        return job;
+      }
+
+      job.clusterHandoff = buildClusterHandoff({
+        reason: input.reason,
+        fromNodeId: input.fromNodeId,
+        job,
+      });
+      job.failoverCount = nextCount;
+      job.failoverAt = stamp();
+      job.status = "queued";
+      job.activity = "cluster_failover";
+      job.error = pauseReason;
+      delete job.sessionId;
+      delete job.sessionNodeId;
+      delete job.assignedNodeId;
+      delete job.resumePending;
+      delete job.retryAt;
+      delete job.result;
+      this.save(job);
+      this.addEvent(job, "job.cluster_failover", {
+        reason: input.reason,
+        fromNodeId: input.fromNodeId,
+        failoverCount: nextCount,
+      });
+      this.addEvent(job, "job.queued", { clusterFailover: true });
+      return job;
+    });
+  }
+
+  /** Drop the one-shot handoff after a peer has claimed the job. */
+  consumeClusterHandoff(jobId: string): ClusterHandoff | undefined {
+    return this.atomic(() => {
+      const job = this.get(jobId);
+      const handoff = job.clusterHandoff;
+      if (!handoff) return undefined;
+      delete job.clusterHandoff;
+      this.save(job);
+      return handoff;
     });
   }
   resume(id: string, p: Principal): Job {
@@ -416,7 +519,15 @@ export class QueueStore {
           409,
         );
       this.auditLog.closeAttempt(job, attempt);
+      const priorError = job.error;
       Object.assign(job, outcome);
+      // Keep coordinator failover markers across worker pause/interrupt outcomes
+      // that may report a generic pause reason.
+      if (
+        priorError?.startsWith("cluster_failover:") &&
+        (outcome.status === "paused" || outcome.status === "interrupted")
+      )
+        job.error = priorError;
       this.completionRecovery.finish(job, attempt.id);
       if (outcome.status === "succeeded")
         this.auditLog.clientResult(job, attempt);

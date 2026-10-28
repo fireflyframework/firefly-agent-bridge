@@ -111,9 +111,8 @@ function signedHeaders(
 ): Record<string, string> {
   const timestamp = String(Date.now());
   const nonce = randomBytes(16).toString("base64url");
-  return {
+  const headers: Record<string, string> = {
     authorization: "Bearer " + credential,
-    "content-type": "application/json",
     "x-bridge-timestamp": timestamp,
     "x-bridge-nonce": nonce,
     "x-bridge-signature": signWorkerRequest({
@@ -125,6 +124,9 @@ function signedHeaders(
       body,
     }),
   };
+  // Empty DELETE bodies must not advertise JSON or Fastify rejects the request.
+  if (body.length > 0) headers["content-type"] = "application/json";
+  return headers;
 }
 
 async function joinWorker(
@@ -204,6 +206,11 @@ async function claim(address: string, worker: WorkerCreds, freeSlots = 1) {
         prompt: string;
         profile: string;
         assignedNodeId?: string;
+        clusterHandoff?: {
+          reason: string;
+          fromNodeId: string;
+          brief: string;
+        };
       };
       profile: Record<string, unknown>;
       imageExecution?: unknown;
@@ -764,7 +771,7 @@ describe("ClusterCoordinator protocol", () => {
     expect(done.error).toMatch(/profile_unknown/);
   });
 
-  it("sets activity and retryAt when sticky home node is limited", async () => {
+  it("failovers sticky work when home is limited so a peer can claim", async () => {
     const auth = new ClusterAuth(service.store);
     const { token: joinToken } = auth.createJoinToken({
       createdBy: "owner",
@@ -781,7 +788,7 @@ describe("ClusterCoordinator protocol", () => {
       },
       body: JSON.stringify({
         model: "bridge/default",
-        messages: [{ role: "user", content: "sticky wait" }],
+        messages: [{ role: "user", content: "sticky failover" }],
         bridge: { execution: "agent", background: true },
       }),
     });
@@ -814,25 +821,17 @@ describe("ClusterCoordinator protocol", () => {
         },
       },
     );
-    await fetch(service.address + "/v1/bridge/jobs/" + job.id + "/resume", {
-      method: "POST",
-      headers: { authorization: "Bearer " + service.ownerToken },
-    });
 
-    const resetAt = Date.now() + 120_000;
-    await heartbeat(
-      service.address,
-      a,
-      capacity({
-        quota: {
-          state: "limited",
-          resetAt,
-          windowStartedAt: "2026-10-27T00:00:00.000Z",
-          estimatedUsedUnits: 100,
-          estimatedCapacityUnits: 100,
-        },
-      }),
-    );
+    const afterPause = await (
+      await fetch(service.address + "/v1/bridge/jobs/" + job.id, {
+        headers: { authorization: "Bearer " + service.ownerToken },
+      })
+    ).json();
+    // Finish with quota_exhausted triggers coordinator failover (sticky cleared).
+    expect(afterPause.status).toBe("queued");
+    expect(afterPause.sessionNodeId).toBeUndefined();
+    expect(afterPause.failoverCount).toBe(1);
+    expect(afterPause.clusterHandoff?.reason).toBe("quota");
 
     const { token: joinTokenB } = auth.createJoinToken({
       createdBy: "owner",
@@ -841,19 +840,113 @@ describe("ClusterCoordinator protocol", () => {
     const b = await joinWorker(service.address, joinTokenB, "other-node");
     await heartbeat(service.address, b);
 
-    const stolen = await claim(service.address, b);
-    expect(stolen.claims).toHaveLength(0);
-    // Home also cannot claim while limited — still notes wait telemetry.
-    const homeClaim = await claim(service.address, a);
-    expect(homeClaim.claims).toHaveLength(0);
+    const peer = await claim(service.address, b);
+    expect(peer.claims).toHaveLength(1);
+    expect(peer.claims[0]!.job.id).toBe(job.id);
+    expect(peer.claims[0]!.attempt.nodeId).toBe(b.nodeId);
+    expect(peer.claims[0]!.job.clusterHandoff?.brief).toContain("failover");
+    // Handoff is one-shot on the durable job after claim.
+    const durable = service.store.get(job.id);
+    expect(durable.clusterHandoff).toBeUndefined();
+    expect(durable.assignedNodeId).toBe(b.nodeId);
 
-    const waiting = await (
-      await fetch(service.address + "/v1/bridge/jobs/" + job.id, {
+    const status = (await (
+      await fetch(service.address + "/v1/bridge/status", {
         headers: { authorization: "Bearer " + service.ownerToken },
       })
-    ).json();
-    expect(waiting.status).toBe("queued");
-    expect(waiting.activity).toBe("waiting_for_home_node_quota");
-    expect(waiting.retryAt).toBe(resetAt);
+    ).json()) as { cluster?: { pool?: { failovers?: number } } };
+    expect(status.cluster?.pool?.failovers).toBeGreaterThanOrEqual(1);
+  });
+
+  it("failovers offline node work so a peer can claim", async () => {
+    const auth = new ClusterAuth(service.store);
+    const { token: joinToken } = auth.createJoinToken({
+      createdBy: "owner",
+      ttlMs: 60_000,
+    });
+    const a = await joinWorker(service.address, joinToken, "going-offline");
+    await heartbeat(service.address, a);
+
+    const submit = await fetch(service.address + "/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer " + service.ownerToken,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "bridge/default",
+        messages: [{ role: "user", content: "offline failover" }],
+        bridge: { execution: "agent", background: true },
+      }),
+    });
+    const job = (await submit.json()) as { id: string };
+    const first = await claim(service.address, a);
+    const attempt = first.claims[0]!.attempt;
+    await workerPost(
+      service.address,
+      a,
+      `/v1/cluster/attempts/${attempt.id}/events`,
+      {
+        owner: attempt.owner,
+        fence: attempt.fence,
+        events: [
+          { kind: "session", text: "", data: { sessionId: "off-sess" } },
+        ],
+      },
+    );
+
+    const leavePath = `/v1/cluster/nodes/${a.nodeId}`;
+    const leaveBody = "";
+    const leave = await fetch(service.address + leavePath, {
+      method: "DELETE",
+      headers: signedHeaders(
+        a.privateKeyPem,
+        a.credential,
+        "DELETE",
+        leavePath,
+        leaveBody,
+      ),
+    });
+    expect(leave.status).toBe(200);
+
+    const afterLeave = service.store.get(job.id);
+    expect(afterLeave.status).toBe("queued");
+    expect(afterLeave.sessionNodeId).toBeUndefined();
+    expect(afterLeave.clusterHandoff?.reason).toBe("offline");
+
+    const { token: joinTokenB } = auth.createJoinToken({
+      createdBy: "owner",
+      ttlMs: 60_000,
+    });
+    const b = await joinWorker(service.address, joinTokenB, "takeover");
+    await heartbeat(service.address, b);
+    const peer = await claim(service.address, b);
+    expect(peer.claims).toHaveLength(1);
+    expect(peer.claims[0]!.job.id).toBe(job.id);
+  });
+
+  it("fails a job after maxFailovers is exhausted", async () => {
+    const principal = { id: "system", owner: true, profiles: ["default"] };
+    const job = service.store.submit(
+      { prompt: "exhaust", profile: "default", mode: "cli" },
+      principal,
+    );
+    service.store.pause(job.id, principal);
+    for (let i = 0; i < 3; i++) {
+      const live = service.store.beginClusterFailover(job.id, {
+        reason: "quota",
+        fromNodeId: "node_a",
+        maxFailovers: 3,
+      });
+      expect(live.status).toBe("queued");
+      service.store.pause(job.id, principal);
+    }
+    const failed = service.store.beginClusterFailover(job.id, {
+      reason: "quota",
+      fromNodeId: "node_a",
+      maxFailovers: 3,
+    });
+    expect(failed.status).toBe("failed");
+    expect(failed.error).toMatch(/cluster_failover_exhausted/);
   });
 });

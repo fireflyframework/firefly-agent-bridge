@@ -17,6 +17,7 @@
  * limitations under the License.
  */
 
+import { workerRunPrompt } from "./cluster-handoff.js";
 import { bridgePrompt } from "./prompt-catalog.js";
 import { nativeToolObservations } from "./audit.js";
 import { ProcessGroupCleanup } from "./process-group-cleanup.js";
@@ -199,22 +200,14 @@ export class ClaudeWorker implements Worker {
         "--system-prompt",
         completionSystemPrompt,
       );
+    // After cluster failover there is no sessionId — handoff brief replaces --resume.
     if (input.job.sessionId) args.push("--resume", input.job.sessionId);
     // Claude owns transcript compaction. Reconstructing its history would lose tool state and repeat work.
-    const prompt = input.job.sessionId
-      ? input.job.resumePending
-        ? bridgePrompt("workers/claude-continuation")
-        : input.job.messages
-            .filter((m) => m.role === "user")
-            .slice(input.job.resumedTurns ?? 1)
-            .map((m) => m.text)
-            .join("\n\n")
-      : input.job.messages.length === 1
-        ? input.job.prompt
-        : bridgePrompt("workers/quoted-conversation-heading") +
-          JSON.stringify(
-            input.job.messages.map(({ role, text }) => ({ role, text })),
-          );
+    const prompt = workerRunPrompt(input.job, {
+      continuationPrompt: bridgePrompt("workers/claude-continuation"),
+      conversationHeading: bridgePrompt("workers/quoted-conversation-heading"),
+      freshMultiTurn: "conversation",
+    });
     return new Promise<Outcome>((resolve) => {
       const child = spawn(this.options.path, args, {
         cwd: input.cwd,

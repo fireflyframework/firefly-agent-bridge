@@ -400,7 +400,9 @@ export async function startClusterWorker(
       if (entry?.control === "pause" && outcome.status === "canceled")
         outcome = {
           status: "paused",
-          error: "operator_pause",
+          error: claim.job.error?.startsWith("cluster_failover:")
+            ? claim.job.error
+            : "operator_pause",
           sessionId: claim.job.sessionId,
         };
       if (
