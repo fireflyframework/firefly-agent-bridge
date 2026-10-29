@@ -3453,6 +3453,23 @@ body[data-connection="connected"]
   width: auto;
   margin: 0;
 }
+.job-duration-settings {
+  margin-top: 20px;
+}
+.job-duration-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.job-duration-choice input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: none;
+}
+#job-deadline-field {
+  margin-top: 12px;
+}
 
 @media (max-width: 900px), (max-height: 700px) {
   #messages {

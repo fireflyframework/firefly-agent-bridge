@@ -96,7 +96,9 @@ For inference delivery loss, a caller can opt into [original completion recovery
 
 ## Configure access and execution
 
-Profiles set model, deadline, output bounds and permissions. `/v1/models` and owner status report the actual configured worker/profile, rather than an account-wide model catalog. HTTP callers cannot choose arbitrary executables, environments or working directories.
+Profiles set model, duration policy, output bounds and permissions. Fresh setup and the job wizard select **Until completion or cancellation**. Applications can select the same contract with `bridge.workDuration: {"version":1,"timeoutMs":null}` after checking the advertised capability. A chosen profile/request deadline still applies; the smallest chosen value is frozen at admission, including queue time. Existing profiles and unversioned callers keep legacy timing. See [duration configuration](docs/configuration.md#work-duration-for-new-admissions).
+
+`/v1/models` and owner status report the actual configured worker/profile, rather than an account-wide model catalog. HTTP callers cannot choose arbitrary executables, environments or working directories.
 
 Default Codex agent jobs use workspace-write sandboxing with noninteractive approval. Default Claude jobs use acceptEdits with interactive permission prompts denied. Bypass is an explicit owner choice for a trusted host. A job directory does not establish operating-system isolation for every shell action.
 

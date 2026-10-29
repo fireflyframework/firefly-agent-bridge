@@ -12,7 +12,7 @@ Open the local console URL returned by `bridge_panel` and authenticate with a br
 
 Select any screenshot to open its full capture. Images follow the page's light or dark appearance.
 
-The screenshots show Bridge 0.2.20 running in an isolated local fixture service at the configured desktop and mobile sizes. Jobs, tool observations, workflow results and provider states use deterministic fixtures. Sign-in, quota reports and dispatch appear separately; a signed-in or enabled state does not establish remaining quota or context capacity. The controlled scenes do not measure a real subscription. Historical checks with authenticated official CLIs remain in [verification](verification.md).
+The screenshots show Bridge 0.2.22 running in an isolated local fixture service at the configured desktop and mobile sizes. Jobs, tool observations, workflow results and provider states use deterministic fixtures. Sign-in, quota reports and dispatch appear separately; a signed-in or enabled state does not establish remaining quota or context capacity. The controlled scenes do not measure a real subscription. Historical checks with authenticated official CLIs remain in [verification](verification.md).
 
 ## Connect
 
@@ -49,6 +49,44 @@ Select a row to inspect messages, attempts, session continuity, and reported chi
 </figure>
 
 **New job** opens three steps: Task, Execution and Review. Describe the work, choose an existing profile and execution mode, then review the actual worker, native model, permissions and limits. Back preserves your choices. Queue job appears only on the review step.
+
+The wizard selects **Until completion or cancellation** unless you choose **Set a work deadline**. Enter a positive whole number of seconds; a smaller profile deadline still applies. Review shows the effective choice before admission. Back and uncertain delivery preserve it, while a confirmed admission or disconnected session clears it for the next job. Connected-host mode cannot enforce a Bridge deadline, so the control is unavailable there; a profile with a chosen deadline requires local coding or text completion.
+
+A chosen deadline includes queue time and survives pauses and restarts. The job detail retains that policy. Older jobs show **Legacy execution policy** rather than being relabeled as uncapped.
+
+<figure class="bridge-shot" markdown="1">
+
+<div class="bridge-shot__desktop" markdown="1">
+
+![Reviewing a chosen deadline on desktop](../assets/screenshots/job-duration-review-desktop-light.png)
+
+</div>
+
+<div class="bridge-shot__mobile" markdown="1">
+
+![Reviewing a chosen deadline on a phone](../assets/screenshots/job-duration-review-mobile-light.png)
+
+</div>
+
+<figcaption>A controlled forty-day selection is reviewed before submission. The footer remains reachable on desktop and phone; the selected value is not reduced to the legacy one-hour maximum.</figcaption>
+</figure>
+
+<figure class="bridge-shot" markdown="1">
+
+<div class="bridge-shot__desktop" markdown="1">
+
+![Retained chosen policy in a fixture job](../assets/screenshots/job-duration-result-desktop-light.png)
+
+</div>
+
+<div class="bridge-shot__mobile" markdown="1">
+
+![Retained chosen policy in a phone fixture job](../assets/screenshots/job-duration-result-mobile-light.png)
+
+</div>
+
+<figcaption>The fixture completes immediately and keeps its chosen admission policy visible. This image does not establish a forty-day provider execution.</figcaption>
+</figure>
 
 Native coding jobs use the official CLI's configured capabilities. Text completions disable native actions; application callers execute declared functions. Host conversations wait for a connected host to claim the work. A failed or unknown admission keeps the request key when you queue unchanged content again.
 

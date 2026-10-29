@@ -17,6 +17,7 @@
 
 import asyncio
 import os
+import httpx2
 
 from openai import AsyncOpenAI
 from pydantic import BaseModel
@@ -36,10 +37,17 @@ async def main():
         base_url=os.environ.get("BRIDGE_URL", "http://127.0.0.1:8766").rstrip("/") + "/v1",
         api_key=os.environ["BRIDGE_TOKEN"],
         max_retries=0,
-        timeout=330.0,
+        timeout=httpx2.Timeout(connect=5, read=None, write=30, pool=5),
     ) as client:
+        capability = (await client.get("/bridge/status", cast_to=dict, options={"timeout": 5})).get("workDuration", {})
+        if (type(capability.get("version")) is not int or capability.get("version") != 1
+                or capability.get("protocol") != "firefly-bridge-work-duration-v1"
+                or capability.get("nullableTimeout") is not True or capability.get("frozenAtAdmission") is not True):
+            raise RuntimeError("This example requires Bridge work-duration version 1 support")
         model = OpenAIChatModel("bridge/default", provider=OpenAIProvider(openai_client=client))
-        agent = Agent(model, output_type=NativeOutput(Calculation))
+        agent = Agent(model, output_type=NativeOutput(Calculation), model_settings={
+            "extra_body": {"bridge": {"workDuration": {"version": 1, "timeoutMs": None}, "waitTimeoutMs": None}}
+        })
 
         @agent.tool_plain
         def add(a: int, b: int) -> int:

@@ -23,6 +23,7 @@ import { Transform } from "node:stream";
 import { recoveryRequestId } from "./completion-recovery.js";
 import { once } from "node:events";
 import { setTimeout as delay } from "node:timers/promises";
+import { armDeadline, workDurationCapability } from "./work-duration.js";
 import {
   BridgeError,
   terminal,
@@ -145,6 +146,10 @@ export function registerOpenAI(
           worker: d.config.worker,
           native_model: d.config.profiles[n]!.model ?? null,
           image_input: imageCapability(d, n),
+          work_duration: {
+            ...workDurationCapability,
+            ...(d.config.profiles[n]!.workDuration ?? { timeoutMs: null }),
+          },
         })),
     };
   });
@@ -308,6 +313,9 @@ export function registerOpenAI(
                 profile,
                 mode:
                   request.bridge.execution === "channel" ? "channel" : "cli",
+                ...(request.bridge.workDuration
+                  ? { workDuration: request.bridge.workDuration }
+                  : {}),
               },
               p,
               undefined,
@@ -353,7 +361,19 @@ export function registerOpenAI(
       });
       waiters.set(controller, { principal: p.id, job: job.id, settled });
       const signal = controller.signal;
-      const timeout = setTimeout(
+      const explicitWaits = [
+        d.config.openai.waitTimeoutMs,
+        request.bridge.waitTimeoutMs,
+      ].filter((value): value is number => value != null);
+      const waitingTimeout =
+        job.workDuration === undefined &&
+        request.bridge.waitTimeoutMs === undefined
+          ? d.config.openai.timeoutMs
+          : explicitWaits.length
+            ? Math.min(...explicitWaits)
+            : null;
+      const cancelWaitDeadline = armDeadline(
+        waitingTimeout === null ? null : performance.now() + waitingTimeout,
         () =>
           controller.abort(
             new BridgeError(
@@ -362,7 +382,6 @@ export function registerOpenAI(
               504,
             ),
           ),
-        d.config.openai.timeoutMs,
       );
       const disconnected = () => {
         if (!reply.raw.writableEnded)
@@ -547,7 +566,7 @@ export function registerOpenAI(
           .code(error.status === 499 ? 400 : error.status)
           .send(openAIError(error, req.id, job.id));
       } finally {
-        clearTimeout(timeout);
+        cancelWaitDeadline();
         if (heartbeat) clearInterval(heartbeat);
         reply.raw.removeListener("close", disconnected);
         waiters.delete(controller);

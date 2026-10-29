@@ -85,6 +85,7 @@ export async function initialize(
       dataDir,
       workspace: join(dataDir, "jobs"),
       worker,
+      profiles: { default: { workDuration: { version: 1, timeoutMs: null } } },
       ...(worker === "codex"
         ? { codexPath: executablePath }
         : { claudePath: executablePath }),

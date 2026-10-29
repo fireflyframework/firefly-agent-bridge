@@ -22,6 +22,7 @@ import { nativeToolObservations } from "./audit.js";
 import { ProcessGroupCleanup } from "./process-group-cleanup.js";
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
+import { armDeadline, monotonicWorkDeadline } from "./work-duration.js";
 import type { Outcome } from "./contracts.js";
 import type {
   AuthenticationObservation,
@@ -149,9 +150,14 @@ export class ClaudeWorker implements Worker {
     signal: AbortSignal,
   ): Promise<Outcome> {
     if (signal.aborted) return { status: "canceled" };
+    const deadline = monotonicWorkDeadline(input.job);
+    if (deadline != null && deadline <= performance.now())
+      return { status: "timed_out", error: "work_deadline_exceeded" };
     const readiness = await this.ready();
     if (signal.aborted) return { status: "canceled" };
     if (!readiness.ready) return { status: "failed", error: readiness.reason };
+    if (deadline != null && deadline <= performance.now())
+      return { status: "timed_out", error: "work_deadline_exceeded" };
     const images = input.job.completion
       ? prepareCompletion(input.job.completion).images
       : [];
@@ -468,14 +474,16 @@ export class ClaudeWorker implements Worker {
       const abort = () =>
         stopWork(signal.reason === "pause" ? "paused" : "canceled");
       signal.addEventListener("abort", abort, { once: true });
-      const timer = setTimeout(
+      const cancelDeadline = armDeadline(
+        deadline === undefined
+          ? performance.now() + this.options.timeoutMs
+          : deadline,
         () => stopWork("timed_out"),
-        this.options.timeoutMs,
       );
       child.once("close", async (code) => {
         if (settled) return;
         settled = true;
-        clearTimeout(timer);
+        cancelDeadline();
         if (killTimer) clearTimeout(killTimer);
         signal.removeEventListener("abort", abort);
         if (buffer) parse(buffer);

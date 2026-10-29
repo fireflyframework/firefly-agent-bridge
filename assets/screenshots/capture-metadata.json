@@ -1,156 +1,415 @@
 {
-  "releaseVersion": "0.2.20",
-  "sourceCommit": "1816319539ee24b214b718c7080101082e0816c7",
+  "releaseVersion": "0.2.22",
+  "sourceBaseCommit": "de06028f89b2cfe9558b79ff6a8be2c09bd31bb4",
+  "sourceState": "Uncommitted successor; exact overlay hashes are recorded below",
+  "sourceInputSha256": "69c65eed0c3b183a963701f5e9a3d426b14b4874029ea30c4b8da8284d7f18e9",
+  "sourceChangedFiles": [
+    {
+      "path": ".claude-plugin/marketplace.json",
+      "sha256": "403ac0920c7b51f3abe4d407d85e30774a0c99c63cdef28691c9ab569d1b6e22"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "4490057cee5c60e036c7197ea6a2a458ceb5c6f5190d7d05dd161874c147e296"
+    },
+    {
+      "path": "README.md",
+      "sha256": "9fbc3e26bff5e4ca727475b66f2d42049834c3e72f734e58af1f1395729036e6"
+    },
+    {
+      "path": "docs/api.md",
+      "sha256": "f5649dcb82b9630994a794fbd5af86883ea942cf2bb8ef51bce30d05a652e222"
+    },
+    {
+      "path": "docs/configuration.md",
+      "sha256": "473383fa68d75a2c88ef1c34391f9ffff2c049319c21e51fe904c434c3ae1ffd"
+    },
+    {
+      "path": "docs/dashboard.md",
+      "sha256": "012bb74f1b9b532f13b5e9fb8bdccc891cb315766b18acd2ba2f6fade0b3c224"
+    },
+    {
+      "path": "docs/openai-compatible.md",
+      "sha256": "1c82b6444d96fcf64ab91257184293847f32befcc01d5ae67aa80fcacb70b722"
+    },
+    {
+      "path": "docs/openapi.json",
+      "sha256": "d2537525691bb3ac0b6fe2cd3bc82a0bed32321ad9e5a9de29e508901d6c3a98"
+    },
+    {
+      "path": "docs/operations.md",
+      "sha256": "95acd7d65019da1b8a317a57947c104e9b6f8119b9a0b8f1c1acffff6d94f305"
+    },
+    {
+      "path": "docs/reference.md",
+      "sha256": "76c9371717036581af8635690c297a92706bd72bcb00b96a979684c093f941af"
+    },
+    {
+      "path": "examples/pydantic_agent.py",
+      "sha256": "934e098588b74b6275fe131ab758be558b3d8e7d64eba59d436f1a8180ad4f65"
+    },
+    {
+      "path": "integrations/claude-code/.claude-plugin/plugin.json",
+      "sha256": "cb7db0c1712b7eaeb705abdba8d407cff56599fe88cb4f39a4508d7e2362ffe3"
+    },
+    {
+      "path": "integrations/claude-code/scripts/bootstrap.sh",
+      "sha256": "cdada3ef4a81db6e47f32cbad0a7242ed5b5598f45436b20fd8baee0428a2aba"
+    },
+    {
+      "path": "integrations/codex/.codex-plugin/plugin.json",
+      "sha256": "f7898156926bb97e0f8eee10f8b9ef54788b912db35cd7d4c49cdb3fa71d5dd8"
+    },
+    {
+      "path": "integrations/desktop/manifest.json",
+      "sha256": "b190be116065b1d33b860c40cd951564c9cd1754c824983c24414bfdb6a115af"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "d1f040e8c442e072029ba9e73e7226ed09777f71de94a7cc39d97cebba74ac8a"
+    },
+    {
+      "path": "package.json",
+      "sha256": "b90c29764c93068359b2ec37ff0fd402c36c6e802cac39fdbf7d8b59bbcaa308"
+    },
+    {
+      "path": "scripts/clients-smoke.ts",
+      "sha256": "eb4d0db61dab8d3ddb261cd3afb81483aaba555207e9ec26186d8c702d2b0ab7"
+    },
+    {
+      "path": "scripts/openapi.ts",
+      "sha256": "d2a00beaebd3930045da375b098cae8f6871558987d39dd5b79ac3ea8507ba46"
+    },
+    {
+      "path": "src/claude.ts",
+      "sha256": "31c4ad9fac73ee560579cb0cfd53cf0bcbf601a28a7be8641938eb3416c6e8b8"
+    },
+    {
+      "path": "src/codex.ts",
+      "sha256": "99b6536876998ef4d95f9814ec881311301476beeb8cecd100e23d034bbe70d7"
+    },
+    {
+      "path": "src/completion-protocol.ts",
+      "sha256": "5e3db3f7558e40b499946d58fe91a572ff8283d519ad987e6c8db81f38abdce9"
+    },
+    {
+      "path": "src/config.ts",
+      "sha256": "a9cca64cd23109a315a9984ca565a28e1f445d50bbec2828e953fb936195c10d"
+    },
+    {
+      "path": "src/contracts.ts",
+      "sha256": "9746002ccdedcb5af25c634846b1b334435b2c5a482db01a9c90f6bd44c9360b"
+    },
+    {
+      "path": "src/http.ts",
+      "sha256": "ebbdfde03ff9fa231e71083cd9924146370379cc4261337f4038b2914034b920"
+    },
+    {
+      "path": "src/lifecycle.ts",
+      "sha256": "12883400f258d5c772f1475d1483948f3709bb49e216407f5cd0c71ac6a43ced"
+    },
+    {
+      "path": "src/mcp.ts",
+      "sha256": "b09f84a14ef0250397196e03f44bdd548e0283151de3ab5e1144a79bd73c00ef"
+    },
+    {
+      "path": "src/openai.ts",
+      "sha256": "53425f771369b4a800254e0235f1e223accbdedbaa4b7dcd3f18f41556e5fc9c"
+    },
+    {
+      "path": "src/scheduler.ts",
+      "sha256": "6bbe34e7f2d6970acdfd01173c7603605a5f1f9f029adce2e3eaefe8c3972808"
+    },
+    {
+      "path": "src/service.ts",
+      "sha256": "7836159a2238930fd85e964dcdd7989b840cf2813671808688b770d671594b75"
+    },
+    {
+      "path": "src/store.ts",
+      "sha256": "30faba4653500a9ce2dd5dcc7a0ba5971be2fe83d5caac7bda3a2ccf33ce6d5b"
+    },
+    {
+      "path": "src/ui/app.css",
+      "sha256": "97dcb20d6896ab65b3e85b16361c47c84c86462c51483c100b3b96ec359e87bd"
+    },
+    {
+      "path": "src/ui/app.js",
+      "sha256": "6ecc89c018098044ceace067682aa7f6cbe2b0494ef5c32d694466ba9736f355"
+    },
+    {
+      "path": "src/ui/index.html",
+      "sha256": "fe3cb7b6ee2bffd6fa6373ae61eb8082bb7eb3d52f852cc613a8160ef9895ddd"
+    },
+    {
+      "path": "src/ui/job-wizard.js",
+      "sha256": "b14b0ee592b1f3cff7a7fc1685527237a6032f836c863ae8d485fc9ae255b8e1"
+    },
+    {
+      "path": "src/work-duration.ts",
+      "sha256": "54c8524d453c99fce736e16d3036ffe3e597d636529fd1b93cf01367d0fc7d4b"
+    },
+    {
+      "path": "tests/browser/dashboard.spec.ts",
+      "sha256": "5c9a2287d4bc2d812efeb6d64dc7d0613989b1c7d0e5ea634cc575d1831f45c9"
+    },
+    {
+      "path": "tests/clients/openai_clients.py",
+      "sha256": "f796af1b6bde5a53ce8aae09658caca89f31d4f3633f9299a325af1e6838209e"
+    },
+    {
+      "path": "tests/completion-recovery.test.ts",
+      "sha256": "0f793af690b67fd7ed4fd0c37e23554e4d18b4692fbf629ae7b615e6ce599cab"
+    },
+    {
+      "path": "tests/fixtures/duration-worker.mjs",
+      "sha256": "80372927f1cb29ac2bbf1fb167562a9d2cdcb48b65fdc973e8b571dfd2ae27ba"
+    },
+    {
+      "path": "tests/openai.test.ts",
+      "sha256": "321897b1600420c72e98ed75cba29cf985a74d2ff58bbac3ae4c6b9d13a3e0bb"
+    },
+    {
+      "path": "tests/work-duration-http.test.ts",
+      "sha256": "ddffcbb5ae0ec56dd36c0234e7a9c9fdaf0f5c3ce74db7b24a66f7b8ddebc84f"
+    },
+    {
+      "path": "tests/work-duration-init.test.ts",
+      "sha256": "3b7904206afba5992ce2f7cd217e3ef892a5ac80fb95189a23804ab9f8892923"
+    },
+    {
+      "path": "tests/work-duration-workers.test.ts",
+      "sha256": "3852967f6f67f4a14e464c0f010fb7235039af891932633506220468fa4aa8cf"
+    },
+    {
+      "path": "tests/work-duration.test.ts",
+      "sha256": "c5fe5720db6df992ab5d44a1243d50e6c0e1b7289d7d09b35735bf0293dcf2c7"
+    }
+  ],
   "scope": "Documentation captures from isolated deterministic fixture workers. No live provider, owner token or retained job content.",
   "screenshots": [
     {
       "path": "assets/screenshots/activity-desktop-dark.png",
-      "sha256": "20693a2f35598886383a1bcd1e0d631b6c93bfc118590c243356522256884aff",
+      "sha256": "0f233d5fd9db796199ef7dfb17848914680cba8b5046c79a4ed09257f51d9613",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
-      "workspaceScroll": 461,
-      "capturedAt": "2026-10-27T01:44:22.645Z",
+      "workspaceScroll": 488,
+      "capturedAt": "2026-10-29T00:29:50.165Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/activity-desktop-light.png",
+      "sha256": "ffbc5ca3be7d8bfe24f7c01fdb622f5e4b985138f91623e0779cfa8caad9c4c5",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 488,
+      "capturedAt": "2026-10-29T00:29:50.093Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/activity-desktop.png",
-      "sha256": "dc254844447a80392f971f2ce100b7d1ea23756dadccd785267103347c4db4db",
+      "sha256": "dfbce81da8de0b2c3809bf6f5d73f7804509c217a6aa3475b941a4f9f73dc0b3",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
-      "workspaceScroll": 461,
-      "capturedAt": "2026-10-27T01:44:22.543Z",
+      "workspaceScroll": 488,
+      "capturedAt": "2026-10-29T00:29:50.028Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/activity-mobile-dark.png",
-      "sha256": "ff228c90531c0cf5a88452702ed5a546c0f101b808d9f238af5b74736b16cce1",
+      "sha256": "d163eb59713fae63b4837430b64c9e09fccc4132ea10247225990add09aa544a",
       "viewport": {
         "width": 390,
         "height": 900
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
-      "workspaceScroll": 819,
-      "capturedAt": "2026-10-27T01:44:23.242Z",
+      "workspaceScroll": 845,
+      "capturedAt": "2026-10-29T00:29:50.872Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/activity-mobile-light.png",
+      "sha256": "e20cbf49352a1a8fe29321d9a9f0ceb897665f2fc84c833fa9bc1c384bf26863",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 845,
+      "capturedAt": "2026-10-29T00:29:50.838Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/activity-mobile.png",
-      "sha256": "0e7455dd26604fe622dc970f5f50688ba099acbd8e04a0ba180e446a784986a1",
+      "sha256": "9242a940cf14710c99084a555c5d2c0f7308ac6c6b88a7d95060968fc04f6648",
       "viewport": {
         "width": 390,
         "height": 900
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
-      "workspaceScroll": 819,
-      "capturedAt": "2026-10-27T01:44:23.177Z",
+      "workspaceScroll": 845,
+      "capturedAt": "2026-10-29T00:29:50.804Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/completion-desktop-dark.png",
-      "sha256": "e26e6742ed686c87e99149390fd824756c3795bee854d095c4af1804de870ce1",
+      "sha256": "bbcc5ff7543cd200d53714eecf2c5b3e776b93c954254ba4da9b7cd9d5679991",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:37.954Z",
+      "capturedAt": "2026-10-29T00:30:08.324Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/completion-desktop-light.png",
+      "sha256": "47d2c7a4e827d678f789860d17565b51cba988cc80df0801726ea04c0cf3ffa6",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:08.240Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/completion-desktop.png",
-      "sha256": "35802b2f7e0daeb9bea34f979aa4d04c05b9e4be4c94e15917025c63a175d61c",
+      "sha256": "36b2bd57bcca10a3087845991c48fe8600693c8e7aad7b0dd7cb567738b3d550",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:37.860Z",
+      "capturedAt": "2026-10-29T00:30:08.185Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/completion-mobile-dark.png",
-      "sha256": "3bd62106bca667879410f14776f58f7dc1c85ed1973e5fbc0b00ac019b5381ea",
+      "sha256": "b93038b40686caca9a26000cea2f1a8177a0c0651de6ca21adc8840b8dd4c0f2",
       "viewport": {
         "width": 390,
         "height": 844
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:38.023Z",
+      "capturedAt": "2026-10-29T00:30:08.448Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/completion-mobile-light.png",
+      "sha256": "74a2d9e79b6c1d0783827847fd895022cb88056d4022b8602e6579384cd989b7",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:08.412Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/completion-mobile.png",
-      "sha256": "e471b66a936600187e314c35e961e089c69d008600c12173527ef38cb3e1b5af",
+      "sha256": "e5bb0a1111fc318edf83e496d12fca6464986738047f74ed3a913c9f90a386f8",
       "viewport": {
         "width": 390,
         "height": 844
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:37.989Z",
+      "capturedAt": "2026-10-29T00:30:08.379Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/connect-desktop-dark.png",
-      "sha256": "02f983f1f9aeca2798e2635bbf4194b1240163bbe4c389965e4c68b587dd213e",
+      "sha256": "f78e2d8658be365e88b560dc92beb0fe77960508c1687f8f8ed1166989f2aaa9",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:21.379Z",
+      "capturedAt": "2026-10-29T00:29:48.544Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/connect-desktop-light.png",
-      "sha256": "05b399161743d299e081e4627b615db7506d243cd8b2946785639bf1bfbc5c6c",
+      "sha256": "0c984caf51962e4aad4fe5daf5ba1c31b9917124ebe10c9ca36117bb6fe93571",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:21.330Z",
+      "capturedAt": "2026-10-29T00:29:48.495Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/connect-desktop.png",
+      "sha256": "58975f4ee7e91fb41eeb97be94ec5c1c873fa30bcc1172cfab214c7e6c7153d1",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:48.438Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
@@ -161,11 +420,11 @@
         "height": 844
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:23.771Z",
+      "capturedAt": "2026-10-29T00:29:51.875Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
@@ -176,71 +435,116 @@
         "height": 844
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:23.738Z",
+      "capturedAt": "2026-10-29T00:29:51.840Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/connect-mobile.png",
+      "sha256": "cd349c57e17462c4d9042bbb186e646bd20a69cbb48a96d061b3a8408ded2524",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:51.801Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/dashboard-desktop-dark.png",
-      "sha256": "b3c1fd094fbe818a4250e9393bb982989feb228d16784f9bd044b76a6dddd6e6",
+      "sha256": "4443e4f9b73fb489e0f97bdc277d53eaa9368d9d6ddfc9f5be4c56a15e18a719",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:21.761Z",
+      "capturedAt": "2026-10-29T00:29:49.028Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/dashboard-desktop-light.png",
+      "sha256": "6407ffe53cc84f978c8aec24906f1e125314993e38094df5ad4b41ee3c0ab41f",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:48.956Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/dashboard-desktop.png",
-      "sha256": "7ed45938946de83bad796fb305663f50d98cc31baf83fe942abaeacebd4457a8",
+      "sha256": "50417b52df9455920fa370450c4fcba067f11cbcdbd1599bffbfede4480dc4bd",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:21.666Z",
+      "capturedAt": "2026-10-29T00:29:48.883Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/dashboard-mobile-dark.png",
-      "sha256": "d148993e01e6a0d4dd11ffd95f506cfe5faabcf97620fbefa9fcd71835cdd440",
+      "sha256": "562507528157059ef8c4daa62a8cdc0da66dd0e6a14a26e23ec7d270a6ca9d1d",
       "viewport": {
         "width": 390,
         "height": 844
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:24.061Z",
+      "capturedAt": "2026-10-29T00:29:52.249Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
-      "path": "assets/screenshots/dashboard-mobile.png",
-      "sha256": "b3309008c8802f4fb29d13287af4f09b794e4b01568a5da21eeb7d828462d616",
+      "path": "assets/screenshots/dashboard-mobile-light.png",
+      "sha256": "3b7104d1037a1a9998cad3e75f70ed8c19e9cd635cf7c1fa17c6b6d5e5d2b89f",
       "viewport": {
         "width": 390,
         "height": 844
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:24.002Z",
+      "capturedAt": "2026-10-29T00:29:52.212Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/dashboard-mobile.png",
+      "sha256": "f57afadd5090cc2fe476432a12f5be141394bcaf46d7ebe5dcb67d92a33c16fe",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:52.172Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
@@ -251,11 +555,26 @@
         "height": 844
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:38.752Z",
+      "capturedAt": "2026-10-29T00:30:22.388Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/diagnostics-access-mobile-light.png",
+      "sha256": "08322dd59074f2203c551a16d20f58acf8b2cc65c4a1bb4bcb85e3ac1ea3757c",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:22.206Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
@@ -266,191 +585,356 @@
         "height": 844
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:38.550Z",
+      "capturedAt": "2026-10-29T00:30:22.171Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/diagnostics-dark-desktop.png",
+      "sha256": "67485e971cd0e3656e393b482494ac8588a9111474d66f687ef2740a6edf87e6",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "theme": "dark",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:46.861Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/diagnostics-dark-mobile.png",
+      "sha256": "1b0ae8d4a0b10bdfbfbaab625685e2af53c51d9dc23d9d79cbf8930457c1a7fc",
+      "viewport": {
+        "width": 390,
+        "height": 960
+      },
+      "theme": "dark",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:47.322Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/diagnostics-desktop-dark.png",
-      "sha256": "1fa4f139f5cf904a5364df5ab6f5b5da970707bcb2bf933a9765b5c8ab9a8b4f",
+      "sha256": "19b1ece3ea10d81a63bd38faaa6ba20e031ae88e0ee4fb3732cc95d1b437c511",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:22.046Z",
+      "capturedAt": "2026-10-29T00:29:49.436Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/diagnostics-desktop-light.png",
+      "sha256": "88a0b20d08ca2811d2f648931eaf664badbdc21da4d3de1131c22b8476976da0",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:49.369Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/diagnostics-desktop.png",
-      "sha256": "a023569b828f8830f881df684688db01a417db03aca593a8ec9f60d7f39fa398",
+      "sha256": "e89c784938c111986670d9b8db51f274b856656cc7da96946cbed93dfcbd07e3",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:21.944Z",
+      "capturedAt": "2026-10-29T00:29:49.286Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/diagnostics-light-desktop.png",
+      "sha256": "4ec47a5a4ddaf8ca8f28a0122a642d59d087bb7cbdcb7ecaa8757ce702cfbbb9",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:45.675Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/diagnostics-light-mobile.png",
+      "sha256": "fc2c99083d421d7c9efb5f5715f8c1bb8b5e5d72ee25bc269c45a66fb6a5950e",
+      "viewport": {
+        "width": 390,
+        "height": 960
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:46.157Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/diagnostics-mobile-dark.png",
-      "sha256": "b476cce4ff9561f280e7ecd0b50dfd79b5cb0278f44bd7b129fd493ebf91f02a",
+      "sha256": "4d8ced7eaa143024da33d8dbd3683c242bc735c8267054b0799c42d4085817ca",
       "viewport": {
         "width": 320,
         "height": 960
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:31.427Z",
+      "capturedAt": "2026-10-29T00:30:01.221Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/diagnostics-mobile-light.png",
+      "sha256": "32ea7ede97b15a82218668aed1540b11e25d41ddeebe04fabdc33a3adbe063e9",
+      "viewport": {
+        "width": 320,
+        "height": 960
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:01.187Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/diagnostics-mobile.png",
-      "sha256": "8d29d54f85e689d894a66d40a721b0fb8fe1c9984db4c398d1c69de928f99cbc",
+      "sha256": "dd51bf766d19dce7acc03fc2972f39130566c106352eb7455ecf22056dbc6586",
       "viewport": {
         "width": 320,
         "height": 960
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:31.364Z",
+      "capturedAt": "2026-10-29T00:30:01.153Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/diagnostics-tablet-dark.png",
+      "sha256": "e8ef5f6b08db3add248d438bd4d517a6bed12785a97f21e88fe42185885faf15",
+      "viewport": {
+        "width": 768,
+        "height": 960
+      },
+      "theme": "dark",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:01.878Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/diagnostics-tablet-light.png",
+      "sha256": "3bc0500010f7659d79284c0ab68949eac11fa431f3974696c570096899f487cc",
+      "viewport": {
+        "width": 768,
+        "height": 960
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:01.844Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/diagnostics-tablet.png",
+      "sha256": "8beebfdb6377479b291a9a7d237a333cc024539615aea41a0d17db83b2b40761",
+      "viewport": {
+        "width": 768,
+        "height": 960
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:01.796Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/files-code-desktop-dark.png",
-      "sha256": "ce8e9acb138cd3dbc863e465b1c05a72d5d7669d0c1f6afcc04b90de408e61b8",
+      "sha256": "db3348fa81c9d87751f7abb3b55a300d8decef52a0eabe42252c1def099a48a4",
       "viewport": {
         "width": 1440,
         "height": 900
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "producer": "tests/browser/activity-presentation.spec.ts",
       "openDialogs": 0,
-      "workspaceScroll": 557,
-      "capturedAt": "2026-10-27T01:44:52.649Z"
+      "workspaceScroll": 583,
+      "capturedAt": "2026-10-29T00:29:37.343Z"
     },
     {
       "path": "assets/screenshots/files-code-desktop-light.png",
-      "sha256": "766ddf98f3cb324b1afaa520d730d75a7c8a8f68c52b6aa0065946b250aed10b",
+      "sha256": "b7a36941f0dcae583fbc5e3a2e652c0e557e5a4edaa17ba41d2b0ba72c36195d",
       "viewport": {
         "width": 1440,
         "height": 900
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "producer": "tests/browser/activity-presentation.spec.ts",
       "openDialogs": 0,
-      "workspaceScroll": 557,
-      "capturedAt": "2026-10-27T01:44:51.628Z"
+      "workspaceScroll": 583,
+      "capturedAt": "2026-10-29T00:29:36.105Z"
     },
     {
       "path": "assets/screenshots/files-code-mobile-dark.png",
-      "sha256": "f47350cd403ea1307c007c4927a7d7ae957c750da0ff8f2ace58d51e5b79fbeb",
+      "sha256": "d69040516a1da3061e4ca357ab988405227eac22015ad8808992e85239da9c74",
       "viewport": {
         "width": 375,
         "height": 667
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "producer": "tests/browser/activity-presentation.spec.ts",
       "openDialogs": 0,
-      "workspaceScroll": 1010,
-      "capturedAt": "2026-10-27T01:44:54.628Z"
+      "workspaceScroll": 1037,
+      "capturedAt": "2026-10-29T00:29:39.651Z"
     },
     {
       "path": "assets/screenshots/files-code-mobile-light.png",
-      "sha256": "4639320b53dcf5802c6866093122b051b3ff1c86712fffe6d0444505b1a31825",
+      "sha256": "427ffb8a09864294efebc71055b3100d6a63ddbeb7b2f5ddda864a8a3e64e1b8",
       "viewport": {
         "width": 375,
         "height": 667
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "producer": "tests/browser/activity-presentation.spec.ts",
       "openDialogs": 0,
-      "workspaceScroll": 1010,
-      "capturedAt": "2026-10-27T01:44:53.644Z"
+      "workspaceScroll": 1037,
+      "capturedAt": "2026-10-29T00:29:38.504Z"
     },
     {
       "path": "assets/screenshots/files-desktop-dark.png",
-      "sha256": "f0d22927094445f032d2395fd4bb91dc501e78b4e6d148db90f2a5c44493f298",
+      "sha256": "4c213bb9028c101ce033d99c182ea5fca6999cb3f1c894c9161c6e9fd0543af0",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
-      "workspaceScroll": 132,
-      "capturedAt": "2026-10-27T01:44:22.946Z",
+      "workspaceScroll": 158,
+      "capturedAt": "2026-10-29T00:29:50.550Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/files-desktop-light.png",
+      "sha256": "1e046771221a2fb62e5719c938a0fce85e92814799ce27b26de51ae547f03d38",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 158,
+      "capturedAt": "2026-10-29T00:29:50.466Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/files-desktop.png",
-      "sha256": "daa8563181e7b8c84f250c077dab6801af85733598c45a80e2581b0400e9779b",
+      "sha256": "81390965175b45afda9415717c0750cb3a8695a2fea8ff0a06ba0de6faadb276",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
-      "workspaceScroll": 132,
-      "capturedAt": "2026-10-27T01:44:22.844Z",
+      "workspaceScroll": 158,
+      "capturedAt": "2026-10-29T00:29:50.400Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/files-mobile-dark.png",
-      "sha256": "95bd31b7aee8f6da45e36bd6ed96229f413a439a45e18143714d869151347fb3",
+      "sha256": "831b7b0747a1b5accfe96207548093178936c09b08a3cfa95e35008c3a66cbaa",
       "viewport": {
         "width": 390,
         "height": 900
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
-      "workspaceScroll": 598,
-      "capturedAt": "2026-10-27T01:44:23.410Z",
+      "workspaceScroll": 624,
+      "capturedAt": "2026-10-29T00:29:51.441Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
-      "path": "assets/screenshots/files-mobile.png",
-      "sha256": "63a0fbfe5776189c23bd473b2c0102d6f950cf14b5c51802eb6033debfbfaba2",
+      "path": "assets/screenshots/files-mobile-light.png",
+      "sha256": "b78ddc6692aa294560d4ce0b7bd2562f576177f62beabd4f9146f835e3f1eea0",
       "viewport": {
         "width": 390,
         "height": 900
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
-      "workspaceScroll": 598,
-      "capturedAt": "2026-10-27T01:44:23.343Z",
+      "workspaceScroll": 624,
+      "capturedAt": "2026-10-29T00:29:51.406Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/files-mobile.png",
+      "sha256": "35891fd98c0c6d0aa24c671d0d5bd866886cc058e5c45af760ebe882cd9d1ea6",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 624,
+      "capturedAt": "2026-10-29T00:29:51.372Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
@@ -461,11 +945,11 @@
         "height": 568
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:39.496Z",
+      "capturedAt": "2026-10-29T00:30:39.277Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
@@ -476,11 +960,11 @@
         "height": 568
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:39.096Z",
+      "capturedAt": "2026-10-29T00:30:38.846Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
@@ -491,11 +975,11 @@
         "height": 568
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:39.678Z",
+      "capturedAt": "2026-10-29T00:30:39.476Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
@@ -506,221 +990,761 @@
         "height": 568
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:39.279Z",
+      "capturedAt": "2026-10-29T00:30:39.043Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/job-duration-result-desktop-dark.png",
+      "sha256": "2ebb3a5c58b47be6b099af7489b0e8c69c46ec61f2157b98c284a225fe7ef5c8",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "dark",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:28.158Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/job-duration-result-desktop-light.png",
+      "sha256": "873ccd03d19903105666e7a24286b3aea3b945e522141974215ab2251bdc5937",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:28.083Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/job-duration-result-desktop.png",
+      "sha256": "bef2dbe01a5408d6e67521b245c0d4fe1bc44c634052b0e4d392ad101b5715d4",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:28.000Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/job-duration-result-mobile-dark.png",
+      "sha256": "37a05b2b4cc335dd13553f2deb264dafadd9c539380566856909d601bb1e5cbd",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:28.325Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/job-duration-result-mobile-light.png",
+      "sha256": "f069be5a2c534af96f0204340dabfe84ed4871dd48d91e0e653adef6aa7d3ecc",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:28.288Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/job-duration-result-mobile.png",
+      "sha256": "5c340d1abcd00d77a63d872ef6de05aab6a233617029959a90305eb0d3ffc9d1",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:28.256Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/job-duration-review-desktop-dark.png",
+      "sha256": "c361a1a54efbc64238d68650523af2296c2dfdb08d73c7cb13c4e46a5ec9c0b9",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "dark",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:27.453Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/job-duration-review-desktop-light.png",
+      "sha256": "37f674726bcc8e755c91fa7ac6bdf8bd014cd835e75e0b9081ca3377ef31fce8",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:27.302Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/job-duration-review-desktop.png",
+      "sha256": "bcc0422880f17b591183215064f8b6bbe8399313820ff5e7dadeaffb8ff1cfa2",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:27.166Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/job-duration-review-mobile-dark.png",
+      "sha256": "817ffbc75116ba170dbc564296f32b4d0334216122f58833d8a43b292d896dde",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:27.716Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/job-duration-review-mobile-light.png",
+      "sha256": "273730fcef3ce383b2853a9aea64b11ab7b4949ff4b6e2fffd70ae84274ef4e4",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:27.652Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/job-duration-review-mobile.png",
+      "sha256": "ca5187ef82d68ddf045ee8bd1c2da4045919e5f26bc242e49fe26fd2ea9d0651",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:27.602Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/jobs-dark-desktop.png",
+      "sha256": "8ad9e7c12c633d335fe18c7c66ae56e388ca8af95f3d8f42d170ede3f60f5c5b",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "theme": "dark",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:46.590Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/jobs-dark-mobile.png",
+      "sha256": "adf0e6558c81a14631665fe47e04d59994779b6ce06f858a1c4783124e55a7ad",
+      "viewport": {
+        "width": 390,
+        "height": 960
+      },
+      "theme": "dark",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:46.988Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/jobs-light-desktop.png",
+      "sha256": "721ba3abd8bab14b5194c442f39e64658348cab1c52b84252ae9ba504071ec57",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:45.404Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/jobs-light-mobile.png",
+      "sha256": "f649843ad86ba9516735d012cabbb2c1e70136f4243e27acbed7999d2fc609bc",
+      "viewport": {
+        "width": 390,
+        "height": 960
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:45.805Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/jobs-tablet-dark.png",
-      "sha256": "ba0c8fdd9f0e229643ff1f5661a1b55481d81cc79266376b943ae9a3522dc888",
+      "sha256": "0ce173186c18b8cebc5f19bb4b639dd4c2146a2e899a1a4a5397e5ac27e91911",
       "viewport": {
         "width": 768,
         "height": 960
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:31.617Z",
+      "capturedAt": "2026-10-29T00:30:01.446Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/jobs-tablet-light.png",
+      "sha256": "a9b2b03db483b8e7eff6faaf238148473b6b7b7d340223c8f97fe67b750815b0",
+      "viewport": {
+        "width": 768,
+        "height": 960
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:01.410Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/jobs-tablet.png",
-      "sha256": "e4afd0312fc13392aab538b5316b537c097a781500bcc3c0628170d9024ba6de",
+      "sha256": "5dc204809492d7843fdb28cc1f65a54da1af2c7180d954ee8e311094cf77a8ab",
       "viewport": {
         "width": 768,
         "height": 960
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:31.550Z",
+      "capturedAt": "2026-10-29T00:30:01.364Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/new-job-desktop-dark.png",
-      "sha256": "caa6194e88487f168c6a73a26b1ce7cc3b87b9cc4571d957617b3fe28943e9d0",
+      "sha256": "8ed167ad560992a13b93d3948f8e19f02f9fd8a9703e843094882e4ae2686384",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 1,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:29.662Z",
+      "capturedAt": "2026-10-29T00:29:58.689Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/new-job-desktop-light.png",
+      "sha256": "4f76b09089b628e62c06f442d15086cb9855faa8239b7112152f9910626aeac4",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:58.533Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/new-job-desktop.png",
-      "sha256": "21e0383831e524d90ddcca582d245aa17d0840a44a89009aa3db326667bc6b9e",
+      "sha256": "0040a5963f9e4dc0665f7dcfc86f968939304264e43eb2ad9786c2beac7bac90",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 1,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:29.481Z",
+      "capturedAt": "2026-10-29T00:29:58.391Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/new-job-execution-desktop-dark.png",
-      "sha256": "2d207eab27c17b49ac9cb3d8905709e2806950fc2a0870ca0c7d9f5efc3b7037",
+      "sha256": "3fa3eb479199364135152e3c3c84788e420c368edad3987cec2ec74d78c60975",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 1,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:30.008Z",
+      "capturedAt": "2026-10-29T00:29:59.191Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/new-job-execution-desktop-light.png",
-      "sha256": "ec18d465858bdf1ae8639de1dbb93cac5abf972858df1e7bd96b087b87509581",
+      "sha256": "dff6bfb4220807f099ae2a8f9f05923365b4fc1595cef1bb084225abe4016787",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 1,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:29.909Z",
+      "capturedAt": "2026-10-29T00:29:59.049Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/new-job-execution-desktop.png",
+      "sha256": "7cee906c6737aa428bd67a5af94c0c285f211f302cd320b6957f37b4ad1f8fb2",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:58.942Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/new-job-execution-mobile-dark.png",
+      "sha256": "70c78b4a6469d41671312caae326698e341dbd8b8ebb5ff6c232d304394cfd32",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:00.086Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/new-job-execution-mobile-light.png",
+      "sha256": "7e84c14e96be56f030447b1824d9a19727db96346ee9b5b1f2c815477d0aa6e9",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:00.035Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/new-job-execution-mobile.png",
+      "sha256": "2d514998aec8b0175ee65e66e6190338ea5ec22a9d4d7e99bfc7fdeb1f7b1d37",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:59.985Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/new-job-mobile-dark.png",
+      "sha256": "93be26298848171233db78f99fbcbdd35148a7fdbaae4ff8a19f6a47ac5d2075",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:00.269Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/new-job-mobile-light.png",
+      "sha256": "89c5451ad8c4fdee5666636abeb8014de55e215ecad8e849ad0c8e456a9a8346",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:00.215Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/new-job-mobile.png",
+      "sha256": "8d92584b8b59461766cbbdd5bcf034cbfd3d9d4ef481ab800ff6435b5eb5bc30",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:00.167Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/new-job-review-desktop-dark.png",
-      "sha256": "5776fa3e95bea1b3b73c9a85497ded305864fdf405e354dbd1eded02884981fa",
+      "sha256": "912acf937253703837b414adb714f0edd6bd77e30e1d7b8a417a9b9560ac820b",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 1,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:30.309Z",
+      "capturedAt": "2026-10-29T00:29:59.691Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/new-job-review-desktop-light.png",
-      "sha256": "920b2cbce275ecb674a789b18b6f0f620dd959ed374877cacdec2e8fbd0161ba",
+      "sha256": "6027716274961663974fa2a06e9bfd2c51296aa165a790a846d5863d4757246b",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 1,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:30.242Z",
+      "capturedAt": "2026-10-29T00:29:59.548Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/new-job-review-desktop.png",
+      "sha256": "bd28c3ddf4bcc21a7ddf61ccfbb4c1c927642c63240bf4dd4f4783fbd7891255",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:59.398Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/new-job-review-mobile-dark.png",
-      "sha256": "abed6270f6cd42636d9ccd9aef5547870647abab07435458607f7bc262dcf1b8",
+      "sha256": "016de5623c35c7d171c2b7851e39e3d0ae18b21fbf8af4a84e9710871a311d00",
       "viewport": {
         "width": 390,
         "height": 844
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 1,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:30.438Z",
+      "capturedAt": "2026-10-29T00:29:59.900Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/new-job-review-mobile-light.png",
-      "sha256": "c8beec364fc8f27e066421eb404560b5a76e3ac62be25b9b57b12efe460be2c9",
+      "sha256": "160c28cc6c0b75e28a247b527a2b45b3b910f896a7cbe751af557be9001b1a32",
       "viewport": {
         "width": 390,
         "height": 844
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 1,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:30.404Z",
+      "capturedAt": "2026-10-29T00:29:59.833Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/new-job-review-mobile.png",
+      "sha256": "dae30de7398a97b4461fcac4aa7ca6b216b1cb9338de063987871aa1c46b3e7a",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:59.783Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/providers-dark-desktop.png",
+      "sha256": "26cb2f3042c46e64a28e066e72cec2138f9461c48a5a2d861ee8c71653040c65",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "theme": "dark",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:46.772Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/providers-dark-mobile.png",
+      "sha256": "f603d65799e0f525e373b1a0ef3cf3c8c8bed475dd1fedde9646970516df7266",
+      "viewport": {
+        "width": 390,
+        "height": 960
+      },
+      "theme": "dark",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:47.207Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/providers-desktop-dark.png",
-      "sha256": "4eb42694fb066d14c5e25b7b8d60b94b3a0b68db173b6651e48114d3a6f37ce0",
+      "sha256": "6ed93f73edbcfa440ecde538f9474f0415407fb1bdb77bc19f907f8db19de13c",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
-      "workspaceScroll": 173,
-      "capturedAt": "2026-10-27T01:44:17.539Z",
+      "workspaceScroll": 207,
+      "capturedAt": "2026-10-29T00:29:43.733Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/providers-desktop-light.png",
-      "sha256": "f6711e95f4976a87de43270550b5a636d9cf886f979fead96c8fa1b66000a80f",
+      "sha256": "da98a6a377cfccf6587fe7499aac7b0408e52d8024a0fd1ce7a8833162fa763a",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
-      "workspaceScroll": 173,
-      "capturedAt": "2026-10-27T01:44:17.484Z",
+      "workspaceScroll": 207,
+      "capturedAt": "2026-10-29T00:29:43.681Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/providers-desktop.png",
+      "sha256": "2dafa9892741c48548d6dde8b7065dfbe38bd4eed21be7e0d01b29cd3191876b",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 207,
+      "capturedAt": "2026-10-29T00:29:43.636Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/providers-light-desktop.png",
+      "sha256": "34d7842999fb0e3d30c6662986077cc8fad1d9f5303edd2924dcad79ae58a4bc",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:45.588Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/providers-light-mobile.png",
+      "sha256": "87c2f54b4328ff16c3a67b7bb5a2f2aee95f1145ef1fa3837d5fe018db80f99f",
+      "viewport": {
+        "width": 390,
+        "height": 960
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:46.041Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/providers-mobile-dark.png",
+      "sha256": "9890b947fd859ca9d54834608b93abc9b3b4db76d98c6347acb5a37b865bd403",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 526,
+      "capturedAt": "2026-10-29T00:29:44.712Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/providers-mobile-light.png",
+      "sha256": "0c2a240d571969c3d619e15aa9e46538d7a8059524296dae330f303d1ae0afb8",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 526,
+      "capturedAt": "2026-10-29T00:29:44.680Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/providers-mobile.png",
+      "sha256": "66aff6834a8cf5d402025348f703284809bc6c213f9bfd95f4bbd1ae59c70bb1",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 526,
+      "capturedAt": "2026-10-29T00:29:44.647Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/setup-login-desktop-dark.png",
-      "sha256": "106ae348215b6aeac517a9d24f6f9e7b9da91fd29e04043902d428615a817ea3",
+      "sha256": "e225bef78c1e18ebe25b7e95b661dfbccc61998c5d2a91dd1bd29fd481b1404b",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:17.135Z",
+      "capturedAt": "2026-10-29T00:29:43.300Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/setup-login-desktop-light.png",
-      "sha256": "f02aeb2662de9ed3a01f33bd403745a4023bdf76e90a28532105d6c63df4c7b9",
+      "sha256": "3eaa0f1ddf4074f0ef0b12fe37fcea5356b4e87b39e966f3bf50e8ae9f13f9d6",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:17.083Z",
+      "capturedAt": "2026-10-29T00:29:43.221Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/setup-login-desktop.png",
+      "sha256": "b39f89dee18182de1c4b480d965ac55f1ba78ffb995e78293549012047afe7c9",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:43.167Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
@@ -731,11 +1755,11 @@
         "height": 844
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 247,
-      "capturedAt": "2026-10-27T01:44:18.154Z",
+      "capturedAt": "2026-10-29T00:29:44.398Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
@@ -746,101 +1770,161 @@
         "height": 844
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 247,
-      "capturedAt": "2026-10-27T01:44:18.123Z",
+      "capturedAt": "2026-10-29T00:29:44.362Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/setup-login-mobile.png",
+      "sha256": "d8fb3c37bfc9314a94273d2a7c3d3ed6004f3514468f448601b59bdf7dba1282",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 247,
+      "capturedAt": "2026-10-29T00:29:44.329Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/setup-profile-desktop-dark.png",
-      "sha256": "6896e07d45f8a1d9432bc1c43bf7043487f310bc2b39318b80005667bd2141fc",
+      "sha256": "eaf3c81691697d2791ef4eb898c6e429be905e9691b80a3e0fc0c3c7c8598a61",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
-      "workspaceScroll": 173,
-      "capturedAt": "2026-10-27T01:44:17.384Z",
+      "workspaceScroll": 207,
+      "capturedAt": "2026-10-29T00:29:43.567Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/setup-profile-desktop-light.png",
-      "sha256": "3f30eaacdc134a7c9f1af8b78dc652214846017fc2d20f0032a76b152ce9b9d7",
+      "sha256": "c60572177aff4f07090cf4555a26c385e981e4c2ef1dbca52f07d812f6a9d0c4",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
-      "workspaceScroll": 173,
-      "capturedAt": "2026-10-27T01:44:17.320Z",
+      "workspaceScroll": 207,
+      "capturedAt": "2026-10-29T00:29:43.499Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/setup-profile-desktop.png",
+      "sha256": "8f20c3936bff8d7d72340bace55d8ac2e0d719b58ce1d88b12dac2328b37927d",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 207,
+      "capturedAt": "2026-10-29T00:29:43.448Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/setup-profile-mobile-dark.png",
-      "sha256": "eea6c6a52bc719af76aeae8f1143193874a9b869bd89b39363b1f6eda8254347",
+      "sha256": "117f6c372c4100dcba345dd8180a0c54d62f2e06066796e6a38d0aeb424c1f23",
       "viewport": {
         "width": 390,
         "height": 844
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
-      "workspaceScroll": 472,
-      "capturedAt": "2026-10-27T01:44:18.337Z",
+      "workspaceScroll": 526,
+      "capturedAt": "2026-10-29T00:29:44.598Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/setup-profile-mobile-light.png",
-      "sha256": "72636845e42aa418c54cfceb04f45ae7496e3d56e0cc3b9fee043e60d0cdc973",
+      "sha256": "e221d50d8eece865adbeca900de07e21ccce7cfde4a74f546188f3c6ea71f2bb",
       "viewport": {
         "width": 390,
         "height": 844
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
-      "workspaceScroll": 472,
-      "capturedAt": "2026-10-27T01:44:18.302Z",
+      "workspaceScroll": 526,
+      "capturedAt": "2026-10-29T00:29:44.565Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/setup-profile-mobile.png",
+      "sha256": "4aad3020a465d68cbb66f41dfa7a57ded9b8b57680babc0b2af0a8d36056aaa1",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 526,
+      "capturedAt": "2026-10-29T00:29:44.528Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/setup-provider-desktop-dark.png",
-      "sha256": "c144c0ab916e95b07103742df99578c2cd488a8b1e386e3de00ddc6922f015ea",
+      "sha256": "508d40f13b1e1aa3e8e6ac4858ac5f83b4477f6450cce9037d51be7044e06757",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:16.888Z",
+      "capturedAt": "2026-10-29T00:29:43.025Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/setup-provider-desktop-light.png",
-      "sha256": "f6b4a339660f0954d790570308a5a41cc3a2fc27f2d7f97566fdbba89d42a1a7",
+      "sha256": "2ecb7356f60693c3df06051e084a1dc43eb0f02452d0b4edd95f51be99841f6d",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:16.837Z",
+      "capturedAt": "2026-10-29T00:29:42.967Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/setup-provider-desktop.png",
+      "sha256": "99cb2424ec3eb1e1cc6210921e33d29a620b3cac10f0bc49ba155c4a46bc9c96",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:42.908Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
@@ -851,11 +1935,11 @@
         "height": 844
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 210,
-      "capturedAt": "2026-10-27T01:44:17.971Z",
+      "capturedAt": "2026-10-29T00:29:44.197Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
@@ -866,41 +1950,71 @@
         "height": 844
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 210,
-      "capturedAt": "2026-10-27T01:44:17.935Z",
+      "capturedAt": "2026-10-29T00:29:44.163Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/setup-provider-mobile.png",
+      "sha256": "eb97bf6401fd71edc397a05232a9762bcd6d7b663cb81f99af9ce1c48c14467b",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 210,
+      "capturedAt": "2026-10-29T00:29:44.130Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/setup-tools-desktop-dark.png",
-      "sha256": "bfb205eb52ebaeadb45d407b60c03ee33dbd00cff8c7375a45911fd1d5679306",
+      "sha256": "1ca84b633ae83e79cfd55dbb9efb1bc8adb0be09263050040225d28d36a4f67b",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:17.784Z",
+      "capturedAt": "2026-10-29T00:29:43.982Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/setup-tools-desktop-light.png",
-      "sha256": "8ed46d7a4719677a517e5cc6784320efd0927545b76d94d0a7835791121058d5",
+      "sha256": "82381581c05b748b42c6605844a8e314b0b5092c76800292d093e0e2e9cea508",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:17.720Z",
+      "capturedAt": "2026-10-29T00:29:43.918Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/setup-tools-desktop.png",
+      "sha256": "45c5121019d6410b5aa5812e9ac5e2894334635334711e2f0310ad51d428c5ff",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:43.868Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
@@ -911,11 +2025,11 @@
         "height": 844
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 256,
-      "capturedAt": "2026-10-27T01:44:18.617Z",
+      "capturedAt": "2026-10-29T00:29:44.899Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
@@ -926,56 +2040,101 @@
         "height": 844
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 256,
-      "capturedAt": "2026-10-27T01:44:18.584Z",
+      "capturedAt": "2026-10-29T00:29:44.862Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/setup-tools-mobile.png",
+      "sha256": "3f770d3a45e29ae590e0132681e23c348227e27a094450c5198eee5e4b05f568",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 256,
+      "capturedAt": "2026-10-29T00:29:44.828Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/template-editor-desktop-dark.png",
-      "sha256": "5312e636464c8a1e041adf22f431dfead73a6f0e897a47824f9564088053251e",
+      "sha256": "676e17e2c8f4b50f7b293d6f9ef98ad1454c0fc5fc69133244278577a070985c",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 1,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:32.926Z",
+      "capturedAt": "2026-10-29T00:30:03.233Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
-      "path": "assets/screenshots/template-editor-desktop.png",
-      "sha256": "e090e8a6ad0ea6efb1dbcf37597c13de55033e4e5bd0860cc3b04ba16d4ba713",
+      "path": "assets/screenshots/template-editor-desktop-light.png",
+      "sha256": "105309d7b4f850cbdfc8e21122a81b8abcd460050ab341d9c26f23a5518e612b",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 1,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:32.728Z",
+      "capturedAt": "2026-10-29T00:30:03.079Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/template-editor-desktop.png",
+      "sha256": "78b369bfb161c103d5078703630bf71d057ead93f108745bdd36dd54eae7788a",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:02.943Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/template-editor-mobile-dark.png",
-      "sha256": "e790da865f8dcad83d5ade84f75da0b61f4b0bab4a267e63388fabc0db7ca2cf",
+      "sha256": "4e29fbb7dcd17576fdf9672d29cfcbbacdd830b2c8d1f3c9705937b49f3320db",
       "viewport": {
         "width": 390,
         "height": 844
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 1,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:33.388Z",
+      "capturedAt": "2026-10-29T00:30:03.910Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/template-editor-mobile-light.png",
+      "sha256": "31c6458340d310d4f403dea39c14ed3012003f9460b05295eb156dbece905eeb",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:03.863Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
@@ -986,161 +2145,296 @@
         "height": 844
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 1,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:33.318Z",
+      "capturedAt": "2026-10-29T00:30:03.823Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/template-editor-steps-desktop-dark.png",
-      "sha256": "ae5a41b8c7c74ad83cc819a6c21f7bbcc91c8f97e1aed918fad9f2b4d7a35488",
+      "sha256": "62facceedd70359c1fe1b62ade7c1e440bf29cb60e0e69b7f5f9098deebc9659",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 1,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:33.274Z",
+      "capturedAt": "2026-10-29T00:30:03.700Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/template-editor-steps-desktop-light.png",
-      "sha256": "10833f7a98b9fa43af0eaa3d0a0830cae78386989e3a44d430887e8242102a75",
+      "sha256": "d44d0e9724301e62c512c859c2c3f9236703a0c9701af075819075ef8f9ce146",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 1,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:33.164Z",
+      "capturedAt": "2026-10-29T00:30:03.561Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/template-editor-steps-desktop.png",
+      "sha256": "8403b9834d9667b41a9d5077193eb7f185e1aef4616ef4ef8504f6a0582c1f63",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:03.461Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/template-editor-steps-mobile-dark.png",
-      "sha256": "b491e4dd7f62db9ffd95b81b67c22d1842e052aee4b46c53cb92a8d21a80fed1",
+      "sha256": "22b81c0a604802583cc99f14645260a7836888be6980b58446352deff25074e2",
       "viewport": {
         "width": 390,
         "height": 844
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 1,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:33.519Z",
+      "capturedAt": "2026-10-29T00:30:04.075Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/template-editor-steps-mobile-light.png",
+      "sha256": "33ed28d0094c2f006501157e2c80d58cc5236774b87de921472c6204313daafe",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 1,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:04.030Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/template-editor-steps-mobile.png",
       "sha256": "1346f68ee3f88bb39be64c015530d4dcf3f52b6dff51daefa9a50e9d1fb7d085",
       "viewport": {
         "width": 390,
         "height": 844
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 1,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:33.486Z",
+      "capturedAt": "2026-10-29T00:30:03.994Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/workflows-dark-desktop.png",
+      "sha256": "3532ab53ea7f1bdc8118889800b6c41751357f69c1c1bf35ccda06386ef6fe31",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "theme": "dark",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:46.679Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/workflows-dark-mobile.png",
+      "sha256": "86f16324035e9b1ecf6f151bc479393dfc262db2d16cd20d83cc292c1d42c9f8",
+      "viewport": {
+        "width": 390,
+        "height": 960
+      },
+      "theme": "dark",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:47.089Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/workflows-desktop-dark.png",
-      "sha256": "90248547f77ea860839694806861124f10821e69f048816d6b0e52056622b5fe",
+      "sha256": "0c5ca8574eddb179811da0987d3afdbbe7df03e42f214cf08bfe00ccc5235ad9",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:31.027Z",
+      "capturedAt": "2026-10-29T00:30:00.758Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/workflows-desktop-light.png",
+      "sha256": "e719d0631ae8bd08316e31b72d8dc224823ee8aeeb129db537864f947df34f80",
+      "viewport": {
+        "width": 1440,
+        "height": 1050
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:00.695Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/workflows-desktop.png",
-      "sha256": "183b1b1fd41fa2a06c31fb1bcc3fe379cce6394945f921b816e66fa6b9b8ab73",
+      "sha256": "bd2ed7efe5cbd980df5c418c838c57148e7d43458d2371cb98f541dfc62f29da",
       "viewport": {
         "width": 1440,
         "height": 1050
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:30.960Z",
+      "capturedAt": "2026-10-29T00:30:00.643Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/workflows-light-desktop.png",
+      "sha256": "a537e92360c010ee379fafc973923d6cb99094959416272627c84ba6d1787b6c",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:45.492Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/workflows-light-mobile.png",
+      "sha256": "a3e9b88aae39a9e0cfd3663b2e7ad4098284a66a91874670c4db4330fcf0a4a7",
+      "viewport": {
+        "width": 390,
+        "height": 960
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:45.921Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/workflows-mobile-dark.png",
-      "sha256": "11508fec95d7e70a795b48757864361157c81d425955778dd58c6c4b1013a7f1",
+      "sha256": "eb27e9391b0b114bc45eb5aabf5d50c0babc14e8d36bfcbdd6ff091ce9cf615c",
       "viewport": {
         "width": 390,
         "height": 844
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:29.160Z",
+      "capturedAt": "2026-10-29T00:29:57.413Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/workflows-mobile-light.png",
+      "sha256": "5e6ae6ae7384ec2a9efcbf039cad641af1012828c9523188bd94b5814fa6af84",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:29:57.367Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/workflows-mobile.png",
-      "sha256": "a63cbc05596ec19c48777e9ca50e250b161084de09d2708a9b19dd0323b938a6",
+      "sha256": "0d48086f00cbc4c366ae9e4a266d5cd27c72451ef6792918955b6483f145483d",
       "viewport": {
         "width": 390,
         "height": 844
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:29.094Z",
+      "capturedAt": "2026-10-29T00:29:57.328Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
       "path": "assets/screenshots/workflows-tablet-dark.png",
-      "sha256": "64af534a9f0cbf834d6972212ae85474aef23dd661a4cbc14ff6f5f64be00b1b",
+      "sha256": "ae4d532c88c17ac9203357ef6ccdb0b5fff66329f0fd9f3895ca53b1ecf4910d",
       "viewport": {
         "width": 768,
         "height": 960
       },
       "theme": "dark",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:31.799Z",
+      "capturedAt": "2026-10-29T00:30:01.661Z",
       "producer": "tests/browser/dashboard.spec.ts"
     },
     {
-      "path": "assets/screenshots/workflows-tablet.png",
-      "sha256": "b60870a5ff9dbf0dad802d5c2dd061efa11fa30b88b28e1f40eac0420a9d4c30",
+      "path": "assets/screenshots/workflows-tablet-light.png",
+      "sha256": "543f68668b2181bece1f2c8cc263c6097f3ced2dec5e4e5c2614126fca4331c4",
       "viewport": {
         "width": 768,
         "height": 960
       },
       "theme": "light",
-      "version": "v0.2.20",
+      "version": "v0.2.22",
       "fixture": true,
       "openDialogs": 0,
       "workspaceScroll": 0,
-      "capturedAt": "2026-10-27T01:44:31.733Z",
+      "capturedAt": "2026-10-29T00:30:01.625Z",
+      "producer": "tests/browser/dashboard.spec.ts"
+    },
+    {
+      "path": "assets/screenshots/workflows-tablet.png",
+      "sha256": "40c40be7ebf2910c1a2dcfa60cc82814a13cc09057ab4b36c0ce7a924a763df9",
+      "viewport": {
+        "width": 768,
+        "height": 960
+      },
+      "theme": "light",
+      "version": "v0.2.22",
+      "fixture": true,
+      "openDialogs": 0,
+      "workspaceScroll": 0,
+      "capturedAt": "2026-10-29T00:30:01.582Z",
       "producer": "tests/browser/dashboard.spec.ts"
     }
   ]

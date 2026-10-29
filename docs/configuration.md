@@ -33,6 +33,7 @@ See the [console tour](dashboard.md#appearance-and-provider-setup) for the four 
     "default": {
       "permissionMode": "default",
       "timeoutMs": 300000,
+      "workDuration": { "version": 1, "timeoutMs": null },
       "maxOutputBytes": 2000000
     }
   }
@@ -46,6 +47,18 @@ Sign in using official `codex login`, then check readiness in Providers & setup.
 Set `worker` to `claude` and provide an absolute `claudePath`. Sign in with official `claude auth login`. Profiles can allow tools and named Claude native agents. The default tool list is Read, Write, Edit, Bash, Glob, and Grep. Agent and web tools need an explicit profile assignment.
 
 Keep a `default` profile. Workflow steps must reference existing profiles. Model aliases are `bridge/<profile>`, such as `bridge/default`; they are bridge profile names rather than OpenAI model names. `/v1/models` reports the selected worker and configured native model. Owner status includes effective limits and capability flags without executable paths or agent prompts.
+
+## Work duration for new admissions
+
+Fresh initialization explicitly selects `workDuration: {"version":1,"timeoutMs":null}` on the default profile. The console calls this **Until completion or cancellation**. No work-age timer runs under that selection. Output, turn, concurrency, permission and subscription limits still apply.
+
+Set `profiles.<name>.workDuration.timeoutMs` to a positive safe integer when the project needs a deadline. A caller can also send `bridge.workDuration` in a completion request. The smallest non-null profile/request value applies; a caller cannot extend a profile deadline. There is no one-hour ceiling. The bridge freezes the selected value and admission time on the job, so time in the queue, pauses, follow-ups and restarts does not grant another interval. An expired chosen deadline cannot be retried or resumed under the same admission.
+
+Existing configuration files are not rewritten. When both the profile and request omit `workDuration`, the next admission keeps the legacy policy, including the profile's finite `timeoutMs`. Retained jobs without a duration marker also keep that policy. Add the version-one field deliberately to select the new behavior; do not treat a missing marker as an uncapped historical job.
+
+For a separate limit on a synchronous HTTP wait, choose `openai.waitTimeoutMs` or request `bridge.waitTimeoutMs`. Selected version-one work has no HTTP wait-age limit by default. A chosen wait deadline ends that connection. The last ordinary waiter cancels its unfinished job; completion-recovery requests retain the original job for an exact result read. This choice does not change the frozen execution deadline.
+
+Connected-host jobs use the host's existing ownership protocol. Bridge cannot enforce a chosen execution deadline in that external host, so a finite profile/request duration is rejected before admission. Local CLI jobs and inference completions enforce the selected deadline.
 
 ## Permission policy
 
@@ -71,7 +84,8 @@ Default permissions stay enabled. Bypass needs a trusted host and workspace. A j
 | `idleMs`                       | 30000                      | 1000 to 3600000 milliseconds; managed lifecycle only                                       |
 | `allowedHosts`                 | localhost, 127.0.0.1       | Exact accepted request hostnames                                                           |
 | `allowedOrigins`               | Empty                      | Additional browser origins; authentication still required                                  |
-| `openai.timeoutMs`             | 300000                     | 100 to 3600000 milliseconds including queue wait                                           |
+| `openai.timeoutMs` (legacy)    | 300000                     | Retained or unversioned waits; 100 to 3600000 milliseconds including queue time            |
+| `openai.waitTimeoutMs`         | Unset                      | Optional selected-contract HTTP wait deadline; positive safe integer or `null`             |
 | `openai.maxConnections`        | 16                         | 1 to 64 service-wide waiting connections                                                   |
 | `openai.maxRequestBytes`       | `null`                     | Optional positive safe integer; complete Chat Completions HTTP body in bytes               |
 | `openai.maxExpandedCharacters` | `null`                     | Optional positive safe integer; expanded completion prompt in JavaScript UTF-16 code units |
@@ -101,16 +115,17 @@ The bridge retains complete input and original wire hashes. It does not shorten 
 
 ## Profile settings
 
-| Setting          | Default                             | Applies to                                                                |
-| ---------------- | ----------------------------------- | ------------------------------------------------------------------------- |
-| `model`          | Official CLI default                | Both workers; native model name, 1 to 100 supported identifier characters |
-| `permissionMode` | `default`                           | Both; `bypass` is explicit                                                |
-| `timeoutMs`      | 300000                              | Both; 100 to 3600000 milliseconds                                         |
-| `maxOutputBytes` | 2000000                             | Both; 1000 to 16000000 bytes of native output                             |
-| `tools`          | Read, Write, Edit, Bash, Glob, Grep | Claude tool allowlist; not enforced as a Codex tool allowlist             |
-| `maxTurns`       | 100                                 | Claude; 1 to 1000                                                         |
-| `maxSubagents`   | 8                                   | Claude reported child tasks; 0 to 64                                      |
-| `agents`         | Empty                               | Named Claude description, prompt, and tool subset                         |
+| Setting              | Default                             | Applies to                                                                |
+| -------------------- | ----------------------------------- | ------------------------------------------------------------------------- |
+| `model`              | Official CLI default                | Both workers; native model name, 1 to 100 supported identifier characters |
+| `permissionMode`     | `default`                           | Both; `bypass` is explicit                                                |
+| `timeoutMs` (legacy) | 300000                              | Both workers for unversioned work; 100 to 3600000 milliseconds            |
+| `workDuration`       | Unset on existing profiles          | Explicit version 1, with nullable or positive-safe-integer `timeoutMs`    |
+| `maxOutputBytes`     | 2000000                             | Both; 1000 to 16000000 bytes of native output                             |
+| `tools`              | Read, Write, Edit, Bash, Glob, Grep | Claude tool allowlist; not enforced as a Codex tool allowlist             |
+| `maxTurns`           | 100                                 | Claude; 1 to 1000                                                         |
+| `maxSubagents`       | 8                                   | Claude reported child tasks; 0 to 64                                      |
+| `agents`             | Empty                               | Named Claude description, prompt, and tool subset                         |
 
 Codex uses sandbox, deadline, and output bounds. Inference disables native command, mutation, browser, app, media, and agent features and rejects unexpected action items. Choose caller-owned functions when the application needs a specific function authority boundary.
 

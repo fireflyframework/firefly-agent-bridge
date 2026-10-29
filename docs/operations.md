@@ -18,18 +18,18 @@ description: Manage bridge execution, queue dispatch, service lifecycle and inte
 
 ## State and controls
 
-| State              | Meaning                                      | Appropriate next action                              |
-| ------------------ | -------------------------------------------- | ---------------------------------------------------- |
-| `queued`           | Admitted, awaiting a worker or channel claim | Wait, pause, or cancel                               |
-| `running`          | An exclusive attempt owns the work           | Inspect progress, send a follow-up, pause, or cancel |
-| `pause_requested`  | The owner is being asked to stop             | Wait for the attempt to reconcile                    |
-| `paused`           | No active attempt is executing the job       | Inspect the reason; resume when eligible             |
-| `cancel_requested` | Cancellation is in progress                  | Wait for acknowledgment or reconciliation            |
-| `succeeded`        | A terminal result was committed              | Read it or send a standalone follow-up               |
-| `failed`           | Execution or validation failed               | Diagnose before an explicit retry                    |
-| `timed_out`        | The configured attempt timeout elapsed       | Inspect partial side effects before retrying         |
-| `canceled`         | The attempt acknowledged cancellation        | Retry only if intended                               |
-| `interrupted`      | Worker or host ownership was lost            | Reconcile effects before retrying                    |
+| State              | Meaning                                           | Appropriate next action                                     |
+| ------------------ | ------------------------------------------------- | ----------------------------------------------------------- |
+| `queued`           | Admitted, awaiting a worker or channel claim      | Wait, pause, or cancel                                      |
+| `running`          | An exclusive attempt owns the work                | Inspect progress, send a follow-up, pause, or cancel        |
+| `pause_requested`  | The owner is being asked to stop                  | Wait for the attempt to reconcile                           |
+| `paused`           | No active attempt is executing the job            | Inspect the reason; resume when eligible                    |
+| `cancel_requested` | Cancellation is in progress                       | Wait for acknowledgment or reconciliation                   |
+| `succeeded`        | A terminal result was committed                   | Read it or send a standalone follow-up                      |
+| `failed`           | Execution or validation failed                    | Diagnose before an explicit retry                           |
+| `timed_out`        | A chosen deadline or legacy attempt timer elapsed | Inspect effects; an expired chosen admission cannot restart |
+| `canceled`         | The attempt acknowledged cancellation             | Retry only if intended                                      |
+| `interrupted`      | Worker or host ownership was lost                 | Reconcile effects before retrying                           |
 
 **Pause dispatch** stops new admissions to workers and requests pauses for active CLI jobs. It does not cancel the queue. **Resume dispatch** clears the global gate when the provider reset permits it; individual paused jobs remain explicit controls in the panel.
 
@@ -73,7 +73,7 @@ Workflow prompts come from the snapshot. They do not accept arbitrary follow-up 
 
 ## Crashes and external effects
 
-At startup, recovery marks attempts that lost ownership as interrupted and retains them for inspection. Retrying that work requires an operator's decision. Attempt fences reject stale completion messages.
+At startup, recovery marks attempts that lost ownership as interrupted and retains them for inspection. Retrying that work requires an operator's decision. Attempt fences reject stale completion messages. A restart does not automatically dispatch an interrupted CLI job. Reconcile unfinished processes and external effects before choosing another attempt; an interrupted record alone does not establish that cleanup completed.
 
 Database atomicity is not an exactly-once guarantee for external effects. A tool may have written a file, sent a request, or changed a remote system before its result was lost. Review the workspace and external state before retrying.
 

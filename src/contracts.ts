@@ -19,6 +19,7 @@
 
 import { z } from "zod";
 import type { ChatRequest } from "./completion-protocol.js";
+import { workDurationSchema } from "./work-duration.js";
 export type TokenUsage = {
   prompt_tokens: number;
   completion_tokens: number;
@@ -31,6 +32,7 @@ export const jobInputSchema = z.strictObject({
     .regex(/^[\w-]{1,64}$/)
     .default("default"),
   mode: z.enum(["cli", "channel"]).default("cli"),
+  workDuration: workDurationSchema.optional(),
 });
 export type JobInput = z.infer<typeof jobInputSchema>;
 export const completionJobInputSchema = jobInputSchema.extend({

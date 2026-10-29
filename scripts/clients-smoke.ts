@@ -81,7 +81,7 @@ const service = await startService(
 try {
   const child = spawn(
     process.env.BRIDGE_PYTHON ?? "python3",
-    [resolve("tests/clients/openai_clients.py"), "-v"],
+    ["-B", resolve("tests/clients/openai_clients.py"), "-v"],
     {
       env: {
         ...process.env,

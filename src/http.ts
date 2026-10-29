@@ -20,6 +20,7 @@
 import { releaseVersion } from "./release-version.js";
 import Fastify, { type FastifyRequest } from "fastify";
 import { z } from "zod";
+import { workDurationCapability } from "./work-duration.js";
 import { BridgeError, terminal, type Principal } from "./contracts.js";
 import { parseConfig, templateSchema, type BridgeConfig } from "./config.js";
 import { auditQuery, toolsQuery } from "./audit.js";
@@ -251,6 +252,15 @@ export function createHttpService(d: HttpDependencies) {
     return {
       version: releaseVersion,
       protocolVersion: 2,
+      workDuration: workDurationCapability,
+      workDurationProfiles: Object.fromEntries(
+        Object.entries(d.config.profiles)
+          .filter(([name]) => p.owner || p.profiles.includes(name))
+          .map(([name, profile]) => [
+            name,
+            profile.workDuration ?? { version: 1, timeoutMs: null },
+          ]),
+      ),
       completionRecovery: {
         version: 1,
         principal_id: p.id,
@@ -304,6 +314,9 @@ export function createHttpService(d: HttpDependencies) {
                     permissionMode: profile.permissionMode,
                     tools: profile.tools,
                     timeoutMs: profile.timeoutMs,
+                    ...(profile.workDuration === undefined
+                      ? {}
+                      : { workDuration: profile.workDuration }),
                     maxOutputBytes: profile.maxOutputBytes,
                     maxTurns: profile.maxTurns,
                     maxSubagents: profile.maxSubagents,

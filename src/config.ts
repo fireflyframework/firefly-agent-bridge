@@ -19,6 +19,7 @@
 
 import { z } from "zod";
 import { isAbsolute } from "node:path";
+import { workDurationSchema, optionalTimeoutSchema } from "./work-duration.js";
 const identifier = z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/);
 const absolute = z.string().refine(isAbsolute, "Path must be absolute");
 const optionalInputLimit = z
@@ -57,6 +58,7 @@ export const profileSchema = z.strictObject({
     .regex(/^[a-zA-Z0-9_.:-]{1,100}$/)
     .optional(),
   timeoutMs: z.number().int().min(100).max(3600000).default(300000),
+  workDuration: workDurationSchema.optional(),
   maxOutputBytes: z.number().int().min(1000).max(16000000).default(2000000),
   maxTurns: z.number().int().min(1).max(1000).default(100),
   maxSubagents: z.number().int().min(0).max(64).default(8),
@@ -119,6 +121,7 @@ export const configSchema = z.strictObject({
   openai: z
     .strictObject({
       timeoutMs: z.number().int().min(100).max(3600000).default(300000),
+      waitTimeoutMs: optionalTimeoutSchema.optional(),
       maxConnections: z.number().int().min(1).max(64).default(16),
       ...completionInputLimitsSchema.shape,
     })

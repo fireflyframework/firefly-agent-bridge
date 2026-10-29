@@ -6,6 +6,8 @@ description: Inspect Firefly Agent Bridge HTTP contracts for tokens, jobs, workf
 
 # Unified API reference
 
+Version-one work duration is advertised as `workDuration` in authenticated status. `workDurationProfiles` contains only profiles available to the current principal and describes their caps when selecting that contract. Submit `bridge.workDuration: {"version":1,"timeoutMs":null}` for **Until completion or cancellation**, or a positive safe-integer duration in milliseconds. Selected jobs retain their effective `workDuration`; marker absence identifies the legacy contract. Profile/request caps take the smallest chosen value and are not renewed by queueing or restart. A separate optional `bridge.waitTimeoutMs` controls the HTTP waiter. See [duration configuration](configuration.md#work-duration-for-new-admissions).
+
 [README](../README.md) · [OpenAPI 3.1](openapi.json) · [Runnable client](../examples/client.mjs) · [Tunnels](tunnels.md)
 
 Use `/v1/models` and `/v1/chat/completions` for the OpenAI-compatible interface, and `/v1/bridge/*` for orchestration. The console, MCP integration, SDK clients, and workflows share authentication, profiles, one durable queue, and the same execution lifecycle. See the [SDK guide](openai-compatible.md) for the compatibility contract and runnable Python examples.

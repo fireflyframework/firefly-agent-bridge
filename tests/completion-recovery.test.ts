@@ -46,7 +46,7 @@ function setup() {
     dataDir: dir,
     workspace: dir,
     claudePath: process.execPath,
-    openai: { timeoutMs: 100 },
+    openai: { timeoutMs: 100, waitTimeoutMs: 100 },
   });
   app = createHttpService({
     store,

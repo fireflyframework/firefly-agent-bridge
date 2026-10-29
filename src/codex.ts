@@ -20,6 +20,7 @@
 import { bridgePrompt } from "./prompt-catalog.js";
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
+import { armDeadline, monotonicWorkDeadline } from "./work-duration.js";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { stageImages } from "./images.js";
@@ -104,9 +105,14 @@ export class CodexWorker implements Worker {
     signal: AbortSignal,
   ): Promise<Outcome> {
     if (signal.aborted) return { status: "canceled" };
+    const deadline = monotonicWorkDeadline(input.job);
+    if (deadline != null && deadline <= performance.now())
+      return { status: "timed_out", error: "work_deadline_exceeded" };
     const ready = await this.ready();
     if (signal.aborted) return { status: "canceled" };
     if (!ready.ready) return { status: "failed", error: ready.reason };
+    if (deadline != null && deadline <= performance.now())
+      return { status: "timed_out", error: "work_deadline_exceeded" };
     const inference = Boolean(input.job.completion);
     const images = input.job.completion
       ? prepareCompletion(input.job.completion).images
@@ -350,9 +356,11 @@ export class CodexWorker implements Worker {
           }
         };
         let resultUsage: Outcome["usage"];
-        const timer = setTimeout(
+        const cancelDeadline = armDeadline(
+          deadline === undefined
+            ? performance.now() + this.options.timeoutMs
+            : deadline,
           () => stopWork("timed_out"),
-          this.options.timeoutMs,
         );
         const abort = () => stopWork("canceled");
         signal.addEventListener("abort", abort, { once: true });
@@ -381,7 +389,7 @@ export class CodexWorker implements Worker {
           if (settled) return;
           settled = true;
           if (buffer.trim()) parse(buffer);
-          clearTimeout(timer);
+          cancelDeadline();
           if (stop) kill(true);
           if (killTimer) clearTimeout(killTimer);
           signal.removeEventListener("abort", abort);
