@@ -23,6 +23,7 @@ import { format } from "prettier";
 import { completionRecoverySchema } from "../src/completion-recovery.js";
 import { chatRequestSchema } from "../src/completion-protocol.js";
 import { templateSchema } from "../src/config.js";
+import { workDurationSchema } from "../src/work-duration.js";
 const str = { type: "string" },
   uuid = { type: "string", format: "uuid" };
 const object = (
@@ -33,6 +34,7 @@ const ref = (name: string) => ({ $ref: "#/components/schemas/" + name });
 const json = (schema: unknown) => ({ "application/json": { schema } });
 const receipt = { hostId: str, attemptId: uuid, fence: uuid };
 const schemas: Record<string, unknown> = {
+  WorkDuration: z.toJSONSchema(workDurationSchema),
   CompletionRecovery: z.toJSONSchema(completionRecoverySchema),
   ChatRequest: z.toJSONSchema(chatRequestSchema, { io: "input" }),
   ChatCompletion: object(
@@ -76,6 +78,17 @@ const schemas: Record<string, unknown> = {
         owned_by: str,
         worker: { enum: ["codex", "claude"] },
         native_model: { type: ["string", "null"] },
+        work_duration: object({
+          version: { const: 1 },
+          protocol: { const: "firefly-bridge-work-duration-v1" },
+          nullableTimeout: { const: true },
+          frozenAtAdmission: { const: true },
+          timeoutMs: {
+            type: ["integer", "null"],
+            minimum: 1,
+            maximum: Number.MAX_SAFE_INTEGER,
+          },
+        }),
         image_input: object(
           {
             status: { enum: ["unverified", "verified", "unsupported"] },
@@ -152,6 +165,7 @@ const schemas: Record<string, unknown> = {
       prompt: str,
       profile: str,
       mode: { enum: ["cli", "channel"] },
+      workDuration: ref("WorkDuration"),
       status: {
         enum: [
           "queued",

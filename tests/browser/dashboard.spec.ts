@@ -829,7 +829,11 @@ test("completion jobs share the queue, show readable output and usage, and expos
   expect((await submission).postDataJSON().bridge).toEqual({
     execution: "inference",
     background: true,
+    workDuration: { version: 1, timeoutMs: null },
   });
+  await expect(page.locator("#job-duration")).toContainText(
+    "Until completion or cancellation",
+  );
   await expect(page.locator("#messages")).toContainText("Your bridge is ready");
   await expect(page.locator("#messages")).not.toContainText('"tool_calls"');
   await expect(page.locator("#job-meta")).toContainText("20 tokens");
@@ -1511,6 +1515,145 @@ test("job wizard validates the task and preserves execution choices when moving 
   await expect(page.locator("#prompt")).toHaveValue(
     "Return exactly seven without tools.",
   );
+});
+
+test("new jobs default to completion or cancellation and send the explicit duration policy", async ({
+  page,
+}) => {
+  await login(page);
+  await page.getByRole("button", { name: "New job", exact: false }).click();
+  await page
+    .locator("#prompt")
+    .fill("Inspect the duration fixture without tools.");
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(
+    page.getByRole("checkbox", { name: "Set a work deadline", exact: true }),
+  ).not.toBeChecked();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(page.locator("#job-review-facts")).toContainText(
+    "Until completion or cancellation",
+  );
+  const sent = page.waitForRequest(
+    (request) =>
+      request.method() === "POST" &&
+      request.url().endsWith("/v1/chat/completions"),
+  );
+  await page.getByRole("button", { name: "Queue job", exact: true }).click();
+  expect((await sent).postDataJSON().bridge.workDuration).toEqual({
+    version: 1,
+    timeoutMs: null,
+  });
+  await expect(page.locator("#job-duration")).toContainText(
+    "Until completion or cancellation",
+  );
+});
+
+test("a chosen long job deadline survives Back and is not reused for the next job", async ({
+  page,
+}) => {
+  await login(page);
+  await page.getByRole("button", { name: "New job", exact: false }).click();
+  await page
+    .locator("#prompt")
+    .fill("Inspect the long duration fixture without tools.");
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await page
+    .getByRole("checkbox", { name: "Set a work deadline", exact: true })
+    .check();
+  await page
+    .getByLabel("Stop after (seconds)", { exact: true })
+    .fill("3456000");
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(
+    page.getByLabel("Stop after (seconds)", { exact: true }),
+  ).toHaveValue("3456000");
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  if (process.env.UPDATE_SCREENSHOTS === "1") {
+    for (const [width, height, size] of [
+      [1440, 1050, "desktop"],
+      [390, 844, "mobile"],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+      await captureAction(page, `job-duration-review-${size}`, "#queue-job");
+    }
+    await page.setViewportSize({ width: 1440, height: 1050 });
+  }
+  const sent = page.waitForRequest(
+    (request) =>
+      request.method() === "POST" &&
+      request.url().endsWith("/v1/chat/completions"),
+  );
+  await page.getByRole("button", { name: "Queue job", exact: true }).click();
+  expect((await sent).postDataJSON().bridge.workDuration).toEqual({
+    version: 1,
+    timeoutMs: 3456000000,
+  });
+  await expect(page.locator("#job-dialog")).not.toBeVisible();
+  if (process.env.UPDATE_SCREENSHOTS === "1") {
+    await expect(page.locator("#job-duration")).toContainText(
+      "3,456,000 seconds",
+    );
+    for (const [width, height, size] of [
+      [1440, 1050, "desktop"],
+      [390, 844, "mobile"],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+      await capture(page, `job-duration-result-${size}`);
+    }
+    await page.setViewportSize({ width: 1440, height: 1050 });
+  }
+  await page.getByRole("button", { name: "New job", exact: false }).click();
+  await page.locator("#prompt").fill("Inspect the next fixture without tools.");
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(
+    page.getByRole("checkbox", { name: "Set a work deadline", exact: true }),
+  ).not.toBeChecked();
+});
+
+test("connected-host mode refuses finite deadline selection before sending a job", async ({
+  page,
+}) => {
+  await login(page);
+  await page.getByRole("button", { name: "New job", exact: false }).click();
+  await page.locator("#prompt").fill("Fictional connected-host duration check");
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await page.locator("#mode").selectOption("channel");
+  await expect(
+    page.getByRole("checkbox", { name: "Set a work deadline", exact: true }),
+  ).toBeDisabled();
+  await expect(page.locator("#job-deadline-help")).toContainText(
+    "cannot enforce a work deadline",
+  );
+  await expect(page.locator("#job-deadline-field")).toBeHidden();
+});
+
+test("disconnect clears deadline visibility and validity before a new actor session", async ({
+  page,
+}) => {
+  await login(page);
+  await page.getByRole("button", { name: "New job", exact: false }).click();
+  await page.locator("#prompt").fill("Fictional discarded duration choice");
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await page.locator("#job-deadline-enabled").check();
+  await page.locator("#job-deadline").fill("120");
+  await page.locator("#close-job").click();
+  await page.locator("#logout").click();
+  const nextActor = new Tokens(service.store).create({
+    id: "duration-next-actor",
+    owner: true,
+    profiles: ["default"],
+  }).token;
+  await page.getByLabel("Bridge token", { exact: true }).fill(nextActor);
+  await page.getByRole("button", { name: "Connect", exact: true }).click();
+  await expect(page.locator("#workspace")).toBeVisible();
+  await expect(page.locator("#stream-state")).toContainText("Live");
+  await page.getByRole("button", { name: "New job", exact: false }).click();
+  await page.locator("#prompt").fill("Fictional new session choice");
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(page.locator("#job-deadline-enabled")).not.toBeChecked();
+  await expect(page.locator("#job-deadline-field")).toBeHidden();
+  await expect(page.locator("#job-deadline")).toBeDisabled();
 });
 
 test("read-only application access exposes inspection without job, token, or image-probe actions", async ({

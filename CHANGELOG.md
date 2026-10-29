@@ -2,6 +2,14 @@
 
 # Changelog
 
+## 0.2.24 - Unreleased
+
+- Update RE2JS and the MCP transport's Node server adapter to patched versions for the current dependency advisories.
+- Add an explicit work-duration contract for new jobs and completions. Fresh instances and the job wizard select **Until completion or cancellation**; callers can choose a deadline without a one-hour ceiling.
+- Freeze the smallest chosen profile/request deadline at admission. Queue time, pauses and restarts do not renew it. Preserve unversioned callers, existing owner configuration, retained jobs and recovery records under their legacy contract.
+- Separate optional HTTP waiting deadlines from execution deadlines. Preserve cancellation by the last ordinary waiter and original-completion retention for opted-in recovery. Refuse chosen deadlines for connected-host execution before admission.
+- Expose duration capability and effective profile policies to SDKs and the console. Rearm long timers in safe monotonic slices rather than relying on Node's maximum timer delay.
+
 ## 0.2.23 - 2026-10-28
 
 - Allow Claude and Codex workers on one coordinator. Jobs stay provider-agnostic; fair-share dispatches by quota and capacity across CLI types. Cross-CLI failover uses the existing handoff brief.

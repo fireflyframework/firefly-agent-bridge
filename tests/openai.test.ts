@@ -57,7 +57,7 @@ beforeEach(async () => {
       workspace: join(dir, "jobs"),
       claudePath: process.execPath,
       port: 0,
-      openai: { timeoutMs: 700, maxConnections: 8 },
+      openai: { timeoutMs: 700, waitTimeoutMs: 700, maxConnections: 8 },
     }),
     {
       worker: () => ({

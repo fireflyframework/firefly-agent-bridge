@@ -52,6 +52,16 @@ class ClientCompatibility(unittest.IsolatedAsyncioTestCase):
         self.assertIn("BRIDGE_CLIENT_OK", text)
         self.assertEqual(finish, "stop")
 
+    async def test_sdk_explicit_new_work_policy(self):
+        capability = (await self.client.get("/bridge/status", cast_to=dict, options={"timeout": 5}))["workDuration"]
+        self.assertEqual(capability["version"], 1)
+        self.assertTrue(capability["nullableTimeout"])
+        response = await self.client.chat.completions.create(
+            model="bridge/default", messages=[{"role": "user", "content": "Reply exactly BRIDGE_CLIENT_OK."}],
+            extra_body={"bridge": {"workDuration": {"version": 1, "timeoutMs": None}, "waitTimeoutMs": None}},
+        )
+        self.assertIn("BRIDGE_CLIENT_OK", response.choices[0].message.content)
+
     async def test_pydantic_client_side_tool_loop(self):
         agent = Agent(self.model)
         calls = []

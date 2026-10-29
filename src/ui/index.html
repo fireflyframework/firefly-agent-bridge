@@ -287,6 +287,7 @@ limitations under the License.
                     <span id="detail-state" class="pill"></span>
                   </div>
                   <p id="job-meta" class="hint"></p>
+                  <p id="job-duration" class="hint"></p>
                   <div id="job-actions" class="actions"></div>
                   <p id="job-error" class="error" hidden></p>
                   <p id="image-job-recovery" class="hint" hidden>
@@ -1031,6 +1032,24 @@ limitations under the License.
               >
             </div>
             <p id="execution-help"></p>
+            <div class="job-duration-settings">
+              <label class="job-duration-choice"
+                ><input
+                  id="job-deadline-enabled"
+                  type="checkbox"
+                  aria-describedby="job-deadline-help"
+                />Set a work deadline</label
+              >
+              <p id="job-deadline-help" class="hint">
+                Leave this off when the duration is unknown. An explicit profile
+                deadline still applies. Chosen deadlines include time in the
+                queue.
+              </p>
+              <div id="job-deadline-field" hidden>
+                <label for="job-deadline">Stop after (seconds)</label
+                ><input id="job-deadline" inputmode="numeric" disabled />
+              </div>
+            </div>
             <dl id="execution-facts" class="health-facts"></dl>
           </section>
           <section data-job-step-panel="2" hidden>

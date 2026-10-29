@@ -38,18 +38,25 @@ On PowerShell, activate with `.venv\Scripts\Activate.ps1` and set `$env:BRIDGE_U
 
 ```python
 import os
+import httpx2
 from openai import OpenAI
 
 with OpenAI(
     base_url=os.environ["BRIDGE_URL"].rstrip("/") + "/v1",
     api_key=os.environ["BRIDGE_TOKEN"],
     max_retries=0,
-    timeout=330.0,
+    timeout=httpx2.Timeout(connect=5, read=None, write=30, pool=5),
 ) as client:
-    print([model.id for model in client.models.list().data])
+    print([model.id for model in client.models.list(timeout=5).data])
+    capability = client.get("/bridge/status", cast_to=dict, options={"timeout": 5}).get("workDuration", {})
+    if (type(capability.get("version")) is not int or capability.get("version") != 1
+            or capability.get("protocol") != "firefly-bridge-work-duration-v1"
+            or capability.get("nullableTimeout") is not True or capability.get("frozenAtAdmission") is not True):
+        raise RuntimeError("Bridge work-duration version 1 is required")
     response = client.chat.completions.create(
         model="bridge/default",
         messages=[{"role": "user", "content": "Explain a durable queue in one sentence."}],
+        extra_body={"bridge": {"workDuration": {"version": 1, "timeoutMs": None}, "waitTimeoutMs": None}},
     )
     print(response.choices[0].message.content)
 ```
@@ -187,7 +194,10 @@ Usage reflects the provider's reported invocation totals, including cache reads/
 
 ## Timeouts, retries, and quota recovery
 
-- The default completion deadline is 300 seconds including queue wait. Set the SDK timeout slightly higher, or configure `openai.timeoutMs`. The default service-wide waiting-connection limit is 16; each principal can hold four.
+- Select `bridge.workDuration: {"version":1,"timeoutMs":null}` for work that runs until completion or cancellation. Check `GET /v1/bridge/status` for `workDuration.version: 1`, protocol `firefly-bridge-work-duration-v1`, `nullableTimeout: true` and `frozenAtAdmission: true` before relying on it. A chosen profile deadline still applies. [Duration configuration](configuration.md#work-duration-for-new-admissions) explains selection and compatibility.
+- A positive safe-integer `timeoutMs` chooses an execution deadline, including queue time. The smallest chosen profile/request value is frozen at admission and survives restart. A forty-day deadline is valid; long timers are rearmed without wrapping to a one-millisecond timeout.
+- A selected version-one request has no HTTP wait-age limit by default. `bridge.waitTimeoutMs` and `openai.waitTimeoutMs` choose a separate wait deadline. An unversioned profile and request retain `openai.timeoutMs` (300 seconds by default, including queue wait). Waiting connections remain limited to 16 service-wide and four per principal by default.
+- SDK connection and inactivity timeouts are separate. The Python example keeps finite connect, write and pool waits while allowing an unknown response duration. A client with its own finite read timeout can still disconnect a long completion.
 - Set SDK `max_retries=0` unless you implement deliberate recovery. New model requests can consume subscription allowance; a repeated external function may also have side effects.
 - Reuse one `Idempotency-Key` per logical request and exact body across uncertain retries. Existing jobs and completion IDs are reused; a different body returns 409. Generate a fresh key for each next conversation turn. Multiple connections to the same key do not cancel each other's work.
 - `X-Bridge-Job-Id` links an admitted request to the panel. Errors after admission also include `error.job_id`. A quota pause returns 429 and `Retry-After` when the provider supplies a reset. An operator pause returns 503. Those jobs remain durable for recovery.

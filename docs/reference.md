@@ -61,6 +61,8 @@ cluster commands (JSON on stdout):
 
 The adapter's `tools/list` response contains the complete installed schemas. These tools use the shared local service:
 
+`bridge_submit` accepts optional `workDuration: {"version":1,"timeoutMs":null}` for **Until completion or cancellation**. A chosen positive safe-integer duration is constrained by the profile and frozen when admitted. Omitting it on an unversioned profile preserves legacy timing. Connected-host jobs refuse a chosen deadline because Bridge cannot enforce it in that host. Inspect `bridge_status` before selecting a capability; admission is not proof of completed execution.
+
 | Tool                      | Purpose                                                   |
 | ------------------------- | --------------------------------------------------------- |
 | `bridge_status`           | Selected worker, readiness, dispatch, profiles, templates |

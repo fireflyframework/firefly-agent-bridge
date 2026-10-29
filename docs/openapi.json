@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Firefly Agent Bridge API",
-    "version": "0.2.23",
+    "version": "0.2.24",
     "description": "OpenAI-compatible Chat Completions and unified /v1/bridge orchestration extensions. Copyright 2026 Firefly Software Foundation. Author @ancongui.",
     "license": { "name": "Apache-2.0", "identifier": "Apache-2.0" }
   },
@@ -2228,6 +2228,25 @@
       }
     },
     "schemas": {
+      "WorkDuration": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "version": { "type": "number", "const": 1 },
+          "timeoutMs": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              { "type": "null" }
+            ]
+          }
+        },
+        "required": ["version", "timeoutMs"],
+        "additionalProperties": false
+      },
       "CompletionRecovery": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -2655,7 +2674,35 @@
                 "type": "string",
                 "enum": ["inference", "agent", "channel"]
               },
-              "background": { "default": false, "type": "boolean" }
+              "background": { "default": false, "type": "boolean" },
+              "workDuration": {
+                "type": "object",
+                "properties": {
+                  "version": { "type": "number", "const": 1 },
+                  "timeoutMs": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      { "type": "null" }
+                    ]
+                  }
+                },
+                "required": ["version", "timeoutMs"],
+                "additionalProperties": false
+              },
+              "waitTimeoutMs": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  { "type": "null" }
+                ]
+              }
             },
             "additionalProperties": false
           }
@@ -2723,6 +2770,28 @@
                 "owned_by": { "type": "string" },
                 "worker": { "enum": ["codex", "claude"] },
                 "native_model": { "type": ["string", "null"] },
+                "work_duration": {
+                  "type": "object",
+                  "properties": {
+                    "version": { "const": 1 },
+                    "protocol": { "const": "firefly-bridge-work-duration-v1" },
+                    "nullableTimeout": { "const": true },
+                    "frozenAtAdmission": { "const": true },
+                    "timeoutMs": {
+                      "type": ["integer", "null"],
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "version",
+                    "protocol",
+                    "nullableTimeout",
+                    "frozenAtAdmission",
+                    "timeoutMs"
+                  ],
+                  "additionalProperties": false
+                },
                 "image_input": {
                   "type": "object",
                   "properties": {
@@ -2761,6 +2830,7 @@
                 "owned_by",
                 "worker",
                 "native_model",
+                "work_duration",
                 "image_input"
               ],
               "additionalProperties": false
@@ -2894,6 +2964,7 @@
           "prompt": { "type": "string" },
           "profile": { "type": "string" },
           "mode": { "enum": ["cli", "channel"] },
+          "workDuration": { "$ref": "#/components/schemas/WorkDuration" },
           "status": {
             "enum": [
               "queued",
