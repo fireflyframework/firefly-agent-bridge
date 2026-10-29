@@ -18,19 +18,29 @@ vi.mock("node:os", async () => ({
 }));
 import { initialize } from "../src/lifecycle.js";
 let directory: string;
+const codexFilename = process.platform === "win32" ? "codex.exe" : "codex";
 beforeEach(() => {
   directory = mkdtempSync(join(tmpdir(), "bridge-duration-init-fictional-"));
   fixture.home = join(directory, "home");
   mkdirSync(join(fixture.home, ".local/bin"), { recursive: true });
+  vi.stubEnv("HOME", fixture.home);
+  vi.stubEnv("USERPROFILE", fixture.home);
+  vi.stubEnv("PATH", join(fixture.home, ".local/bin"));
   writeFileSync(
-    join(fixture.home, ".local/bin/codex"),
+    join(fixture.home, ".local/bin", codexFilename),
     "#!/bin/sh\nexit 99\n",
     { mode: 0o755 },
   );
 });
-afterEach(() => rmSync(directory, { recursive: true, force: true }));
+afterEach(() => {
+  vi.unstubAllEnvs();
+  rmSync(directory, { recursive: true, force: true });
+});
 it("fresh initialization explicitly selects uncapped version one without launching a provider", async () => {
   const config = await initialize(join(directory, "new-instance"));
+  expect(config.codexPath).toBe(
+    join(fixture.home, ".local/bin", codexFilename),
+  );
   expect(config.profiles.default?.workDuration).toEqual({
     version: 1,
     timeoutMs: null,
@@ -45,7 +55,7 @@ it("opening existing owner configuration preserves marker absence and exact file
         dataDir: path,
         workspace: join(path, "jobs"),
         worker: "codex",
-        codexPath: join(fixture.home, ".local/bin/codex"),
+        codexPath: join(fixture.home, ".local/bin", codexFilename),
         profiles: { default: { timeoutMs: 300000 } },
       },
       null,
