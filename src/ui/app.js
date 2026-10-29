@@ -20,7 +20,7 @@
 import { createAuditPanel } from "./audit.js";
 import { createProviderSetup, providerStateLabels } from "./setup.js";
 import { createMobileNavigation } from "./navigation.js";
-import { createJobWizard } from "./job-wizard.js";
+import { createJobWizard, workDurationLabel } from "./job-wizard.js";
 import { createImageInput } from "./image-input.js";
 
 /* All rendered task content uses textContent: prompts and Claude output are untrusted data. */
@@ -270,6 +270,7 @@ async function selectJob(id, loadedJob, openDetail = true) {
       (job.usage ? " / " + job.usage.total_tokens + " tokens" : ""),
   );
   text("job-error", human(job.error ?? ""));
+  text("job-duration", "Work deadline: " + workDurationLabel(job.workDuration));
   el("job-error").hidden = !job.error;
   el("job-actions").replaceChildren();
   const imageJob = job.completion?.messages.some(
@@ -802,9 +803,16 @@ function renderProvider(status) {
         (profile.permissionMode === "bypass"
           ? "Explicit bypass; trusted host required"
           : "Default enabled"),
-      "Deadline: " +
-        profile.timeoutMs / 1000 +
-        "s · Output limit: " +
+      "Console jobs: " +
+        workDurationLabel(
+          profile.workDuration ?? { version: 1, timeoutMs: null },
+        ),
+      (profile.workDuration === undefined
+        ? "Unversioned callers: " +
+          profile.timeoutMs / 1000 +
+          " seconds per attempt. "
+        : "Profile selects version 1 for new admissions. ") +
+        "Output limit: " +
         profile.maxOutputBytes +
         " bytes",
     ]) {
@@ -945,6 +953,7 @@ function lockSession(message = "") {
     "template-form",
   ])
     el(id).reset();
+  jobWizard.admitted();
   controller?.abort();
   access = { owner: false, scopes: [] };
   runtimeStatus = undefined;
@@ -1152,12 +1161,15 @@ el("job-form").onsubmit = async (event) => {
     jobWizard.next();
     return;
   }
+  const workDuration = jobWizard.duration();
+  if (!workDuration) return;
   const body = {
     model: "bridge/" + el("profile").value,
     messages: [{ role: "user", content: el("prompt").value }],
     bridge: {
       execution: el("mode").value === "cli" ? "agent" : el("mode").value,
       background: true,
+      workDuration,
     },
   };
   const fingerprint = JSON.stringify(body);
@@ -1169,6 +1181,7 @@ el("job-form").onsubmit = async (event) => {
   try {
     const job = await api("/chat/completions", body, "POST", jobRequestId);
     el("prompt").value = "";
+    jobWizard.admitted();
     el("job-dialog").close();
     selected = job.id;
     if (detailViewport.matches) document.body.dataset.jobDetail = "open";

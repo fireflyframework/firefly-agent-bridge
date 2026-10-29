@@ -107,6 +107,7 @@ export async function startService(
     const store = (opened = new QueueStore(
       join(config.dataDir, "queue.sqlite"),
       config.queueCapacity,
+      (profile) => config.profiles[profile]?.workDuration,
     ));
     const auth = new Tokens(store),
       flows = new Workflows(store, config.workflows);

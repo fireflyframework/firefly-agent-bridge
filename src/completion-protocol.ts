@@ -20,6 +20,7 @@
 import { bridgePrompt } from "./prompt-catalog.js";
 import type { CompletionInputLimits } from "./config.js";
 import { z } from "zod";
+import { workDurationSchema, optionalTimeoutSchema } from "./work-duration.js";
 import { Ajv2020, type ValidateFunction } from "ajv/dist/2020.js";
 import { schemaRegExp } from "./schema-pattern.js";
 import { BridgeError, type Job } from "./contracts.js";
@@ -110,6 +111,8 @@ export const chatRequestSchema = z.strictObject({
     .strictObject({
       execution: z.enum(["inference", "agent", "channel"]).default("inference"),
       background: z.boolean().default(false),
+      workDuration: workDurationSchema.optional(),
+      waitTimeoutMs: optionalTimeoutSchema.optional(),
     })
     .prefault({}),
 });

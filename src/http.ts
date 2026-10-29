@@ -27,6 +27,7 @@ import {
   terminal,
   type Principal,
 } from "./contracts.js";
+import { workDurationCapability } from "./work-duration.js";
 import { parseConfig, templateSchema, type BridgeConfig } from "./config.js";
 import { auditQuery, toolsQuery } from "./audit.js";
 import { QueueStore } from "./store.js";
@@ -346,6 +347,15 @@ export function createHttpService(
     return {
       version: releaseVersion,
       protocolVersion: 2,
+      workDuration: workDurationCapability,
+      workDurationProfiles: Object.fromEntries(
+        Object.entries(d.config.profiles)
+          .filter(([name]) => p.owner || p.profiles.includes(name))
+          .map(([name, profile]) => [
+            name,
+            profile.workDuration ?? { version: 1, timeoutMs: null },
+          ]),
+      ),
       completionRecovery: {
         version: 1,
         principal_id: p.id,
@@ -399,6 +409,9 @@ export function createHttpService(
                     permissionMode: profile.permissionMode,
                     tools: profile.tools,
                     timeoutMs: profile.timeoutMs,
+                    ...(profile.workDuration === undefined
+                      ? {}
+                      : { workDuration: profile.workDuration }),
                     maxOutputBytes: profile.maxOutputBytes,
                     maxTurns: profile.maxTurns,
                     maxSubagents: profile.maxSubagents,

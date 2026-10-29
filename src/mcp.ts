@@ -25,6 +25,7 @@ import { randomUUID } from "node:crypto";
 import { request, type Connection } from "./lifecycle.js";
 import type { Job } from "./contracts.js";
 import { templateSchema } from "./config.js";
+import { workDurationSchema } from "./work-duration.js";
 export function createAdapter(
   connection: Connection,
   channel = false,
@@ -80,6 +81,7 @@ export function createAdapter(
       prompt: z.string().min(1).max(100000),
       profile: z.string().default("default"),
       mode: z.enum(["cli", "channel", "inference"]).default("cli"),
+      workDuration: workDurationSchema.optional(),
     },
     (args) =>
       request(connection, "/v1/chat/completions", {
@@ -88,6 +90,7 @@ export function createAdapter(
         bridge: {
           execution: args.mode === "cli" ? "agent" : args.mode,
           background: true,
+          ...(args.workDuration ? { workDuration: args.workDuration } : {}),
         },
       }),
   );

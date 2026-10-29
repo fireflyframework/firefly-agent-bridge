@@ -208,6 +208,7 @@ export class Scheduler {
     if (this.stopped || this.ticking) return;
     this.ticking = true;
     try {
+      this.store.expireDeadlines();
       for (const [id, entry] of this.active)
         if (
           ["cancel_requested", "pause_requested"].includes(

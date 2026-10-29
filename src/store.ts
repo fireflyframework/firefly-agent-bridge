@@ -24,6 +24,11 @@ import { DatabaseSync } from "node:sqlite";
 import { createHash, randomUUID } from "node:crypto";
 import { AuditLog, type AuditQuery, type ToolsQuery } from "./audit.js";
 import { migrate } from "./migrations.js";
+import {
+  absoluteWorkDeadline,
+  chooseWorkDuration,
+  type WorkDuration,
+} from "./work-duration.js";
 import type { WorkerEvent } from "./worker.js";
 import { buildClusterHandoff } from "./cluster-handoff.js";
 import {
@@ -50,6 +55,9 @@ export class QueueStore {
   constructor(
     path: string,
     private capacity = 1000,
+    private durationPolicy: (
+      profile: string,
+    ) => WorkDuration | undefined = () => undefined,
   ) {
     this.db = new DatabaseSync(path);
     this.completionRecovery = new CompletionRecovery(this.db);
@@ -176,6 +184,10 @@ export class QueueStore {
         const now = stamp();
         const job: Job = {
           ...input,
+          workDuration: chooseWorkDuration(
+            this.durationPolicy(input.profile),
+            input.workDuration,
+          ),
           ...(completion ? { completion } : {}),
           id: randomUUID(),
           principalId: p.id,
@@ -191,6 +203,20 @@ export class QueueStore {
             },
           ],
         };
+        if (job.workDuration === undefined) delete job.workDuration;
+        if (job.mode === "channel" && job.workDuration?.timeoutMs != null)
+          throw new BridgeError(
+            "work_duration_unsupported",
+            "Chosen deadlines are unavailable for connected-host jobs; select a local CLI job or inference",
+          );
+        try {
+          absoluteWorkDeadline(job);
+        } catch {
+          throw new BridgeError(
+            "invalid_work_duration",
+            "Work deadline exceeds the timestamp representation",
+          );
+        }
         this.db
           .prepare("INSERT INTO jobs VALUES(?,?,?,?,?)")
           .run(job.id, p.id, job.mode, job.status, JSON.stringify(job));
@@ -239,6 +265,26 @@ export class QueueStore {
         .all(mode) as { data: string }[]
     ).map((r) => JSON.parse(r.data) as Job);
   }
+  expireDeadlines(now = Date.now()): void {
+    this.atomic(() => {
+      for (const row of this.db
+        .prepare("SELECT data FROM jobs WHERE status='queued'")
+        .all() as { data: string }[]) {
+        const job = JSON.parse(row.data) as Job;
+        const deadline = absoluteWorkDeadline(job);
+        if (deadline == null || deadline > now) continue;
+        job.status = "timed_out";
+        job.error = "work_deadline_exceeded";
+        job.activity = "timed_out";
+        this.completionRecovery.finish(job, null);
+        this.save(job);
+        this.addEvent(job, "job.timed_out", {
+          status: job.status,
+          error: job.error,
+        });
+      }
+    });
+  }
   claim(
     owner: string,
     mode: JobInput["mode"],
@@ -246,6 +292,7 @@ export class QueueStore {
     options?: { nodeId?: string; worker?: "claude" | "codex" },
   ): Attempt | null {
     return this.atomic(() => {
+      this.expireDeadlines();
       const row = this.db
         .prepare(
           "SELECT data FROM jobs WHERE status='queued' AND mode=? AND (? IS NULL OR id=?) ORDER BY rowid LIMIT 1",
@@ -470,6 +517,7 @@ export class QueueStore {
   resume(id: string, p: Principal): Job {
     return this.atomic(() => {
       const job = this.get(id, p);
+      this.requireRemainingDeadline(job);
       if (job.completion && prepareCompletion(job.completion).images.length)
         throw new BridgeError(
           "image_replay_unsupported",
@@ -598,6 +646,7 @@ export class QueueStore {
   retry(id: string, p: Principal): Job {
     return this.atomic(() => {
       const job = this.get(id, p);
+      this.requireRemainingDeadline(job);
       if (job.completion && prepareCompletion(job.completion).images.length)
         throw new BridgeError(
           "image_replay_unsupported",
@@ -627,6 +676,15 @@ export class QueueStore {
       this.addEvent(job, "job.queued", { retry: true, actor: p.id });
       return job;
     });
+  }
+  private requireRemainingDeadline(job: Job): void {
+    const deadline = absoluteWorkDeadline(job);
+    if (deadline != null && deadline <= Date.now())
+      throw new BridgeError(
+        "work_deadline_expired",
+        "The chosen work deadline has elapsed; this admission cannot be restarted",
+        409,
+      );
   }
   sendMessage(id: string, text: string, p: Principal, key?: string): Job {
     if (!text.trim() || text.length > 100000)

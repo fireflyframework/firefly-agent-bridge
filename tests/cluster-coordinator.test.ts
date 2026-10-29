@@ -211,6 +211,8 @@ async function claim(
         id: string;
         prompt: string;
         profile: string;
+        createdAt: string;
+        workDuration?: { version: 1; timeoutMs: number | null };
         assignedNodeId?: string;
         clusterHandoff?: {
           reason: string;
@@ -234,6 +236,36 @@ afterEach(async () => {
 });
 
 describe("ClusterCoordinator protocol", () => {
+  it("expires a chosen admission deadline before granting a cluster attempt", async () => {
+    const { token } = new ClusterAuth(service.store).createJoinToken({
+      createdBy: "owner",
+      ttlMs: 60_000,
+    });
+    const worker = await joinWorker(service.address, token, "deadline-fixture");
+    await heartbeat(service.address, worker);
+    const job = service.store.submit(
+      {
+        prompt: "Fictional queued deadline",
+        workDuration: { version: 1, timeoutMs: 1000 },
+      },
+      { id: "owner", owner: true, profiles: [] },
+    );
+    job.createdAt = new Date(Date.now() - 10_000).toISOString();
+    service.store.db
+      .prepare("UPDATE jobs SET data=? WHERE id=?")
+      .run(JSON.stringify(job), job.id);
+    expect((await claim(service.address, worker)).claims).toHaveLength(0);
+    expect(service.store.get(job.id)).toMatchObject({
+      status: "timed_out",
+      error: "work_deadline_exceeded",
+      createdAt: job.createdAt,
+    });
+    expect(
+      service.store.db
+        .prepare("SELECT count(*) AS n FROM attempts WHERE job_id=?")
+        .get(job.id),
+    ).toEqual({ n: 0 });
+  });
   it("join → submit → claim → event → finish yields succeeded job", async () => {
     const { token: joinToken } = new ClusterAuth(service.store).createJoinToken(
       {
@@ -1026,98 +1058,115 @@ describe("ClusterCoordinator protocol", () => {
     expect(service.store.get(job.id).worker).toBe("codex");
   });
 
-  it("failovers from Claude sticky home to a Codex peer with handoff", async () => {
-    const auth = new ClusterAuth(service.store);
-    const { token: tClaude } = auth.createJoinToken({
-      createdBy: "owner",
-      ttlMs: 60_000,
-    });
-    const claude = await joinWorker(
-      service.address,
-      tClaude,
-      "home-claude",
-      "claude",
-    );
-    await heartbeat(service.address, claude, capacity({ worker: "claude" }));
+  it.each([null, 600_000])(
+    "preserves admission and duration %s across Claude-to-Codex failover",
+    async (timeoutMs) => {
+      const auth = new ClusterAuth(service.store);
+      const { token: tClaude } = auth.createJoinToken({
+        createdBy: "owner",
+        ttlMs: 60_000,
+      });
+      const claude = await joinWorker(
+        service.address,
+        tClaude,
+        "home-claude",
+        "claude",
+      );
+      await heartbeat(service.address, claude, capacity({ worker: "claude" }));
 
-    const submit = await fetch(service.address + "/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        authorization: "Bearer " + service.ownerToken,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "bridge/default",
-        messages: [{ role: "user", content: "cross cli failover" }],
-        bridge: { execution: "agent", background: true },
-      }),
-    });
-    const job = (await submit.json()) as { id: string };
-    const first = await claim(service.address, claude);
-    const attempt = first.claims[0]!.attempt;
-    await workerPost(
-      service.address,
-      claude,
-      `/v1/cluster/attempts/${attempt.id}/events`,
-      {
-        owner: attempt.owner,
-        fence: attempt.fence,
-        events: [
-          { kind: "session", text: "", data: { sessionId: "claude-sess" } },
-        ],
-      },
-    );
-    await workerPost(
-      service.address,
-      claude,
-      `/v1/cluster/attempts/${attempt.id}/finish`,
-      {
-        owner: attempt.owner,
-        fence: attempt.fence,
-        outcome: {
-          status: "paused",
-          error: "quota_exhausted",
-          sessionId: "claude-sess",
+      const submit = await fetch(service.address + "/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer " + service.ownerToken,
+          "content-type": "application/json",
         },
-      },
-    );
-
-    const after = service.store.get(job.id);
-    expect(after.status).toBe("queued");
-    expect(after.sessionId).toBeUndefined();
-    expect(after.clusterHandoff?.brief).toContain("failover");
-
-    await heartbeat(
-      service.address,
-      claude,
-      capacity({
-        worker: "claude",
-        quota: {
-          state: "limited",
-          resetAt: Date.now() + 120_000,
-          windowStartedAt: "2026-10-27T00:00:00.000Z",
-          estimatedUsedUnits: 100,
-          estimatedCapacityUnits: 100,
+        body: JSON.stringify({
+          model: "bridge/default",
+          messages: [{ role: "user", content: "cross cli failover" }],
+          bridge: {
+            execution: "agent",
+            background: true,
+            workDuration: { version: 1, timeoutMs },
+          },
+        }),
+      });
+      const job = (await submit.json()) as { id: string };
+      const first = await claim(service.address, claude);
+      const attempt = first.claims[0]!.attempt;
+      await workerPost(
+        service.address,
+        claude,
+        `/v1/cluster/attempts/${attempt.id}/events`,
+        {
+          owner: attempt.owner,
+          fence: attempt.fence,
+          events: [
+            { kind: "session", text: "", data: { sessionId: "claude-sess" } },
+          ],
         },
-      }),
-    );
+      );
+      await workerPost(
+        service.address,
+        claude,
+        `/v1/cluster/attempts/${attempt.id}/finish`,
+        {
+          owner: attempt.owner,
+          fence: attempt.fence,
+          outcome: {
+            status: "paused",
+            error: "quota_exhausted",
+            sessionId: "claude-sess",
+          },
+        },
+      );
 
-    const { token: tCodex } = auth.createJoinToken({
-      createdBy: "owner",
-      ttlMs: 60_000,
-    });
-    const codex = await joinWorker(
-      service.address,
-      tCodex,
-      "peer-codex",
-      "codex",
-    );
-    await heartbeat(service.address, codex, capacity({ worker: "codex" }));
-    const peer = await claim(service.address, codex, 1, "codex");
-    expect(peer.claims).toHaveLength(1);
-    expect(peer.claims[0]!.job.id).toBe(job.id);
-    expect(peer.claims[0]!.job.clusterHandoff?.brief).toContain("failover");
-    expect(service.store.get(job.id).worker).toBe("codex");
-    expect(service.store.get(job.id).sessionId).toBeUndefined();
-  });
+      const after = service.store.get(job.id);
+      expect(after.status).toBe("queued");
+      expect(after.sessionId).toBeUndefined();
+      expect(after.clusterHandoff?.brief).toContain("failover");
+
+      await heartbeat(
+        service.address,
+        claude,
+        capacity({
+          worker: "claude",
+          quota: {
+            state: "limited",
+            resetAt: Date.now() + 120_000,
+            windowStartedAt: "2026-10-27T00:00:00.000Z",
+            estimatedUsedUnits: 100,
+            estimatedCapacityUnits: 100,
+          },
+        }),
+      );
+
+      const { token: tCodex } = auth.createJoinToken({
+        createdBy: "owner",
+        ttlMs: 60_000,
+      });
+      const codex = await joinWorker(
+        service.address,
+        tCodex,
+        "peer-codex",
+        "codex",
+      );
+      await heartbeat(service.address, codex, capacity({ worker: "codex" }));
+      const peer = await claim(service.address, codex, 1, "codex");
+      expect(peer.claims).toHaveLength(1);
+      expect(peer.claims[0]!.job.id).toBe(job.id);
+      expect(peer.claims[0]!.job.clusterHandoff?.brief).toContain("failover");
+      expect(first.claims[0]!.job.workDuration).toEqual({
+        version: 1,
+        timeoutMs,
+      });
+      expect(peer.claims[0]!.job.workDuration).toEqual(
+        first.claims[0]!.job.workDuration,
+      );
+      expect(peer.claims[0]!.job.createdAt).toBe(
+        first.claims[0]!.job.createdAt,
+      );
+      expect(service.store.get(job.id).worker).toBe("codex");
+      expect(service.store.get(job.id).sessionId).toBeUndefined();
+    },
+  );
 });
